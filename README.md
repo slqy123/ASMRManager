@@ -36,7 +36,7 @@ python main.py RJ373001 RJ385913
     "dl_count",
     "price",
     "rate_average_2dp",
-	"review_count",
+    "review_count",
     "id",
     "nsfw",
     "random"

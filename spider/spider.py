@@ -18,6 +18,9 @@ from logger import logger
 # TODO 统一管理固定的参数
 
 class ASMRSpider:
+    # base_api_url = 'https://api.asmr.one/api/'
+    base_api_url = 'https://api.asmr-100.com/api/'
+
     def __init__(self, name: str, password: str, proxy: str, save_path: str,
                  download_callback: Callable[[Dict[str, Any]], Any] = None, limit: int = 3) -> None:
         self._session: Optional[ClientSession] = None  # for __aenter__
@@ -55,12 +58,12 @@ class ASMRSpider:
                 "Authorization": f"Bearer {(await resp.json())['token']}",
             })
 
-    async def get(self, route: str, **params):
+    async def get(self, route: str, params: dict):
         resp_json = None
         while not resp_json:
             try:
                 async with self._session.get(
-                        route,
+                        self.base_api_url + route,
                         headers=self.headers,
                         proxy=self.proxy,
                         params=params
@@ -77,7 +80,7 @@ class ASMRSpider:
         self.download_callback(voice_info)
         save_path = save_path or self.save_path
 
-        voice_path = path.join(save_path, f"RJ{voice_id}")
+        voice_path = path.join(save_path, f'RJ{str(voice_id).zfill(6)}')
         if path.exists(voice_path):
             logger.warning(f'path {voice_path} already exists.')
 
@@ -92,14 +95,17 @@ class ASMRSpider:
         self.create_dir_and_files(tracks, voice_path)
 
     async def get_voice_info(self, voice_id: int) -> Dict[str, Any]:
-        voice_info = await self.get(f"https://api.asmr.one/api/work/{voice_id}")
+        voice_info = await self.get(f"work/{voice_id}")
         return voice_info
 
     async def get_voice_tracks(self, voice_id: int):
-        return await self.get(f"https://api.asmr.one/api/tracks/{voice_id}")
+        return await self.get(f"tracks/{voice_id}")
 
     @staticmethod
     def download_files(url: str, save_path: str, file_name: str) -> None:
+        """
+        不能用协程或者不堵塞的多线程，不然都会出现程序执行成功但是没加入的情况。
+        """
         file_name = file_name.translate(str.maketrans(r'/\:*?"<>|', "_________"))
         file_path = path.join(save_path, file_name)
         if not path.exists(file_path):
@@ -110,7 +116,7 @@ class ASMRSpider:
             #         f.write(await resp.read())
             try:
                 logger.info(f"Downloading {file_path}")
-                run(f'IDMan /d {url} /p {path.abspath(save_path)} /f "{file_name}" /a', check=True)
+                run(f'IDMan /d {url} /p "{path.abspath(save_path)}" /f "{file_name}" /a', check=True)
                 # await asyncio.create_subprocess_exec(
                 #     'IDMan', '/d', url,
                 #     '/p', str(path.abspath(save_path)),
@@ -143,11 +149,14 @@ class ASMRSpider:
             makedirs(new_path, exist_ok=True)
             self.create_dir_and_files(folder["children"], new_path)
 
-    async def get_search_result(self, content: str, page: int, subtitle: bool):
-        return await self.get(f"https://api.asmr.one/api/search/{content}", page=str(page), subtitle=str(int(subtitle)))
+    async def get_search_result(self, content: str, params: dict):
+        return await self.get(f"search/{content}", params=params)
 
-    async def list(self, page: int, subtitle: bool):
-        return await self.get(f"https://api.asmr.one/api/works", page=str(page), subtitle=str(int(subtitle)))
+    async def list(self, params: dict):
+        return await self.get(f"works", params=params)
+
+    async def tag(self, tag_id: int, params: dict):
+        return await self.get(f'tags/{tag_id}/works', params=params)
 
     async def __aenter__(self) -> "ASMRSpider":
         self._session = ClientSession(connector=TCPConnector(limit=self.limit))

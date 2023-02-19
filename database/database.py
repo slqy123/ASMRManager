@@ -35,6 +35,9 @@ class Tag(Base):
     cn_name = Column(Text)
     en_name = Column(Text)
 
+    def __repr__(self):
+        return self.name
+
 
 class ASMRs2Tags(Base):
     __tablename__ = 'asmrs2tags'
@@ -65,6 +68,9 @@ class VoiceActor(Base):
     __tablename__ = 'voice_actor'
     id = Column(GUID, primary_key=True)
     name = Column(Text)
+
+    def __repr__(self):
+        return self.name
 
 
 def bind_engine(engine):

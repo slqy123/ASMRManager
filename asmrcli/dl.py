@@ -1,7 +1,7 @@
 import click
 from typing import Iterable
-from asmrcli.core import create_spider_and_database, rjs2ids
-
+from asmrcli.core import create_spider_and_database, rjs2ids, browse_param_options
+from common.browse_params import BrowseParams
 
 @click.group()
 def dl():
@@ -29,12 +29,28 @@ def update(ids: Iterable[str]):
 
 @click.command()
 @click.argument('text', type=str, default='')
-@click.option('-p', '--page', type=int, default=1)
-@click.option('-s', '--subtitle', is_flag=True, default=False)
-def search(text: str, page: int, subtitle: bool):
+@browse_param_options
+def search(text: str, **kwargs):
+    params = BrowseParams(**kwargs)
     spider, db = create_spider_and_database()
-    spider.run(spider.search(text, page, subtitle=subtitle))
+    spider.run(spider.search(text, params))
     db.commit()
+
+
+@click.command()
+@click.option('-n', '--name', type=str, default=None)
+@click.option('-t', '--tid', type=int, default=None)
+@browse_param_options
+def tag(name: str, tid: int, **kwargs):
+    if (bool(name) + bool(tid)) != 1:
+        print('error! You must give and should only give one param')
+        return
+    params = BrowseParams(**kwargs)
+    spider, db = create_spider_and_database()
+    if name:
+        tid = db.func.get_tag_id(name)
+
+    spider.run(spider.tag(tid, params))
 
 
 dl.add_command(get)

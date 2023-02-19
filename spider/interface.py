@@ -1,4 +1,5 @@
 from .spider import ASMRSpider
+from common.browse_params import BrowseParams
 import asyncio
 from typing import Iterable, Callable, Coroutine
 
@@ -19,12 +20,17 @@ class ASMRSpiderManager:
             tasks.append(self.spider.download(arg))
         await asyncio.gather(*tasks)
 
-    async def search(self, content: str, page: int, subtitle: bool):
+    async def search(self, content: str, params: BrowseParams):
         if content:
-            search_result = await self.spider.get_search_result(content, page, subtitle=subtitle)
+            search_result = await self.spider.get_search_result(content, params=params.params)
         else:
-            search_result = await self.spider.list(page, subtitle=subtitle)
+            search_result = await self.spider.list(params=params.params)
         ids = [work['id'] for work in search_result['works']]
+        await self.get(ids)
+
+    async def tag(self, tag_id: int, params: BrowseParams):
+        tag_res = await self.spider.tag(tag_id, params=params.params)
+        ids = [work['id'] for work in tag_res['works']]
         await self.get(ids)
 
     async def update_info(self, ids: Iterable[int]):

@@ -1,10 +1,12 @@
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from typing import Any, Dict, Union
 from datetime import date
 
 from .database import *
 from .engine import get_engine
+from .q_func import QFunc
+
 from logger import logger
 
 
@@ -15,7 +17,8 @@ class DataBaseManager:
         self.engine = engine or get_engine()
         bind_engine(self.engine)
 
-        self.session = sessionmaker(self.engine)()
+        self.session: Session = sessionmaker(self.engine)()
+        self.func = QFunc(self.session)
 
     def check_exists(self, rj_id: int) -> Union[ASMR, None]:
         return self.session.query(ASMR).get(rj_id)
@@ -66,6 +69,23 @@ class DataBaseManager:
         if comment is not None:
             comment = f'{date.today()}: {comment}\n'
             asmr.comment += comment
+
+    def hold_item(self, rj_id: int, comment: str):
+        if not (asmr := self.check_exists(rj_id)):
+            logger.error('Incorrect RJ ID, no item in database!')
+            return
+
+        if asmr.held:
+            logger.warning(f'ASMR id={rj_id} has already been held!')
+
+        asmr.held = True
+        if comment is not None:
+            comment = f'{date.today()}: {comment}\n'
+            asmr.comment += comment
+
+    @property
+    def query(self):
+        return self.session.query
 
     def commit(self):
         self.session.commit()
