@@ -7,6 +7,8 @@ from typing import Optional, Iterable, List, Tuple, Literal
 
 import click
 import functools
+
+
 def create_database():
     return DataBaseManager()
 
@@ -54,6 +56,7 @@ def rjs2ids(rjs: Iterable[str]) -> List[int]:
 
 def id2rj(rj_id: int) -> str:
     return f'RJ{str(rj_id).zfill(6)}'
+
 
 def browse_param_options(f):
     @click.option('-p', '--page', type=int, default=1)

@@ -58,7 +58,7 @@ class ASMRSpider:
                 "Authorization": f"Bearer {(await resp.json())['token']}",
             })
 
-    async def get(self, route: str, params: dict):
+    async def get(self, route: str, params: dict = None):
         resp_json = None
         while not resp_json:
             try:

@@ -14,11 +14,11 @@ class BrowseParams:
                      "id",
                      "nsfw",
                      "random"
-                 ], sort: Literal['asc', 'desc']):
+                 ], asc: bool):
         self.page = page
         self.subtitle = subtitle
         self.order = order
-        self.sort = sort
+        self.sort = 'asc' if asc else 'desc'
 
     @property
     def params(self):

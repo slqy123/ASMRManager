@@ -39,7 +39,7 @@ def search(text: str, **kwargs):
 
 @click.command()
 @click.option('-n', '--name', type=str, default=None)
-@click.option('-t', '--tid', type=int, default=None)
+@click.option('tid', '-t', '--tag-id', type=int, default=None)
 @browse_param_options
 def tag(name: str, tid: int, **kwargs):
     if (bool(name) + bool(tid)) != 1:
@@ -51,8 +51,10 @@ def tag(name: str, tid: int, **kwargs):
         tid = db.func.get_tag_id(name)
 
     spider.run(spider.tag(tid, params))
+    db.commit()
 
 
 dl.add_command(get)
 dl.add_command(update)
 dl.add_command(search)
+dl.add_command(tag)
