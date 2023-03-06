@@ -45,7 +45,11 @@ class FileManager:
 
     def view(self, storage_item: str, replace=True):
         assert self.could_view()
-        if not os.path.exists(self.storage_path / storage_item):
+        if os.path.exists(self.storage_path / storage_item):
+            src = self.storage_path / storage_item
+        elif os.path.exists(self.download_path / storage_item):
+            src = self.download_path / storage_item
+        else:
             logger.error(f'Failed to view {storage_item}, item not exists!')
             raise SrcNotExistsException
 
@@ -54,10 +58,13 @@ class FileManager:
             if not replace:
                 raise
         
-        if self.view_link_type == 'hard':
-            os.link(self.storage_path / storage_item, self.view_path / storage_item)
+        self.link(src, self.view_path / storage_item)
+    
+    def link(self, src: Path, dst: Path):
+        if src.anchor == dst.anchor:
+            os.link(src, dst)
         else:
-            os.symlink(self.storage_path / storage_item, self.view_path / storage_item)
+            os.symlink(src, dst)
 
         
 

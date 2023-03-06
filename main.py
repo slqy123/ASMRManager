@@ -1,3 +1,6 @@
+import os
+os.chdir(os.path.split(__file__)[0])
+
 import click
 from asmrcli.dl import dl
 from asmrcli.review import review

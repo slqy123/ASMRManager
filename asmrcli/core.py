@@ -32,7 +32,7 @@ def create_spider_and_database(
         func = lambda rj_id: not db.check_exists(rj_id)
     else:
         func = lambda: True
-    return ASMRSpiderManager(spider, func), db
+    return ASMRSpiderManager(spider, func), db  # type: ignore
 
 
 # 15 25

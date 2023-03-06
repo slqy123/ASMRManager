@@ -12,7 +12,7 @@ from logger import logger
 
 class DataBaseManager:
     def __init__(self,
-                 engine: Engine = None,
+                 engine: Union[Engine, None] = None,
                  ):
         self.engine = engine or get_engine()
         bind_engine(self.engine)
@@ -53,7 +53,7 @@ class DataBaseManager:
 
         self.session.merge(asmr)
 
-    def update_review(self, rj_id: int, star: int = None, comment: str = None):
+    def update_review(self, rj_id: int, star: int, comment: str):
         if not (asmr := self.check_exists(rj_id)):
             logger.error('Incorrect RJ ID, no item in database!')
             return
