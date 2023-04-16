@@ -1,7 +1,7 @@
 import asyncio
 import shutil
 from os import makedirs, path
-from typing import Any, Dict, List, Callable, Iterable, Optional
+from typing import Any, Dict, List, Callable, Iterable, Optional, Union
 from subprocess import run, CalledProcessError
 
 try:
@@ -9,7 +9,7 @@ try:
 except ImportError:
     import json
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientConnectorError
 from aiohttp.connector import TCPConnector
 
 from logger import logger
@@ -23,7 +23,8 @@ class ASMRSpider:
 
     def __init__(self, name: str, password: str, proxy: str, save_path: str,
                  download_callback: Callable[[Dict[str, Any]], Any] = None, limit: int = 3) -> None:
-        self._session: Optional[ClientSession] = None  # for __aenter__
+        # self._session: Optional[ClientSession] = None  # for __aenter__
+        self._session: ClientSession
         self.name = name
         self.password = password
         self.headers = {
@@ -48,17 +49,21 @@ class ASMRSpider:
         #     )
 
     async def login(self) -> None:
-        async with self._session.post(
-                "https://api.asmr.one/api/auth/me",
-                json={"name": self.name, "password": self.password},
-                headers=self.headers,
-                proxy=self.proxy,
-        ) as resp:
-            self.headers.update({
-                "Authorization": f"Bearer {(await resp.json())['token']}",
-            })
+        try:
+            async with self._session.post(
+                    "https://api.asmr.one/api/auth/me",
+                    json={"name": self.name, "password": self.password},
+                    headers=self.headers,
+                    proxy=self.proxy,
+            ) as resp:
+                self.headers.update({
+                    "Authorization": f"Bearer {(await resp.json())['token']}",
+                })
+        except ClientConnectorError as err:
+            logger.error(f'Login failed, {err}')
 
-    async def get(self, route: str, params: dict = None):
+
+    async def get(self, route: str, params: dict = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         resp_json = None
         while not resp_json:
             try:
@@ -73,6 +78,7 @@ class ASMRSpider:
             except Exception as e:
                 logger.warning(f'Request {route} failed: {e}')
                 await asyncio.sleep(3)
+        return resp_json
 
     async def download(self, voice_id: int, save_path: str = None) -> None:
         voice_info = await self.get_voice_info(voice_id)
@@ -88,14 +94,19 @@ class ASMRSpider:
         self.create_info_file(voice_info)
 
         tracks = await self.get_voice_tracks(voice_id)
-        if isinstance(tracks, dict) and (error_info := tracks.get('error')):
-            logger.error(f'RJ{voice_id} not found, {error_info}')
-            return
+        if isinstance(tracks, dict):
+            if (error_info := tracks.get('error')):
+                logger.error(f'RJ{voice_id} not found, {error_info}')
+                return
+            else:
+                logger.error('Unexpected track type: dict')
+                return
 
         self.create_dir_and_files(tracks, voice_path)
 
     async def get_voice_info(self, voice_id: int) -> Dict[str, Any]:
         voice_info = await self.get(f"work/{voice_id}")
+        assert isinstance(voice_info, dict)
         return voice_info
 
     async def get_voice_tracks(self, voice_id: int):
@@ -155,8 +166,9 @@ class ASMRSpider:
     async def list(self, params: dict):
         return await self.get(f"works", params=params)
 
-    async def tag(self, tag_id: int, params: dict):
-        return await self.get(f'tags/{tag_id}/works', params=params)
+    async def tag(self, tag_name: str, params: dict):
+        # return await self.get(f'tags/{tag_id}/works', params=params)
+        return await self.get_search_result(f'$tag:{tag_name}$', params=params)
 
     async def __aenter__(self) -> "ASMRSpider":
         self._session = ClientSession(connector=TCPConnector(limit=self.limit))

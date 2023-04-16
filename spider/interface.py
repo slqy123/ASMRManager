@@ -28,14 +28,14 @@ class ASMRSpiderManager:
         ids = [work['id'] for work in search_result['works']]
         await self.get(ids)
 
-    async def tag(self, tag_id: int, params: BrowseParams):
-        tag_res = await self.spider.tag(tag_id, params=params.params)
+    async def tag(self, tag_name: str, params: BrowseParams):
+        tag_res = await self.spider.tag(tag_name, params=params.params)
         ids = [work['id'] for work in tag_res['works']]
         await self.get(ids)
 
-    async def update_info(self, ids: Iterable[int]):
+    async def update(self, ids: Iterable[int]):
 
-        async def update_one_info(rj_id_: int):
+        async def update_one(rj_id_: int):
             rj_info = await self.spider.get_voice_info(rj_id_)
             if err := rj_info.get('error'):
                 logger.error(f'Info Error: {err}')
@@ -46,7 +46,7 @@ class ASMRSpiderManager:
 
         tasks = []
         for rj_id in ids:
-            tasks.append(update_one_info(rj_id))
+            tasks.append(update_one(rj_id))
 
         await asyncio.gather(*tasks)
 

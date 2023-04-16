@@ -31,9 +31,15 @@ def create_spider_and_database(
     elif dl_func == 'db_not_exists':
         func = lambda rj_id: not db.check_exists(rj_id)
     else:
-        func = lambda: True
+        func = lambda rj_id: True
     return ASMRSpiderManager(spider, func), db  # type: ignore
 
+def create_fm():
+    from file_manager.manager import FileManager
+    fm = FileManager(storage_path=config.storage_path,
+                     download_path=config.save_path,
+                     view_path=config.view_path)
+    return fm
 
 # 15 25
 def rj2id(rj_id: str) -> Optional[int]:

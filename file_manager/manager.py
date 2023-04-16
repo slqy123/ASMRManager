@@ -1,9 +1,10 @@
 from logger import logger
-from .exceptions import SrcNotExistsException, DstItemAlreadyExists
+from .exceptions import SrcNotExistsException, DstItemAlreadyExistsException
 
 from pathlib import Path
 import os
 import shutil
+from typing import Literal
 
 
 class FileManager:
@@ -15,8 +16,6 @@ class FileManager:
         self.storage_path_exists = True if os.path.exists(self.storage_path) else False
         self.download_path_exists = True if os.path.exists(self.download_path) else False
         self.view_path_exists = True if os.path.exists(self.view_path) else False
-
-        self.view_link_type = 'hard' if (self.storage_path.anchor == self.view_path.anchor) else 'sym'
 
     def could_store(self):
         return self.storage_path_exists and self.download_path_exists
@@ -30,18 +29,19 @@ class FileManager:
         if os.path.exists(self.storage_path / download_item):
             if not exists_ok:
                 logger.error('the item to store already exists!')
-                raise DstItemAlreadyExists
+                raise DstItemAlreadyExistsException
 
             logger.info(f'remove item {download_item} in storage')
             shutil.rmtree(self.storage_path / download_item)
 
         shutil.move(self.download_path / download_item, self.storage_path / download_item)  # type: ignore
+
     def store_all(self, exists_ok: bool = False):
         for file in os.listdir(self.download_path):
             self.store(file, exists_ok=exists_ok)
 
     def could_view(self):
-        return self.view_path_exists and self.storage_path_exists
+        return self.view_path_exists and (self.storage_path_exists or self.download_path_exists)
 
     def view(self, storage_item: str, replace=True):
         assert self.could_view()
@@ -56,20 +56,26 @@ class FileManager:
         if os.path.exists(self.view_path / storage_item):
             logger.warning(f'{storage_item} already exists!')
             if not replace:
-                raise
-        
-        self.link(src, self.view_path / storage_item)
-    
-    def link(self, src: Path, dst: Path):
-        if src.anchor == dst.anchor:
-            os.link(src, dst)
-        else:
-            os.symlink(src, dst)
+                raise DstItemAlreadyExistsException
 
-        
+        os.symlink(src, self.view_path / storage_item)
+
+    def list_(self, path: Literal['download', 'view', 'storage']):
+        if path == 'download':
+            p = self.download_path
+        elif path == 'view':
+            p = self.view_path
+        elif path == 'storage':
+            p = self.storage_path
+        else:
+            logger.error('Invalid path')
+            return []
+
+        return filter(lambda x: x.startswith('RJ'), os.listdir(p))
 
 
 if __name__ == '__main__':
     from config import config
+
     fm = FileManager(config.storage_path, config.save_path, config.view_path)
     fm.store('RJ097514')

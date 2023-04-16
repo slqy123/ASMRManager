@@ -1,5 +1,5 @@
 class SrcNotExistsException(Exception):
     pass
 
-class DstItemAlreadyExists(Exception):
+class DstItemAlreadyExistsException(Exception):
     pass
