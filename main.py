@@ -4,6 +4,7 @@ os.chdir(os.path.split(os.path.abspath(__file__))[0])
 import sys
 
 import click
+
 from asmrcli.dl import dl
 from asmrcli.review import review
 from asmrcli.query import query
@@ -15,7 +16,7 @@ from logger import logger
 
 
 # TODO 可能有的项目更新了汉化会被过滤不会下载，考虑对比has_subtitle
-
+# TODO dry run，clear zip file
 @click.group()
 def main():
     logger.info(f'Run program with: {" ".join(sys.argv[1:])}')

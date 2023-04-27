@@ -22,7 +22,7 @@ class ASMRSpider:
     base_api_url = 'https://api.asmr-100.com/api/'
 
     def __init__(self, name: str, password: str, proxy: str, save_path: str,
-                 download_callback: Callable[[Dict[str, Any]], Any] = None, limit: int = 3) -> None:
+                 download_callback: Callable[[Dict[str, Any]], Any]|None = None, limit: int = 3) -> None:
         # self._session: Optional[ClientSession] = None  # for __aenter__
         self._session: ClientSession
         self.name = name
@@ -63,7 +63,7 @@ class ASMRSpider:
             logger.error(f'Login failed, {err}')
 
 
-    async def get(self, route: str, params: dict = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+    async def get(self, route: str, params: dict|None = None) -> Any:
         resp_json = None
         while not resp_json:
             try:
@@ -80,7 +80,7 @@ class ASMRSpider:
                 await asyncio.sleep(3)
         return resp_json
 
-    async def download(self, voice_id: int, save_path: str = None) -> None:
+    async def download(self, voice_id: int, save_path: str|None = None) -> None:
         voice_info = await self.get_voice_info(voice_id)
 
         self.download_callback(voice_info)
@@ -160,15 +160,18 @@ class ASMRSpider:
             makedirs(new_path, exist_ok=True)
             self.create_dir_and_files(folder["children"], new_path)
 
-    async def get_search_result(self, content: str, params: dict):
+    async def get_search_result(self, content: str, params: dict) -> List[Dict[str, Any]]:
         return await self.get(f"search/{content}", params=params)
 
-    async def list(self, params: dict):
+    async def list(self, params: dict) -> List[Dict[str, Any]]:
         return await self.get(f"works", params=params)
 
     async def tag(self, tag_name: str, params: dict):
         # return await self.get(f'tags/{tag_id}/works', params=params)
         return await self.get_search_result(f'$tag:{tag_name}$', params=params)
+
+    async def va(self, va_name: str, params: dict):
+        return await self.get_search_result(f'$va:{va_name}$', params=params)
 
     async def __aenter__(self) -> "ASMRSpider":
         self._session = ClientSession(connector=TCPConnector(limit=self.limit))

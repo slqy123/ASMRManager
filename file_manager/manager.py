@@ -34,6 +34,7 @@ class FileManager:
             logger.info(f'remove item {download_item} in storage')
             shutil.rmtree(self.storage_path / download_item)
 
+        logger.info(f'move {self.download_path / download_item} to {self.storage_path / download_item}')
         shutil.move(self.download_path / download_item, self.storage_path / download_item)  # type: ignore
 
     def store_all(self, exists_ok: bool = False):

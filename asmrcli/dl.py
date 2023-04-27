@@ -1,8 +1,9 @@
 import click
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Tuple
 from asmrcli.core import create_spider_and_database, rjs2ids, browse_param_options
 from common.browse_params import BrowseParams
 from logger import logger
+
 
 @click.group()
 def dl():
@@ -28,11 +29,14 @@ def update(ids: Iterable[str]):
 
 @click.command()
 @click.argument('text', type=str, default='')
+@click.option('--tags', '-t', type=str, multiple=True)
+@click.option('--vas', '-v', type=str, multiple=True)
+@click.option('--circle', '-c', type=str, default=None)
 @browse_param_options
-def search(text: str, **kwargs):
+def search(text: str, tags: Tuple[str], vas: Tuple[str], circle: str | None, **kwargs):
     params = BrowseParams(**kwargs)
     spider, db = create_spider_and_database()
-    spider.run(spider.search(text, params))
+    spider.run(spider.search(text, tags=tags, vas=vas, circle=circle, params=params))
     db.commit()
 
 

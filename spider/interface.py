@@ -1,13 +1,13 @@
 from .spider import ASMRSpider
 from common.browse_params import BrowseParams
 import asyncio
-from typing import Iterable, Callable, Coroutine
+from typing import Iterable, Callable, Coroutine, Tuple
 
 from logger import logger
 
 
 class ASMRSpiderManager:
-    def __init__(self, bind: ASMRSpider, should_download_callback: Callable[[int], bool] = None):
+    def __init__(self, bind: ASMRSpider, should_download_callback: Callable[[int], bool] | None = None):
         self.spider = bind
         self.should_download_callback = should_download_callback or (lambda rj_id: True)
 
@@ -20,21 +20,37 @@ class ASMRSpiderManager:
             tasks.append(self.spider.download(arg))
         await asyncio.gather(*tasks)
 
-    async def search(self, content: str, params: BrowseParams):
-        if content:
-            search_result = await self.spider.get_search_result(content, params=params.params)
+    async def search(self, text: str, tags: Tuple[str], vas: Tuple[str], circle: str | None, params: BrowseParams):
+        conds = []
+        conds += [f'$tag:{t}$' for t in tags]
+        conds += [f'$va:{va}$' for va in vas]
+        if circle:
+            conds.append(f'$circle:{circle}$')
+        if text:
+            conds.append(text)
+
+        if conds:
+            logger.info(f'searching with {conds}', params)
+            search_result = await self.spider.get_search_result(' '.join(conds), params=params.params)
         else:
+            logger.info(f'list works with', params)
             search_result = await self.spider.list(params=params.params)
         ids = [work['id'] for work in search_result['works']]
         await self.get(ids)
 
     async def tag(self, tag_name: str, params: BrowseParams):
+        """tag 和 va 一样，都是调用了特殊的search方法"""
         tag_res = await self.spider.tag(tag_name, params=params.params)
         ids = [work['id'] for work in tag_res['works']]
         await self.get(ids)
 
-    async def update(self, ids: Iterable[int]):
+    async def va(self, va_name: str, params: BrowseParams):
+        """tag 和 va 一样，都是调用了特殊的search方法"""
+        va_res = await self.spider.tag(va_name, params=params.params)
+        ids = [work['id'] for work in va_res['works']]
+        await self.get(ids)
 
+    async def update(self, ids: Iterable[int]):
         async def update_one(rj_id_: int):
             rj_info = await self.spider.get_voice_info(rj_id_)
             if err := rj_info.get('error'):
