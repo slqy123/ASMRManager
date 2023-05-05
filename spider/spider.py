@@ -3,6 +3,7 @@ import shutil
 from os import makedirs, path
 from typing import Any, Dict, List, Callable, Iterable, Optional, Union
 from subprocess import run, CalledProcessError
+from .utils.IDMHelper import IDMHelper
 
 try:
     import ujson as json
@@ -125,22 +126,30 @@ class ASMRSpider:
             # ) as resp:
             #     with open(file_path, "wb") as f:
             #         f.write(await resp.read())
-            try:
-                logger.info(f"Downloading {file_path}")
-                run(f'IDMan /d {url} /p "{path.abspath(save_path)}" /f "{file_name}" /a', check=True)
-                # await asyncio.create_subprocess_exec(
-                #     'IDMan', '/d', url,
-                #     '/p', str(path.abspath(save_path)),
-                #     '/f', file_name, '/a')
-            except CalledProcessError as e:
-                logger.error(e)
+            # try:
+            #     logger.info(f"Downloading {file_path}")
+            #     run(f'IDMan /d {url} /p "{path.abspath(save_path)}" /f "{file_name}" /a', check=True)
+            #     # await asyncio.create_subprocess_exec(
+            #     #     'IDMan', '/d', url,
+            #     #     '/p', str(path.abspath(save_path)),
+            #     #     '/f', file_name, '/a')
+            # except CalledProcessError as e:
+            #     logger.error(e)
+            logger.info(f"Downloading {file_path}")
+            m = IDMHelper(url, path.abspath(save_path), file_name, 3)
+            res = m.send_link_to_idm()
+            if res != 0:
+                logger.error('IDM api returns an error code!')
         else:
             logger.warning(f'file {file_path} already exists.')
 
     def create_info_file(self, voice_info: Dict[str, Any]):
         rj_id = f'RJ{str(voice_info["id"]).zfill(6)}'
         voice_path = path.join(self.save_path, rj_id)
-        with open(path.join(voice_path, f"{rj_id}.json"), "w", encoding="utf-8") as f:
+        json_path = path.join(voice_path, f"{rj_id}.json")
+        if path.exists(json_path):
+            logger.info(f'Path {json_path} already exists, update it...')
+        with open(json_path, "w", encoding="utf-8") as f:
             json.dump(voice_info, f, ensure_ascii=False, indent=4)
 
     def create_dir_and_files(self, tracks: List[Dict[str, Any]], voice_path: str) -> None:
