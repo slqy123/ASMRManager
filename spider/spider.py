@@ -84,7 +84,10 @@ class ASMRSpider:
     async def download(self, voice_id: int, save_path: str|None = None) -> None:
         voice_info = await self.get_voice_info(voice_id)
 
-        self.download_callback(voice_info)
+        should_down = self.download_callback(voice_info)
+        if not should_down:
+            logger.info(f'stop download {voice_id}')
+            return
         save_path = save_path or self.save_path
 
         voice_path = path.join(save_path, f'RJ{str(voice_id).zfill(6)}')
@@ -115,26 +118,9 @@ class ASMRSpider:
 
     @staticmethod
     def download_files(url: str, save_path: str, file_name: str) -> None:
-        """
-        不能用协程或者不堵塞的多线程，不然都会出现程序执行成功但是没加入的情况。
-        """
         file_name = file_name.translate(str.maketrans(r'/\:*?"<>|', "_________"))
         file_path = path.join(save_path, file_name)
         if not path.exists(file_path):
-            # async with self._session.get(
-            #     url, headers=self.headers, proxy=self.proxy, timeout=114514
-            # ) as resp:
-            #     with open(file_path, "wb") as f:
-            #         f.write(await resp.read())
-            # try:
-            #     logger.info(f"Downloading {file_path}")
-            #     run(f'IDMan /d {url} /p "{path.abspath(save_path)}" /f "{file_name}" /a', check=True)
-            #     # await asyncio.create_subprocess_exec(
-            #     #     'IDMan', '/d', url,
-            #     #     '/p', str(path.abspath(save_path)),
-            #     #     '/f', file_name, '/a')
-            # except CalledProcessError as e:
-            #     logger.error(e)
             logger.info(f"Downloading {file_path}")
             m = IDMHelper(url, path.abspath(save_path), file_name, 3)
             res = m.send_link_to_idm()

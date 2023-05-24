@@ -135,3 +135,4 @@ Voice/
 /data.db
 /test.db
 .idea
+/sqls/*

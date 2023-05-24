@@ -16,7 +16,7 @@ def create_database():
 def create_spider_and_database(
         dl_func: Literal['force', 'folder_not_exists', 'db_not_exists'] = 'db_not_exists'
 ) -> Tuple[ASMRSpiderManager, DataBaseManager]:
-    db = DataBaseManager()
+    db = DataBaseManager(tag_filter=config.tag_filter or tuple())
 
     spider = ASMRSpider(name=config.username,
                         password=config.password,

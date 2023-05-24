@@ -28,7 +28,7 @@ class FileManager:
 
         if os.path.exists(self.storage_path / download_item):
             if not exists_ok:
-                logger.error('the item to store already exists!')
+                logger.error(f'the item {download_item} to store already exists!')
                 raise DstItemAlreadyExistsException
 
             logger.info(f'remove item {download_item} in storage')

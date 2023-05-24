@@ -2,6 +2,7 @@ from .spider import ASMRSpider
 from common.browse_params import BrowseParams
 import asyncio
 from typing import Iterable, Callable, Coroutine, Tuple
+from urllib.parse import quote
 
 from logger import logger
 
@@ -31,7 +32,7 @@ class ASMRSpiderManager:
 
         if conds:
             logger.info(f'searching with {conds}', params)
-            search_result = await self.spider.get_search_result(' '.join(conds), params=params.params)
+            search_result = await self.spider.get_search_result(' '.join(conds).replace('/', '%2F'), params=params.params)
         else:
             logger.info(f'list works with', params)
             search_result = await self.spider.list(params=params.params)

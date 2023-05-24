@@ -1,6 +1,6 @@
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker, Session
-from typing import Any, Dict, Union
+from typing import Any, Dict, Union, Sequence
 from datetime import date
 
 from .database import *
@@ -13,9 +13,12 @@ from logger import logger
 class DataBaseManager:
     def __init__(self,
                  engine: Union[Engine, None] = None,
+                 tag_filter: Sequence[str] = tuple()
                  ):
         self.engine = engine or get_engine()
         bind_engine(self.engine)
+
+        self.tag_filter = set(tag_filter)
 
         self.session: Session = sessionmaker(self.engine)()
         self.func = QFunc(self.session)
@@ -23,7 +26,8 @@ class DataBaseManager:
     def check_exists(self, rj_id: int) -> Union[ASMR, None]:
         return self.session.query(ASMR).get(rj_id)
 
-    def add_info(self, info: Dict[str, Any]):
+    def add_info(self, info: Dict[str, Any]) -> bool:
+        """add/update info to database and check if it has tag in the filter or not, return True if should download"""
         asmr = ASMR(
             id=info['id'],
             title=info['title'],
@@ -52,6 +56,13 @@ class DataBaseManager:
             asmr.tags.append(tag)
 
         self.session.merge(asmr)
+
+        # check for tag filter
+        tags = [t['name'] for t in info['tags']]
+        if self.tag_filter.intersection(tags):
+            logger.info(f'ignore {asmr.id} since it has tags: {tags}')
+            return False
+        return True
 
     def update_review(self, rj_id: int, star: int, comment: str):
         if not (asmr := self.check_exists(rj_id)):
