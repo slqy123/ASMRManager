@@ -1,6 +1,7 @@
+import sqlalchemy.orm
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker, Session
-from typing import Any, Dict, Union, Sequence
+from typing import Any, Dict, Union, Sequence, cast
 from datetime import date
 
 from .database import *
@@ -94,9 +95,8 @@ class DataBaseManager:
             comment = f'{date.today()}: {comment}\n'
             asmr.comment += comment
 
-    @property
-    def query(self):
-        return self.session.query
+    def query(self, *args, **kwargs) -> sqlalchemy.orm.Query:
+        return cast(sqlalchemy.orm.Query, self.session.query(*args, **kwargs))
 
     def commit(self):
         self.session.commit()

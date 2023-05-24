@@ -1,6 +1,6 @@
 import click
 from typing import Iterable, Optional, Tuple
-from asmrcli.core import create_spider_and_database, rjs2ids, browse_param_options
+from asmrcli.core import create_spider_and_database, rjs2ids, browse_param_options, rj_argument
 from common.browse_params import BrowseParams
 from logger import logger
 

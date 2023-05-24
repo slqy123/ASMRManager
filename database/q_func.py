@@ -3,6 +3,7 @@ from .database import *
 
 from typing import Optional
 
+
 class QFunc:
     def __init__(self, ss: Session):
         self.ss = ss

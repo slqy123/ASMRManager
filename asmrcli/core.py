@@ -1,8 +1,11 @@
 import os.path
+from pathlib import Path
 
 from spider import ASMRSpider, ASMRSpiderManager
 from database.manage import DataBaseManager
 from config import config
+from logger import logger
+
 from typing import Optional, Iterable, List, Tuple, Literal
 
 import click
@@ -34,12 +37,14 @@ def create_spider_and_database(
         func = lambda rj_id: True
     return ASMRSpiderManager(spider, func), db  # type: ignore
 
+
 def create_fm():
     from file_manager.manager import FileManager
     fm = FileManager(storage_path=config.storage_path,
                      download_path=config.save_path,
                      view_path=config.view_path)
     return fm
+
 
 # 15 25
 def rj2id(rj_id: str) -> Optional[int]:
@@ -85,3 +90,39 @@ def browse_param_options(f):
         return f(*args, **kwargs)
 
     return wrapper_common_options
+
+
+def get_prev_rj():
+    path = Path(__file__).parent.parent / '.prev_rj'
+    if not os.path.exists(path):
+        return None
+    with open(path, 'r', encoding='utf8') as f:
+        rj = f.read()
+    assert rj
+    return rj
+
+
+def save_rj(rj: str):
+    path = Path(__file__).parent.parent / '.prev_rj'
+    with open(path, 'w', encoding='utf8') as f:
+        f.write(rj)
+
+
+def rj_argument(f):
+    """parse the rj_id: int, if not given it will use the previous rj_id"""
+    @click.argument('rj_id', type=str, default='__default__')
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        rj = kwargs['rj_id']
+        if kwargs['rj_id'] == '__default__':
+            rj = get_prev_rj()
+
+        rj_id = rj2id(rj)
+        if rj_id is None:
+            logger.error(f'Invalid input RJ ID{rj}')
+            exit(-1)
+        save_rj(rj)
+        kwargs['rj_id'] = rj_id
+
+        f(*args, **kwargs)
+    return wrapper

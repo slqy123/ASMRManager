@@ -1,5 +1,5 @@
 import click
-
+from asmrcli.core import rj_argument
 
 @click.group()
 def view():
@@ -7,12 +7,10 @@ def view():
 
 
 @click.command()
-@click.argument('rj_id', type=str)
-def add(rj_id: str):
-    from asmrcli.core import rj2id, id2rj, create_fm
-    rj_id_int = rj2id(rj_id)
-    assert isinstance(rj_id_int, int)
-    rj = id2rj(rj_id_int)
+@rj_argument
+def add(rj_id: int):
+    from asmrcli.core import id2rj, create_fm
+    rj = id2rj(rj_id)
     fm = create_fm()
 
     if fm.could_view():

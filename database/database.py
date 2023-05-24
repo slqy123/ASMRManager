@@ -18,13 +18,14 @@ class ASMR(Base):
     release_date = Column(Date)  # 对应release字段
     price = Column(Integer)
     dl_count = Column(Integer)
+    has_subtitle = Column(Boolean)
 
     star = Column(Integer, default=0)
     count = Column(Integer, default=0)
     comment = Column(Text, default='')
 
     held = Column(Boolean, default=False)
-    has_subtitle = Column(Boolean)
+    stored = Column(Boolean, default=False)
 
 
 class Tag(Base):

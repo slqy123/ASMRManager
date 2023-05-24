@@ -1,6 +1,6 @@
-import os
+# import os
 
-os.chdir(os.path.split(os.path.abspath(__file__))[0])
+# os.chdir(os.path.split(os.path.abspath(__file__))[0])
 import sys
 
 import click
@@ -11,6 +11,7 @@ from asmrcli.query import query
 from asmrcli.info import info
 from asmrcli.hold import hold
 from asmrcli.view import view
+from asmrcli.play import play
 
 from logger import logger
 
@@ -29,5 +30,6 @@ if __name__ == '__main__':
     main.add_command(info)
     main.add_command(hold)
     main.add_command(view)
+    main.add_command(play)
 
     main()
