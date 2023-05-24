@@ -4,7 +4,6 @@ __pycache__/
 *$py.class
 
 script.py
-search.sql
 
 # C extensions
 *.so
@@ -138,3 +137,5 @@ Voice/
 /sqls/*
 
 .prev_rj
+config.py
+database/test_interface.py
