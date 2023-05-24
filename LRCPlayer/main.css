@@ -1,0 +1,26 @@
+Screen {
+  align-vertical: middle;
+  align-horizontal: center;
+  layout: vertical;
+}
+
+
+#title {
+  background: blue;
+  padding: 1;
+  margin: 1;
+  width: 100%;
+  text-align: center;
+  dock: top;
+}
+
+.lyrics {
+  margin: 1;
+  padding: 1;
+  width: 100%;
+  text-align: center
+}
+
+#pgbar {
+  margin-top: 5;
+}
