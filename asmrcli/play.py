@@ -5,18 +5,19 @@ from pathlib import Path
 from collections import Counter
 
 from asmrcli.core import rj_argument, create_database, id2rj
-from database.database import ASMR
 
 from logger import logger
 from config import config
 
-from LRCPlayer import lrc_play
 
 
 @click.command()
 @click.pass_context
 @rj_argument
 def play(ctx: click.Context, rj_id: int):
+    """play an asmr in the terminal"""
+    from database.database import ASMR
+    from LRCPlayer import lrc_play
     db = create_database()
     asmr: ASMR | None = db.query(ASMR).get(rj_id)
     if asmr is None:

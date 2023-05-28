@@ -7,6 +7,7 @@ from asmr
 where true
     and has_subtitle = true
     and asmr.count = 0
+    and stored = false
     -- and t.name = 'tag.name'
     -- and tag_id = tag.id
     and nsfw = false

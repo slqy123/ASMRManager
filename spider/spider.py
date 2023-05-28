@@ -117,7 +117,7 @@ class ASMRSpider:
         return await self.get(f"tracks/{voice_id}")
 
     @staticmethod
-    def download_files(url: str, save_path: str, file_name: str) -> None:
+    def download_file(url: str, save_path: str, file_name: str) -> None:
         file_name = file_name.translate(str.maketrans(r'/\:*?"<>|', "_________"))
         file_path = path.join(save_path, file_name)
         if not path.exists(file_path):
@@ -143,7 +143,7 @@ class ASMRSpider:
         files = [track for track in tracks if track["type"] != "folder"]
         for file in files:
             try:
-                self.download_files(
+                self.download_file(
                     file["mediaDownloadUrl"], voice_path, file["title"]
                 )
             except Exception as e:

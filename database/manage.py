@@ -1,6 +1,7 @@
 import sqlalchemy.orm
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy import text
 from typing import Any, Dict, Union, Sequence, cast
 from datetime import date
 
@@ -65,22 +66,25 @@ class DataBaseManager:
             return False
         return True
 
-    def update_review(self, rj_id: int, star: int, comment: str):
+    def update_review(self, rj_id: int, star: int, comment: str, update_stored: bool = False):
         if not (asmr := self.check_exists(rj_id)):
             logger.error('Incorrect RJ ID, no item in database!')
-            return
+            exit(-1)
 
         asmr.count += 1
 
         if star is not None:
             if (not isinstance(star, int)) or star < 1 or star > 5:
                 logger.error('Your star should be a integer between 1 and 5')
-                return
+                exit(-1)
             asmr.star = star
 
         if comment is not None:
             comment = f'{date.today()}: {comment}\n'
             asmr.comment += comment
+
+        if update_stored:
+            asmr.stored = True
 
     def hold_item(self, rj_id: int, comment: str):
         if not (asmr := self.check_exists(rj_id)):
@@ -94,6 +98,9 @@ class DataBaseManager:
         if comment is not None:
             comment = f'{date.today()}: {comment}\n'
             asmr.comment += comment
+
+    def execute(self, sql: str) -> sqlalchemy.ResultProxy:
+        return self.session.execute(text(sql))
 
     def query(self, *args, **kwargs) -> sqlalchemy.orm.Query:
         return cast(sqlalchemy.orm.Query, self.session.query(*args, **kwargs))

@@ -22,3 +22,8 @@ class QFunc:
         if res:
             return res.name
         return None
+
+    def get_stored(self, rj_id: int):
+        res = self.ss.query(ASMR).get(rj_id)
+        return res.stored
+

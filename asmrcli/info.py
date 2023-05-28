@@ -7,6 +7,7 @@ from logger import logger
 @click.command()
 @rj_argument
 def info(rj_id: int):
+    """show info of the ASMR by id"""
     db = create_database()
 
     v_info = db.func.get_info(rj_id)

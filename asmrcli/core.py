@@ -1,24 +1,29 @@
 import os.path
 from pathlib import Path
 
-from spider import ASMRSpider, ASMRSpiderManager
-from database.manage import DataBaseManager
 from config import config
 from logger import logger
 
-from typing import Optional, Iterable, List, Tuple, Literal
+from typing import Optional, Iterable, List, Tuple, Literal, TYPE_CHECKING
 
 import click
 import functools
 
+if TYPE_CHECKING:
+    from spider import ASMRSpiderManager
+    from database.manage import DataBaseManager
+
 
 def create_database():
+    from database.manage import DataBaseManager
     return DataBaseManager()
 
 
 def create_spider_and_database(
         dl_func: Literal['force', 'folder_not_exists', 'db_not_exists'] = 'db_not_exists'
-) -> Tuple[ASMRSpiderManager, DataBaseManager]:
+) -> Tuple['ASMRSpiderManager', 'DataBaseManager']:
+    from spider import ASMRSpider, ASMRSpiderManager
+    from database.manage import DataBaseManager
     db = DataBaseManager(tag_filter=config.tag_filter or tuple())
 
     spider = ASMRSpider(name=config.username,
@@ -70,8 +75,9 @@ def id2rj(rj_id: int) -> str:
 
 
 def browse_param_options(f):
-    @click.option('-p', '--page', type=int, default=1)
-    @click.option('-s', '--subtitle', is_flag=True, default=False)
+    @click.option('-p', '--page', type=int, default=1, help='page of the search result', show_default=True)
+    @click.option('--subtitle/--no-subtitle', '-s/-ns', is_flag=True, default=False,
+                  help='if the ASMR has subtitle(中文字幕)', show_default=True)
     @click.option('-o', '--order', type=click.Choice([
         "create_date",
         "rating",
@@ -83,8 +89,8 @@ def browse_param_options(f):
         "id",
         "nsfw",
         "random"
-    ], case_sensitive=False), default='release')
-    @click.option('--asc/--desc', default=False)
+    ], case_sensitive=False), default='release', help='ordering of the search result', show_default=True)
+    @click.option('--asc/--desc', default=False, help='ascending or descending')
     @functools.wraps(f)
     def wrapper_common_options(*args, **kwargs):
         return f(*args, **kwargs)
@@ -95,10 +101,10 @@ def browse_param_options(f):
 def get_prev_rj():
     path = Path(__file__).parent.parent / '.prev_rj'
     if not os.path.exists(path):
-        return None
+        return ''
     with open(path, 'r', encoding='utf8') as f:
         rj = f.read()
-    assert rj
+    logger.info(f'previous RJ id is {rj}')
     return rj
 
 
@@ -110,12 +116,16 @@ def save_rj(rj: str):
 
 def rj_argument(f):
     """parse the rj_id: int, if not given it will use the previous rj_id"""
+
     @click.argument('rj_id', type=str, default='__default__')
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        rj = kwargs['rj_id']
+        rj: str = kwargs['rj_id']
         if kwargs['rj_id'] == '__default__':
             rj = get_prev_rj()
+        if rj == '':
+            logger.error('No previous RJ id available, please first run a command with Rj id')
+            exit(-1)
 
         rj_id = rj2id(rj)
         if rj_id is None:
@@ -125,4 +135,5 @@ def rj_argument(f):
         kwargs['rj_id'] = rj_id
 
         f(*args, **kwargs)
+
     return wrapper

@@ -61,6 +61,15 @@ class FileManager:
 
         os.symlink(src, self.view_path / storage_item)
 
+    def remove_view(self, name):
+        assert self.could_view()
+        path = self.view_path / name
+        if not path.exists():
+            logger.error(f'file f{name} not exists')
+            return
+        assert path.is_dir() and path.is_symlink()
+        os.remove(path)
+
     def list_(self, path: Literal['download', 'view', 'storage']):
         if path == 'download':
             p = self.download_path
