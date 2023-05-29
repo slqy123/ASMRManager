@@ -31,15 +31,28 @@ def update(ids: Iterable[str]):
 
 @click.command()
 @click.argument('text', type=str, default='')
-@click.option('--tags', '-t', type=str, multiple=True, help='tags to include')
-@click.option('--vas', '-v', type=str, multiple=True, help='voice actor(cv) to include')
+@click.option('--tags', '-t', type=str, multiple=True, help='tags to include[multiple]')
+@click.option('--no-tags', '-nt', type=str, multiple=True, help='tags to exclude[multiple]')
+@click.option('--vas', '-v', type=str, multiple=True, help='voice actor(cv) to include[multiple]')
+@click.option('--no-vas', '-nv', type=str, multiple=True, help='voice actor(cv) to exclude[multiple]')
 @click.option('--circle', '-c', type=str, default=None, help='circle(社团) to include')
+@click.option('--no-circle', '-nc', type=str, multiple=True, help='circle(社团) to exclude[multiple]')
 @browse_param_options
-def search(text: str, tags: Tuple[str], vas: Tuple[str], circle: str | None, **kwargs):
-    """search and download ASMR by filters"""
+def search(text: str, tags: Tuple[str], vas: Tuple[str], circle: str | None,
+           no_tags: Tuple[str], no_vas: Tuple[str], no_circle: Tuple[str],
+           **kwargs):
+    """
+    search and download ASMR by filters
+
+    attention the [multiple] options, this means you can add multiple same option such as:
+
+        --tags tag1 --tags tag2 --no-tags tag3
+    """
     params = BrowseParams(**kwargs)
     spider, db = create_spider_and_database()
-    spider.run(spider.search(text, tags=tags, vas=vas, circle=circle, params=params))
+    spider.run(spider.search(text, tags=tags, vas=vas, circle=circle,
+                             no_tags=no_tags, no_vas=no_vas, no_circle=no_circle,
+                             params=params))
     db.commit()
 
 

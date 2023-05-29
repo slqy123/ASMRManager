@@ -21,20 +21,29 @@ class ASMRSpiderManager:
             tasks.append(self.spider.download(arg))
         await asyncio.gather(*tasks)
 
-    async def search(self, text: str, tags: Tuple[str], vas: Tuple[str], circle: str | None, params: BrowseParams):
-        conds = []
-        conds += [f'$tag:{t}$' for t in tags]
-        conds += [f'$va:{va}$' for va in vas]
-        if circle:
-            conds.append(f'$circle:{circle}$')
-        if text:
-            conds.append(text)
+    async def search(self, text: str, tags: Tuple[str], vas: Tuple[str], circle: str | None,
+                     no_tags: Tuple[str], no_vas: Tuple[str], no_circle: Tuple[str],
+                     params: BrowseParams):
+        filters = []
 
-        if conds:
-            logger.info(f'searching with {conds}', params)
-            search_result = await self.spider.get_search_result(' '.join(conds).replace('/', '%2F'), params=params.params)
+        filters += [f'$tag:{t}$' for t in tags]
+        filters += [f'$-tag:{nt}$' for nt in no_tags]
+
+        filters += [f'$va:{va}$' for va in vas]
+        filters += [f'$-va:{nva}$' for nva in no_vas]
+
+        filters += [f'$-circle:{nc}$' for nc in no_circle]
+        if circle:
+            filters.append(f'$circle:{circle}$')
+        if text:
+            filters.append(text)
+
+        if filters:
+            logger.info(f'searching with {filters} {params}')
+            search_result = await self.spider.get_search_result(
+                ' '.join(filters).replace('/', '%2F'), params=params.params)
         else:
-            logger.info(f'list works with', params)
+            logger.info(f'list works with {params}')
             search_result = await self.spider.list(params=params.params)
         ids = [work['id'] for work in search_result['works']]
         await self.get(ids)
