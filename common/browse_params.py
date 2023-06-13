@@ -28,5 +28,6 @@ class BrowseParams:
             'order': self.order,
             'sort': self.sort
         }
+
     def __str__(self):
         return str(self.params)

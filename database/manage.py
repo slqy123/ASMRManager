@@ -86,7 +86,7 @@ class DataBaseManager:
         if update_stored:
             asmr.stored = True
 
-    def hold_item(self, rj_id: int, comment: str):
+    def hold_item(self, rj_id: int, comment: str|None):
         if not (asmr := self.check_exists(rj_id)):
             logger.error('Incorrect RJ ID, no item in database!')
             return

@@ -20,7 +20,7 @@ def sql(sql_name: str, save: bool = False):
 
     temp_file_path = sql_path.parent.parent / 'tempfile.sql'
     temp_file_path.write_text(sql_path.read_text(encoding='utf8'), encoding='utf8')
-    run([config.editor, str(temp_file_path)])
+    run(f"{config.editor} {temp_file_path}")
     # db_path = temp_file_path.with_name('data.db')
     # print(db_path, temp_file_path)
     # run(['litecli', str(db_path), '-e', temp_file_path.read_text(encoding='utf8')])

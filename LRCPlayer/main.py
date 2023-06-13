@@ -1,5 +1,4 @@
-from typing import List
-from click.types import Tuple
+from typing import List, Tuple
 from textual.app import App, ComposeResult
 from textual.containers import ScrollableContainer, Center
 from textual.widgets import Button, Footer, Header, ProgressBar, Static, Label
@@ -8,56 +7,63 @@ from textual.binding import Binding
 
 import click
 from pathlib import Path
-from .player import MusicPlayer
+from .player import MusicPlayer, MusicPlayerWithLyrics
 
 
 class LRCPlayer(App):
     CSS_PATH = 'main.css'
     BINDINGS = [
-        ('space', 'pause', '')
+        ('space', 'pause', ''),
+        ('j', 'forward', ''),
+        ('k', 'backward', ''),
+        ('l', 'next_voice', ''),
+        ('h', 'prev_voice', '')
     ]
 
     def __init__(self, episodes: List[Tuple] , *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.episodes = episodes
         self.players: List[MusicPlayer|None] = [None] * len(self.episodes)
-        self.music_index = 0
-        self.lrc_index = 1
-        self.paused = False
+        self.voice_index = 0
 
     @property
-    def player(self) -> MusicPlayer:
-        if self.players[self.music_index] is None:
-            self.players[self.music_index] = MusicPlayer(*self.episodes[self.music_index])  # pyright: ignore
-        return self.players[self.music_index]  # pyright: ignore
+    def player(self) -> MusicPlayer|MusicPlayerWithLyrics:
+        if self.players[self.voice_index] is None:
+            if self.episodes[self.voice_index][1] is None:
+                self.players[self.voice_index] = MusicPlayer(self.episodes[self.voice_index][0])  # pyright: ignore
+            else:
+                self.players[self.voice_index] = MusicPlayerWithLyrics(*self.episodes[self.voice_index])
+
+        return self.players[self.voice_index]  # pyright: ignore
 
     def on_mount(self):
         self.player.play()
         self.progress_timer = self.set_interval(0.05, self.progress)
 
     def progress(self):
-        if not self.player.get_busy():
-            self.music_index = (self.music_index + 1) % len(self.episodes)
-            self.lrc_index = 1
+        if self.player.get_pos() == -1:
+            self.voice_index = (self.voice_index + 1) % len(self.episodes)
             self.player.play()
             return
-        t = self.player.get_time()
-        t1, t2 = self.player.lrc[self.lrc_index][0], self.player.lrc[self.lrc_index + 1][0]
-        if t >= t2:
-            self.lrc_index += 1
+
+        if isinstance(self.player, MusicPlayerWithLyrics):
+            lrc_data = self.player.get_lyrics()
+            self.query_one(ProgressBar).update(progress=lrc_data.progress)
             for i, l in enumerate(self.query('.lyrics')):
                 assert isinstance(l, Label)
-                l.update(self.player.lrc[self.lrc_index + i-1][1])
-            return 
+                l.update(lrc_data.lyrics[i])
 
-        percentage = int((t - t1) / (t2 - t1) * 100)
-        self.query_one(ProgressBar).update(progress=percentage)
+        else:
+            self.query_one(ProgressBar).update(progress=0)
+            for i, l in enumerate(self.query('.lyrics')):
+                assert isinstance(l, Label)
+                l.update(('', 'no lyrics', '')[i])
 
     def compose(self) -> ComposeResult:
         yield Label(self.player.title, id='title')
 
         for i in range(3):
-            l = Label(self.player.lrc[i][1],classes='lyrics')
+            l = Label('', classes='lyrics')
             l.styles.text_opacity = str(100 - abs(1-i)*50) + '%'
             yield l
 
@@ -65,30 +71,47 @@ class LRCPlayer(App):
             yield ProgressBar(100, show_eta=False, id='pgbar')
 
     def action_pause(self):
-        if not self.paused:
+        if self.player.is_playing():
             self.player.pause()
             self.progress_timer.pause()
         else:
             self.player.unpause()
             self.progress_timer.resume()
-        self.paused = not self.paused
+
+    def action_forward(self, t: float|None = None):
+        if isinstance(self.player, MusicPlayerWithLyrics):
+            self.player.forward_lrc()
+        else:
+            self.player.forward(t)
+
+    def action_backward(self, t: float|None = None):
+        if isinstance(self.player, MusicPlayerWithLyrics):
+            self.player.backward_lrc()
+        else:
+            self.player.backward(t)
+
+    def action_next_voice(self):
+        self.voice_index  = (self.voice_index + 1) % len(self.players)
+
+    def action_prev_voice(self):
+        self.voice_index = max(self.voice_index - 1, 0)
 
 
 @click.command()
 @click.argument('path', type=click.Path(exists=True, dir_okay=True, path_type=Path))
 def main(path: Path):
     import os
-    episodes = []
+    episodes: List[Tuple[Path, Path|None]] = []  # 每个元素是一个元组，包含了文件名和歌词文件名，如果没有歌词则为None
     if path.is_dir():
         for file in os.listdir(path):
             file_path = path / file
-            if file_path.suffix in ('.mp3', '.wav', '.m4a'):
+            if file_path.suffix in ('.mp3', '.wav', '.m4a', '.flac'):
                 lrc_path = file_path.with_suffix('.lrc') 
                 if not lrc_path.exists():
                     lrc_path = None
                 episodes.append((file_path, lrc_path))
     else:
-        if path.suffix in ('.mp3', '.wav', '.m4a'):
+        if path.suffix in ('.mp3', '.wav', '.m4a', '.flac'):
             lrc_path = path.with_suffix('.lrc') 
             if not lrc_path.exists():
                 lrc_path = None

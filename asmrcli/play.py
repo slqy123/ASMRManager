@@ -9,7 +9,7 @@ from asmrcli.core import rj_argument, create_database, id2rj
 from logger import logger
 from config import config
 
-
+import cutie
 
 @click.command()
 @click.pass_context
@@ -27,16 +27,18 @@ def play(ctx: click.Context, rj_id: int):
     rj_path = Path(config.save_path) / asmr_rj if not asmr.stored else Path(config.storage_path) / asmr_rj
 
     choices = []
-    suf = ['.mp3', '.wav', 'flac']
-    for path, folders, files in os.walk(rj_path):
+    suf = ['.mp3', '.wav', '.flac']
+    for path, _, files in os.walk(rj_path):
         res = Counter([Path(i).suffix for i in files])
         if not set(res.keys()).intersection(set(suf)):
             continue
         info = ' '.join([f'{key}: {val}' for key, val in res.items() if key in suf])
-        print(f'{len(choices)}: {path} with {info}')
-        choices.append(path)
-    idx = int(input('choose the path to play: '))
-    path = Path(choices[idx])
+        choices.append((path, info))
+
+    idx: int = cutie.select([f"{x[0]} | [{x[1]}]" for x in choices])
+    # it's just ok to use cutie, no need for beaupy
+    # res = select(choices, preprocessor=lambda x: f"{x[0]} | [{x[1]}]", return_index=True)
+    path = Path(choices[idx][0])
 
     ctx.invoke(lrc_play, path=path)
 

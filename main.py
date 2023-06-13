@@ -4,6 +4,7 @@ import collections
 import sys
 
 import click
+from trogon import tui
 
 from asmrcli.dl import dl
 from asmrcli.review import review
@@ -28,6 +29,8 @@ class OrderedGroup(click.Group):
 
     def list_commands(self, ctx):
         return self.commands
+
+@tui()
 @click.group(context_settings=CONTEXT_SETTINGS, cls=OrderedGroup)
 def main():
     logger.info(f'Run program with: {" ".join(sys.argv[1:])}')
