@@ -106,7 +106,7 @@ class ASMRSpider:
                 logger.error('Unexpected track type: dict')
                 return
 
-        self.create_dir_and_files(tracks, voice_path)
+        self.create_dir_and_download(tracks, voice_path)
 
     async def get_voice_info(self, voice_id: int) -> Dict[str, Any]:
         voice_info = await self.get(f"work/{voice_id}")
@@ -138,7 +138,7 @@ class ASMRSpider:
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(voice_info, f, ensure_ascii=False, indent=4)
 
-    def create_dir_and_files(self, tracks: List[Dict[str, Any]], voice_path: str) -> None:
+    def create_dir_and_download(self, tracks: List[Dict[str, Any]], voice_path: str) -> None:
         folders = [track for track in tracks if track["type"] == "folder"]
         files = [track for track in tracks if track["type"] != "folder"]
         for file in files:
@@ -153,12 +153,12 @@ class ASMRSpider:
             title = folder["title"].translate(str.maketrans(r'/\:*?"<>|', "_________"))
             new_path = path.join(voice_path, title)
             makedirs(new_path, exist_ok=True)
-            self.create_dir_and_files(folder["children"], new_path)
+            self.create_dir_and_download(folder["children"], new_path)
 
-    async def get_search_result(self, content: str, params: dict) -> List[Dict[str, Any]]:
+    async def get_search_result(self, content: str, params: dict) -> Dict[str, Any]:
         return await self.get(f"search/{content}", params=params)
 
-    async def list(self, params: dict) -> List[Dict[str, Any]]:
+    async def list(self, params: dict) -> Dict[str, Any]:
         return await self.get(f"works", params=params)
 
     async def tag(self, tag_name: str, params: dict):

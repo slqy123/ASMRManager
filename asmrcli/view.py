@@ -1,3 +1,4 @@
+from typing import Literal
 import click
 from asmrcli.core import rj_argument, id2rj
 
@@ -9,15 +10,22 @@ def view():
 
 @click.command()
 @rj_argument
-def add(rj_id: int):
-    """add an ASMR to view path (use symbolic link)"""
+@click.option('--mode', '-m', type=click.Choice([
+    'link', 'zip', 'adb'
+]), default='zip', show_default=True)
+def add(rj_id: int, mode: Literal['link', 'zip', 'adb']):
+    """add an ASMR to view path (use zip by default)"""
     from asmrcli.core import id2rj, create_fm
     rj = id2rj(rj_id)
     fm = create_fm()
 
-    if fm.could_view():
-        fm.view(rj, replace=True)
-
+    match mode:
+        case 'zip':
+            fm.zip_file(rj)
+        case 'link':
+            fm.view(rj, replace=True)
+        case 'adb':
+            raise NotImplementedError
 
 @click.command('list')
 def list_():

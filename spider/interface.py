@@ -23,6 +23,8 @@ class ASMRSpiderManager:
 
     async def search(self, text: str, tags: Tuple[str], vas: Tuple[str], circle: str | None,
                      no_tags: Tuple[str], no_vas: Tuple[str], no_circle: Tuple[str],
+                     rate: Tuple[float | None, float | None], sell: Tuple[int | None, int | None],
+                     price: Tuple[int | None, int | None],
                      params: BrowseParams):
         filters = []
 
@@ -33,6 +35,13 @@ class ASMRSpiderManager:
         filters += [f'$-va:{nva}$' for nva in no_vas]
 
         filters += [f'$-circle:{nc}$' for nc in no_circle]
+
+        for name, value in (('rate', rate), ('sell', sell), ('price', price)):
+            if value[0] is not None:
+                filters.append(f'${name}:{value[0]}$')
+            if value[1] is not None:
+                filters.append(f'$-{name}:{value[1]}$')
+
         if circle:
             filters.append(f'$circle:{circle}$')
         if text:

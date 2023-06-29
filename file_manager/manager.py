@@ -1,5 +1,6 @@
 from logger import logger
 from .exceptions import SrcNotExistsException, DstItemAlreadyExistsException
+from file_manager.file_zipper import zip_chosen_folder
 
 from pathlib import Path
 import os
@@ -42,6 +43,7 @@ class FileManager:
             self.store(file, exists_ok=exists_ok)
 
     def could_view(self):
+        """either storage_path or download_path exists ok, view path must exists"""
         return self.view_path_exists and (self.storage_path_exists or self.download_path_exists)
 
     def view(self, storage_item: str, replace=True):
@@ -82,6 +84,30 @@ class FileManager:
             return []
 
         return filter(lambda x: x.startswith('RJ'), os.listdir(p))
+    
+    def zip_file(self, name: str, stored: bool|None=None):
+        assert self.could_view()
+        if stored is None:
+            src1 = self.storage_path / name
+            src2 = self.download_path / name
+            if src1.exists():
+                src = src1
+            elif src2.exists():
+                src = src2
+            else:
+                logger.error(f"file {name} not exists, locate file failed")
+                raise SrcNotExistsException
+        else:
+            path = self.storage_path if stored else self.download_path
+            src = path / name
+            assert src.exists()
+
+        dst = self.view_path / name
+        dst = dst.with_suffix('.zip')
+        if dst.exists():
+            logger.error(f'file {dst} already exists please remove first')
+            raise DstItemAlreadyExistsException
+        zip_chosen_folder(src, dst)
 
 
 if __name__ == '__main__':

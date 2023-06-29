@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 def create_database():
     from database.manage import DataBaseManager
-    return DataBaseManager()
+    return DataBaseManager(tag_filter=config.tag_filter or tuple())
 
 
 def create_spider_and_database(
@@ -24,7 +24,7 @@ def create_spider_and_database(
 ) -> Tuple['ASMRSpiderManager', 'DataBaseManager']:
     from spider import ASMRSpider, ASMRSpiderManager
     from database.manage import DataBaseManager
-    db = DataBaseManager(tag_filter=config.tag_filter or tuple())
+    db = create_database()
 
     spider = ASMRSpider(name=config.username,
                         password=config.password,
@@ -137,3 +137,25 @@ def rj_argument(f):
         f(*args, **kwargs)
 
     return wrapper
+
+SEPARATOR = ':'
+def interval_preprocess_cb(ctx: click.Context, opt: click.Option, val: str):
+    """input must be numeric or None, and it returns a float/int/None value tuple"""
+    vals = val.split(SEPARATOR)
+    assert len(vals) == 2
+
+    def _check(x):
+        if x == '':
+            return None
+        xf = float(x)
+        if xf.is_integer():
+            return int(xf)
+        return xf
+
+
+    return tuple(
+        map(
+            _check,
+            vals
+        )
+    )

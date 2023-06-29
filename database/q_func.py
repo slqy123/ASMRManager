@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from .database import *
 
 from typing import Optional
@@ -8,7 +9,9 @@ class QFunc:
     def __init__(self, ss: Session):
         self.ss = ss
 
-    def get_info(self, rj_id: int):
+    def get_info(self, rj_id: int, rand: bool):
+        if rand:
+            return self.ss.query(ASMR).order_by(func.random()).first()
         return self.ss.query(ASMR).get(rj_id)
 
     def get_tag_id(self, name: str) -> Optional[int]:
@@ -25,5 +28,5 @@ class QFunc:
 
     def get_stored(self, rj_id: int):
         res = self.ss.query(ASMR).get(rj_id)
-        return res.stored
+        return res.stored if res is not None else None
 
