@@ -20,19 +20,21 @@ class LRCPlayer(App):
         ('h', 'prev_voice', '')
     ]
 
-    def __init__(self, episodes: List[Tuple] , *args, **kwargs):
+    def __init__(self, episodes: List[Tuple], *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.episodes = episodes
-        self.players: List[MusicPlayer|None] = [None] * len(self.episodes)
+        self.players: List[MusicPlayer | None] = [None] * len(self.episodes)
         self.voice_index = 0
 
     @property
-    def player(self) -> MusicPlayer|MusicPlayerWithLyrics:
+    def player(self) -> MusicPlayer | MusicPlayerWithLyrics:
         if self.players[self.voice_index] is None:
             if self.episodes[self.voice_index][1] is None:
-                self.players[self.voice_index] = MusicPlayer(self.episodes[self.voice_index][0])  # pyright: ignore
+                self.players[self.voice_index] = MusicPlayer(
+                    self.episodes[self.voice_index][0])  # pyright: ignore
             else:
-                self.players[self.voice_index] = MusicPlayerWithLyrics(*self.episodes[self.voice_index])
+                self.players[self.voice_index] = MusicPlayerWithLyrics(
+                    *self.episodes[self.voice_index])
 
         return self.players[self.voice_index]  # pyright: ignore
 
@@ -41,9 +43,8 @@ class LRCPlayer(App):
         self.progress_timer = self.set_interval(0.05, self.progress)
 
     def progress(self):
-        if self.player.get_pos() == -1:
-            self.voice_index = (self.voice_index + 1) % len(self.episodes)
-            self.player.play()
+        if not self.player.is_playing():
+            self.action_next_voice()
             return
 
         if isinstance(self.player, MusicPlayerWithLyrics):
@@ -51,7 +52,8 @@ class LRCPlayer(App):
             self.query_one(ProgressBar).update(progress=lrc_data.progress)
             for i, l in enumerate(self.query('.lyrics')):
                 assert isinstance(l, Label)
-                l.update(lrc_data.lyrics[i])
+                l.update(
+                    lrc_data.lyrics[i] + f'{max(self.player.get_pos(), self.player.prev_pos)}')
 
         else:
             self.query_one(ProgressBar).update(progress=0)
@@ -78,41 +80,49 @@ class LRCPlayer(App):
             self.player.unpause()
             self.progress_timer.resume()
 
-    def action_forward(self, t: float|None = None):
+    def action_forward(self, t: float | None = None):
         if isinstance(self.player, MusicPlayerWithLyrics):
             self.player.forward_lrc()
         else:
             self.player.forward(t)
 
-    def action_backward(self, t: float|None = None):
+    def action_backward(self, t: float | None = None):
         if isinstance(self.player, MusicPlayerWithLyrics):
             self.player.backward_lrc()
         else:
             self.player.backward(t)
 
+    def switch_voice(self, idx: int):
+        self.voice_index = idx
+        self.player.play()
+        self.query_one('#title', expect_type=Label).update(self.player.title)
+
     def action_next_voice(self):
-        self.voice_index  = (self.voice_index + 1) % len(self.players)
+        if self.voice_index + 1 < len(self.episodes):
+            self.switch_voice(self.voice_index + 1)
 
     def action_prev_voice(self):
-        self.voice_index = max(self.voice_index - 1, 0)
+        if self.voice_index - 1 >= 0:
+            self.switch_voice(self.voice_index - 1)
 
 
 @click.command()
 @click.argument('path', type=click.Path(exists=True, dir_okay=True, path_type=Path))
 def main(path: Path):
     import os
-    episodes: List[Tuple[Path, Path|None]] = []  # 每个元素是一个元组，包含了文件名和歌词文件名，如果没有歌词则为None
+    # 每个元素是一个元组，包含了文件名和歌词文件名，如果没有歌词则为None
+    episodes: List[Tuple[Path, Path | None]] = []
     if path.is_dir():
         for file in os.listdir(path):
             file_path = path / file
             if file_path.suffix in ('.mp3', '.wav', '.m4a', '.flac'):
-                lrc_path = file_path.with_suffix('.lrc') 
+                lrc_path = file_path.with_suffix('.lrc')
                 if not lrc_path.exists():
                     lrc_path = None
                 episodes.append((file_path, lrc_path))
     else:
         if path.suffix in ('.mp3', '.wav', '.m4a', '.flac'):
-            lrc_path = path.with_suffix('.lrc') 
+            lrc_path = path.with_suffix('.lrc')
             if not lrc_path.exists():
                 lrc_path = None
             episodes.append((path, lrc_path))
@@ -123,6 +133,7 @@ def main(path: Path):
 
     app = LRCPlayer(episodes)
     app.run()
+
 
 if __name__ == '__main__':
     main()

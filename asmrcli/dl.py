@@ -11,12 +11,16 @@ def dl():
 
 
 @click.command()
-@click.option('--force', '-f', is_flag=True, type=bool, default=False, show_default=True, 
+@click.option('--force', '-f', is_flag=True, type=bool, default=False, show_default=True,
               help='force to download though the RJ id is already in the database')
 @click.argument('ids', nargs=-1)
 def get(ids: Iterable[str], force: bool):
     """get ASMR by RJ ids"""
-    spider, db = create_spider_and_database('db_not_exists' if not force else 'force')
+    if not ids:
+        logger.error('You must give at least one RJ id!')
+        return
+    spider, db = create_spider_and_database(
+        'db_not_exists' if not force else 'force')
     spider.run(spider.get(rjs2ids(ids)))
     db.commit()
 
@@ -39,23 +43,23 @@ def update(ids: Iterable[str]):
 @click.option('--no-vas', '-nv', type=str, multiple=True, help='voice actor(cv) to exclude[multiple]')
 @click.option('--circle', '-c', type=str, default=None, help='circle(社团) to include')
 @click.option('--no-circle', '-nc', type=str, multiple=True, help='circle(社团) to exclude[multiple]')
-@click.option('--rate', '-r',  help="rating interval" ,callback=interval_preprocess_cb)
-@click.option('--sell', '-s',  help="selling interval",callback=interval_preprocess_cb)
-@click.option('--price', '-p', help="pirce interval"  ,callback=interval_preprocess_cb)
+@click.option('--rate', '-r',  help="rating interval", callback=interval_preprocess_cb)
+@click.option('--sell', '-s',  help="selling interval", callback=interval_preprocess_cb)
+@click.option('--price', '-pr', help="pirce interval", callback=interval_preprocess_cb)
 @browse_param_options
 def search(text: str, tags: Tuple[str], vas: Tuple[str], circle: str | None,
            no_tags: Tuple[str], no_vas: Tuple[str], no_circle: Tuple[str],
-           rate: Tuple[float|None, float|None], sell: Tuple[int|None, int|None], price: Tuple[int|None, int|None],
+           rate: Tuple[float | None, float | None], sell: Tuple[int | None, int | None], price: Tuple[int | None, int | None],
            **kwargs):
     """
     search and download ASMR by filters
 
-    attention the [multiple] options, this means you can add multiple same option such as:
+    the [multiple] options means you can add multiple same option such as:
 
         --tags tag1 --tags tag2 --no-tags tag3
-    
+
     for options like --rate, --sell, --price, you should give a interval like:
-    
+
         --rate 3.9:4.7 --sell 1000: --price :200
 
     the interval a:b means a <= x < b, if a or b is not given i.e. a: or :b, it means no lower or upper limit

@@ -1,7 +1,7 @@
 import sqlalchemy.orm
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy import text
+from sqlalchemy import text, event
 from typing import Any, Dict, Union, Sequence, cast
 from datetime import date
 
@@ -11,13 +11,25 @@ from .q_func import QFunc
 
 from logger import logger
 
+import math
+
+def create_math_functions_on_connect(dbapi_connection, connection_record):
+    dbapi_connection.create_function('sin', 1, math.sin)
+    dbapi_connection.create_function('cos', 1, math.cos)
+    dbapi_connection.create_function('acos', 1, math.acos)
+    dbapi_connection.create_function('radians', 1, math.radians)
+    dbapi_connection.create_function('log2', 1, math.log2)
+    dbapi_connection.create_function('log10', 1, math.log10)
+
 
 class DataBaseManager:
     def __init__(self,
                  engine: Union[Engine, None] = None,
                  tag_filter: Sequence[str] = tuple()
                  ):
+        global create_math_functions_on_connect
         self.engine = engine or get_engine()
+        event.listens_for(self.engine, 'connect')(create_math_functions_on_connect)  # add a listener after engine created, before session created
         bind_engine(self.engine)
 
         self.tag_filter = set(tag_filter)

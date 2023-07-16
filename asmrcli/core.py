@@ -3,6 +3,7 @@ from pathlib import Path
 
 from config import config
 from logger import logger
+from common.parse_filter import name_should_download
 
 from typing import Optional, Iterable, List, Tuple, Literal, TYPE_CHECKING
 
@@ -22,15 +23,9 @@ def create_database():
 def create_spider_and_database(
         dl_func: Literal['force', 'folder_not_exists', 'db_not_exists'] = 'db_not_exists'
 ) -> Tuple['ASMRSpiderManager', 'DataBaseManager']:
-    from spider import ASMRSpider, ASMRSpiderManager
-    from database.manage import DataBaseManager
+    from spider import ASMRSpiderManager
     db = create_database()
 
-    spider = ASMRSpider(name=config.username,
-                        password=config.password,
-                        proxy=config.proxy,
-                        save_path=config.save_path,
-                        download_callback=db.add_info)
 
     if dl_func == 'force':
         func = lambda rj_id: True
@@ -40,8 +35,16 @@ def create_spider_and_database(
         func = lambda rj_id: not db.check_exists(rj_id)
     else:
         func = lambda rj_id: True
-    return ASMRSpiderManager(spider, func), db  # type: ignore
 
+    return ASMRSpiderManager(
+            name=config.username,
+            password=config.password,
+            proxy=config.proxy,
+            save_path=config.save_path,
+            id_should_download=func, 
+            json_should_download=db.add_info,
+            name_should_download=name_should_download,
+            replace=False), db 
 
 def create_fm():
     from file_manager.manager import FileManager
@@ -141,6 +144,8 @@ def rj_argument(f):
 SEPARATOR = ':'
 def interval_preprocess_cb(ctx: click.Context, opt: click.Option, val: str):
     """input must be numeric or None, and it returns a float/int/None value tuple"""
+    if val is None:
+        return (None, None)
     vals = val.split(SEPARATOR)
     assert len(vals) == 2
 

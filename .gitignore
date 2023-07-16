@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 script.py
+pdm.lock
 
 # C extensions
 *.so
@@ -140,3 +141,4 @@ Voice/
 config.py
 database/test_interface.py
 logger/logs/*
+.pdm-python

@@ -1,14 +1,12 @@
 import asyncio
 import shutil
 from os import makedirs, path
-from typing import Any, Dict, List, Callable, Iterable, Optional, Union
+import os
+from typing import Any, Dict, List, Callable, Iterable, Literal, Optional, Union
 from subprocess import run, CalledProcessError
 from .utils.IDMHelper import IDMHelper
 
-try:
-    import ujson as json
-except ImportError:
-    import json
+import json
 
 from aiohttp import ClientSession, ClientConnectorError
 from aiohttp.connector import TCPConnector
@@ -22,8 +20,15 @@ class ASMRSpider:
     # base_api_url = 'https://api.asmr.one/api/'
     base_api_url = 'https://api.asmr-100.com/api/'
 
-    def __init__(self, name: str, password: str, proxy: str, save_path: str,
-                 download_callback: Callable[[Dict[str, Any]], Any]|None = None, limit: int = 3) -> None:
+    def __init__(self, name: str,
+                 password: str,
+                 proxy: str,
+                 save_path: str,
+                 json_should_download: Callable[[Dict[str, Any]], bool],
+                 name_should_download: Callable[[str, Literal['directory', 'file']], bool],
+                 replace=False,
+                 limit: int = 3
+                 ):
         # self._session: Optional[ClientSession] = None  # for __aenter__
         self._session: ClientSession
         self.name = name
@@ -37,7 +42,6 @@ class ASMRSpider:
         self.proxy = proxy
         self.limit = limit
         self.save_path = save_path
-        self.download_callback = download_callback or (lambda *args, **kwargs: None)
         # self.pop_keys = (
         #             "create_date",
         #             "userRating",
@@ -48,6 +52,9 @@ class ASMRSpider:
         #             "rate_count_detail",
         #             "rank"
         #     )
+        self.json_should_download = json_should_download
+        self.name_should_download = name_should_download
+        self.replace = replace
 
     async def login(self) -> None:
         try:
@@ -63,8 +70,7 @@ class ASMRSpider:
         except ClientConnectorError as err:
             logger.error(f'Login failed, {err}')
 
-
-    async def get(self, route: str, params: dict|None = None) -> Any:
+    async def get(self, route: str, params: dict | None = None) -> Any:
         resp_json = None
         while not resp_json:
             try:
@@ -81,10 +87,12 @@ class ASMRSpider:
                 await asyncio.sleep(3)
         return resp_json
 
-    async def download(self, voice_id: int, save_path: str|None = None) -> None:
+    async def download(self, voice_id: int,
+                       save_path: str | None = None,
+                       ) -> None:
         voice_info = await self.get_voice_info(voice_id)
 
-        should_down = self.download_callback(voice_info)
+        should_down = self.json_should_download(voice_info)
         if not should_down:
             logger.info(f'stop download {voice_id}')
             return
@@ -118,16 +126,17 @@ class ASMRSpider:
 
     @staticmethod
     def download_file(url: str, save_path: str, file_name: str) -> None:
-        file_name = file_name.translate(str.maketrans(r'/\:*?"<>|', "_________"))
+        file_name = file_name.translate(
+            str.maketrans(r'/\:*?"<>|', "_________"))
         file_path = path.join(save_path, file_name)
         if not path.exists(file_path):
             logger.info(f"Downloading {file_path}")
             m = IDMHelper(url, path.abspath(save_path), file_name, 3)
             res = m.send_link_to_idm()
             if res != 0:
-                logger.error('IDM api returns an error code!')
+                logger.error('IDM returns an error code!')
         else:
-            logger.warning(f'file {file_path} already exists.')
+            logger.warning(f'file {file_path} already exists ignore this file')
 
     def create_info_file(self, voice_info: Dict[str, Any]):
         rj_id = f'RJ{str(voice_info["id"]).zfill(6)}'
@@ -138,10 +147,21 @@ class ASMRSpider:
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(voice_info, f, ensure_ascii=False, indent=4)
 
-    def create_dir_and_download(self, tracks: List[Dict[str, Any]], voice_path: str) -> None:
+    def create_dir_and_download(self, tracks: List[Dict[str, Any]], voice_path: str, download=True) -> None:
         folders = [track for track in tracks if track["type"] == "folder"]
         files = [track for track in tracks if track["type"] != "folder"]
         for file in files:
+            file_name = file['title'].translate(
+                str.maketrans(r'/\:*?"<>|', "_________"))
+            file_path = os.path.join(voice_path, file_name)
+            if (not download) or (not self.name_should_download(file['title'], 'file')):
+                logger.info(f"filter file {file_path}")
+                with open(file_path+'.info', "w", encoding="utf-8") as f:
+                    f.write(file["mediaDownloadUrl"])
+                continue
+            if os.path.exists(file_path) and self.replace:
+                logger.info(f"replace mode, delete old file {file_path}")
+                os.remove(file_path)
             try:
                 self.download_file(
                     file["mediaDownloadUrl"], voice_path, file["title"]
@@ -150,10 +170,14 @@ class ASMRSpider:
                 logger.error(f'Download error: {e}')
                 continue
         for folder in folders:
-            title = folder["title"].translate(str.maketrans(r'/\:*?"<>|', "_________"))
+            download_ = True if self.name_should_download(
+                folder['title'], 'directory') else False
+            title = folder["title"].translate(
+                str.maketrans(r'/\:*?"<>|', "_________"))
             new_path = path.join(voice_path, title)
             makedirs(new_path, exist_ok=True)
-            self.create_dir_and_download(folder["children"], new_path)
+            self.create_dir_and_download(
+                folder["children"], new_path, download=download and download_)
 
     async def get_search_result(self, content: str, params: dict) -> Dict[str, Any]:
         return await self.get(f"search/{content}", params=params)

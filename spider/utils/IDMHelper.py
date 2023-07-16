@@ -3,7 +3,7 @@ Python IDM Helper by zackmark29
 Version v1.0.2 | 2021.11.28
 '''
 
-from typing import Optional
+from typing import Optional, Any
 from pathlib import Path
 from comtypes import client
 from .module import get_module
@@ -49,10 +49,11 @@ class IDMHelper:
     def send_link_to_idm(self) -> int:
         """Simple method with limited parameters"""
 
-        idm = client.CreateObject(
+        idm: Any = client.CreateObject(
             progid='IDMan.CIDMLinkTransmitter',
             interface=self.idm_module.ICIDMLinkTransmitter
         )
+
         res:int = idm.SendLinkToIDM(
             bstrUrl=self.url,
             bstrLocalPath=self.output_folder,
@@ -69,7 +70,7 @@ class IDMHelper:
     def send_link_to_idm2(self) -> None:
         """Method with all the parameters"""
 
-        idm = client.CreateObject(
+        idm: Any = client.CreateObject(
             progid='IDMan.CIDMLinkTransmitter',
             interface=self.idm_module.ICIDMLinkTransmitter2
         )

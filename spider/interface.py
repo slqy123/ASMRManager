@@ -1,21 +1,38 @@
 from .spider import ASMRSpider
 from common.browse_params import BrowseParams
 import asyncio
-from typing import Iterable, Callable, Coroutine, Tuple
-from urllib.parse import quote
+from typing import Iterable, Callable, Coroutine, Tuple, Any, Dict, Literal
+# from urllib.parse import quote
+# import os
 
 from logger import logger
 
 
 class ASMRSpiderManager:
-    def __init__(self, bind: ASMRSpider, should_download_callback: Callable[[int], bool] | None = None):
-        self.spider = bind
-        self.should_download_callback = should_download_callback or (lambda rj_id: True)
+    def __init__(self, name: str, 
+                 password: str,
+                 proxy: str,
+                 save_path: str,
+                 id_should_download: Callable[[int], bool] | None = None,
+                 json_should_download: Callable[[Dict[str, Any]], bool]|None=None,
+                 name_should_download: Callable[[str, Literal['directory', 'file']], bool] | None = None,
+                 replace=False,
+                 ):
+        self.spider = ASMRSpider(
+                name=name,
+                password=password,
+                proxy=proxy,
+                save_path=save_path,
+                name_should_download=name_should_download or (lambda *_: True),
+                json_should_download=json_should_download or (lambda _: True),
+                replace=replace,
+                )
+        self.id_should_download = id_should_download or (lambda _: True)
 
     async def get(self, ids: Iterable[int]):
         tasks = []
         for arg in ids:
-            if not self.should_download_callback(arg):
+            if not self.id_should_download(arg):
                 logger.info(f'RJ{arg} already exists.')
                 continue
             tasks.append(self.spider.download(arg))
@@ -76,7 +93,7 @@ class ASMRSpiderManager:
                 logger.error(f'Info Error: {err}')
                 return
             logger.info(f'Get asmr info id=RJ{rj_id_}')
-            self.spider.download_callback(rj_info)
+            self.spider.json_should_download(rj_info)
             self.spider.create_info_file(rj_info)
 
         tasks = []
