@@ -7,7 +7,7 @@ class Config:
     username: str
     password: str
     proxy: str
-    save_path: str
+    download_path: str
     storage_path: str
     view_path: str
     tag_filter: List[str]
@@ -36,9 +36,9 @@ config = Config(
     username='username',  # 账号
     password='password',  # 密码
     proxy='http://localhost:7890',  # 代理
-    save_path='/path/to/some/place',  # 下载文件的存储位置
+    download_path='/path/to/some/place',  # 下载文件的存储位置
 
-    # 使用review后，如果文件在save_path，将自动移至storage_path
+    # 使用review后，如果文件在download_path，将自动移至storage_path
     storage_path='/path/to/some/place',
 
     # (可选)使用asmr view 的时候会在这个位置创建一个软链接，方便找。
@@ -49,7 +49,7 @@ config = Config(
     editor='code --wait',
     name_filters=[
         # 过滤所有的SE(不完全)
-        Filter(r'(効果音|SE|ＳＥ)([な無无×][し]?|cut|切除|カット|)'),
+        Filter(r'(効果音|SE|ＳＥ)([な無无×][し]?|cut|切除|カット)'),
         Filter(r'([無无×]|不含|NO[ _]?)(効果音|SE|ＳＥ)'),
 
         # 过滤所有的wav

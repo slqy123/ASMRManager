@@ -113,5 +113,5 @@ class FileManager:
 if __name__ == '__main__':
     from config import config
 
-    fm = FileManager(config.storage_path, config.save_path, config.view_path)
+    fm = FileManager(config.storage_path, config.download_path, config.view_path)
     fm.store('RJ097514')

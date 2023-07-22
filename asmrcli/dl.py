@@ -1,7 +1,8 @@
 import click
 from typing import Iterable, Optional, Tuple
-from asmrcli.core import create_spider_and_database, rjs2ids, browse_param_options, rj_argument, interval_preprocess_cb
+from asmrcli.core import create_spider_and_database, download_param_options, rjs2ids, browse_param_options, rj_argument, interval_preprocess_cb
 from common.browse_params import BrowseParams
+from common.download_params import DownloadParams
 from logger import logger
 
 
@@ -11,28 +12,26 @@ def dl():
 
 
 @click.command()
-@click.option('--force', '-f', is_flag=True, type=bool, default=False, show_default=True,
-              help='force to download though the RJ id is already in the database')
 @click.argument('ids', nargs=-1)
-def get(ids: Iterable[str], force: bool):
+@download_param_options
+def get(ids: Iterable[str], download_params: DownloadParams):
     """get ASMR by RJ ids"""
     if not ids:
         logger.error('You must give at least one RJ id!')
         return
-    spider, db = create_spider_and_database(
-        'db_not_exists' if not force else 'force')
+    spider, db = create_spider_and_database(download_params)
     spider.run(spider.get(rjs2ids(ids)))
     db.commit()
 
 
-@click.command()
-@click.argument('ids', nargs=-1)
-def update(ids: Iterable[str]):
-    """Not implemented"""
-    # ids = [(int(rj_id[2:]) if rj_id.startswith('RJ') else int(rj_id)) for rj_id in ids]
-    spider, db = create_spider_and_database(dl_func='force')
-    spider.run(spider.get(rjs2ids(ids)))
-    db.commit()
+# @click.command()
+# @click.argument('ids', nargs=-1)
+# def update(ids: Iterable[str]):
+#     """Not implemented"""
+#     # ids = [(int(rj_id[2:]) if rj_id.startswith('RJ') else int(rj_id)) for rj_id in ids]
+#     spider, db = create_spider_and_database(dl_func='force')
+#     spider.run(spider.get(rjs2ids(ids)))
+#     db.commit()
 
 
 @click.command()
@@ -47,12 +46,13 @@ def update(ids: Iterable[str]):
 @click.option('--sell', '-s',  help="selling interval", callback=interval_preprocess_cb)
 @click.option('--price', '-pr', help="pirce interval", callback=interval_preprocess_cb)
 @browse_param_options
+@download_param_options
 def search(text: str, tags: Tuple[str], vas: Tuple[str], circle: str | None,
            no_tags: Tuple[str], no_vas: Tuple[str], no_circle: Tuple[str],
            rate: Tuple[float | None, float | None], sell: Tuple[int | None, int | None], price: Tuple[int | None, int | None],
-           **kwargs):
+           browse_params: BrowseParams, download_params: DownloadParams):
     """
-    search and download ASMR by filters
+    search and download ASMR
 
     the [multiple] options means you can add multiple same option such as:
 
@@ -64,39 +64,38 @@ def search(text: str, tags: Tuple[str], vas: Tuple[str], circle: str | None,
 
     the interval a:b means a <= x < b, if a or b is not given i.e. a: or :b, it means no lower or upper limit
     """
-    params = BrowseParams(**kwargs)
-    spider, db = create_spider_and_database()
+    spider, db = create_spider_and_database(download_params=download_params)
     spider.run(spider.search(text, tags=tags, vas=vas, circle=circle,
                              no_tags=no_tags, no_vas=no_vas, no_circle=no_circle,
                              rate=rate, sell=sell, price=price,
-                             params=params))
+                             params=browse_params))
     db.commit()
 
 
-@click.command()
-@click.option('-n', '--name', type=str, default=None, show_default=True, help='tag name')
-@click.option('tid', '-t', '--tag-id', type=int, default=None, show_default=True, help='tag id')
-@browse_param_options
-def tag(name: str, tid: int, **kwargs):
-    """search ASMR by tags. either tagname or tagid could use.
-    if search by tagid, the id must be in the local database"""
-    if (bool(name) + bool(tid)) != 1:
-        logger.error('You must give and should only give one param!')
-        return
-    params = BrowseParams(**kwargs)
-    spider, db = create_spider_and_database()
-    if tid:
-        tag_res: Optional[str] = db.func.get_tag_name(tid)
-        if tag_res is None:
-            logger.error('tag id is not in the database!')
-            return
-        name = tag_res
+# @click.command()
+# @click.option('-n', '--name', type=str, default=None, show_default=True, help='tag name')
+# @click.option('tid', '-t', '--tag-id', type=int, default=None, show_default=True, help='tag id')
+# @browse_param_options
+# def tag(name: str, tid: int, **kwargs):
+#     """search ASMR by tags. either tagname or tagid could use.
+#     if search by tagid, the id must be in the local database"""
+#     if (bool(name) + bool(tid)) != 1:
+#         logger.error('You must give and should only give one param!')
+#         return
+#     params = BrowseParams(**kwargs)
+#     spider, db = create_spider_and_database()
+#     if tid:
+#         tag_res: Optional[str] = db.func.get_tag_name(tid)
+#         if tag_res is None:
+#             logger.error('tag id is not in the database!')
+#             return
+#         name = tag_res
 
-    spider.run(spider.tag(name, params))
-    db.commit()
+#     spider.run(spider.tag(name, params))
+#     db.commit()
 
 
 dl.add_command(get)
-dl.add_command(update)
+# dl.add_command(update)
 dl.add_command(search)
-dl.add_command(tag)
+# dl.add_command(tag)

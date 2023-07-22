@@ -1,5 +1,7 @@
 import os.path
 from pathlib import Path
+from common.browse_params import BrowseParams
+from common.download_params import DownloadParams
 
 from config import config
 from logger import logger
@@ -21,35 +23,25 @@ def create_database():
 
 
 def create_spider_and_database(
-        dl_func: Literal['force', 'folder_not_exists', 'db_not_exists'] = 'db_not_exists'
+        download_params: DownloadParams,
 ) -> Tuple['ASMRSpiderManager', 'DataBaseManager']:
     from spider import ASMRSpiderManager
     db = create_database()
-
-
-    if dl_func == 'force':
-        func = lambda rj_id: True
-    elif dl_func == 'folder_not_exists':
-        func = lambda rj_id: not os.path.exists(os.path.join(config.save_path, id2rj(rj_id)))
-    elif dl_func == 'db_not_exists':
-        func = lambda rj_id: not db.check_exists(rj_id)
-    else:
-        func = lambda rj_id: True
 
     return ASMRSpiderManager(
             name=config.username,
             password=config.password,
             proxy=config.proxy,
-            save_path=config.save_path,
-            id_should_download=func, 
+            save_path=config.download_path,
+            id_should_download=(lambda _: True) if download_params.force else (lambda rj_id: not db.check_exists(rj_id)), 
             json_should_download=db.add_info,
-            name_should_download=name_should_download,
-            replace=False), db 
+            name_should_download=name_should_download if download_params.filter else (lambda *_: True),
+            replace=download_params.replace), db 
 
 def create_fm():
     from file_manager.manager import FileManager
     fm = FileManager(storage_path=config.storage_path,
-                     download_path=config.save_path,
+                     download_path=config.download_path,
                      view_path=config.view_path)
     return fm
 
@@ -78,9 +70,10 @@ def id2rj(rj_id: int) -> str:
 
 
 def browse_param_options(f):
+    """pass the `browse_params` parameter to the function"""
     @click.option('-p', '--page', type=int, default=1, help='page of the search result', show_default=True)
-    @click.option('--subtitle/--no-subtitle', '-s/-ns', is_flag=True, default=False,
-                  help='if the ASMR has subtitle(中文字幕)', show_default=True)
+    @click.option('--subtitle/--no-subtitle', is_flag=True, default=False,
+                  help='if the ASMR has subtitle(中文字幕)', show_default=True)  # no -s/-ns option for ocnfliction with --sell -s
     @click.option('-o', '--order', type=click.Choice([
         "create_date",
         "rating",
@@ -96,9 +89,42 @@ def browse_param_options(f):
     @click.option('--asc/--desc', default=False, help='ascending or descending')
     @functools.wraps(f)
     def wrapper_common_options(*args, **kwargs):
-        return f(*args, **kwargs)
+        keys = ['page', 'subtitle', 'order', 'asc']
+        browse_params = BrowseParams(**{k: kwargs.pop(k) for k in keys})
+        return f(*args, **kwargs, browse_params=browse_params)
+
+    wrapper_common_options.__doc__ = '' if wrapper_common_options.__doc__ is None else wrapper_common_options.__doc__
+    wrapper_common_options.__doc__ += """
+
+    nsfw will only show the full age ASMRs
+
+    for other --order options, you can refer to the website for explicit meaning
+    """
 
     return wrapper_common_options
+
+def download_param_options(f):
+    """pass the `download_params` parameter to the function"""
+    @click.option('--force/--check-db', is_flag=True, default=False, 
+                  help='force download even if the RJ id exists in database, or by default, RJ already in the database will be skipped')
+    @click.option('--replace/--no-replace',  is_flag=True, default=False, show_default=True, 
+                  help='replace the file if it exists')
+    @click.option('--filter/--no-filter', is_flag=True, default=True, show_default=True, 
+                  help='filter out the files to download, rules are in the config file')
+    @functools.wraps(f)
+    def wrap(*args, **kwargs):
+        keys = ['force', 'replace', 'filter']
+        download_params = DownloadParams(**{k: kwargs.pop(k) for k in keys})
+        return f(*args, **kwargs, download_params=download_params)
+
+    wrap.__doc__ = '' if wrap.__doc__ is None else wrap.__doc__
+    wrap.__doc__ += """
+
+    --force will check the download RJ files again though it is already in the database, it work just like update
+
+    --replace option will first delte the original file, then add the new file to download queue(i.e. IDM)
+    """
+    return wrap
 
 
 def get_prev_rj():

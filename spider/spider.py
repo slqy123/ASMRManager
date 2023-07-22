@@ -130,6 +130,22 @@ class ASMRSpider:
             str.maketrans(r'/\:*?"<>|', "_________"))
         file_path = path.join(save_path, file_name)
         if not path.exists(file_path):
+            match file_path.rsplit('.', 1)[1].lower():
+                case 'wav':
+                    another_file_path = file_path.rsplit('.', 1)[0] + '.flac'
+                    if path.exists(another_file_path):
+                        logger.info(f"Skipping {file_path} for same flac exists")
+                        return
+                case 'flac':
+                    another_file_path = file_path.rsplit('.', 1)[0] + '.wav'
+                    if path.exists(another_file_path):
+                        logger.info(f"Skipping {file_path} for same wav exists")
+                        return
+                # case 'info':
+                #     logger.error(f"Info file should not be downloaded")
+                case _:
+                    pass
+
             logger.info(f"Downloading {file_path}")
             m = IDMHelper(url, path.abspath(save_path), file_name, 3)
             res = m.send_link_to_idm()

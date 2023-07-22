@@ -24,7 +24,7 @@ def play(ctx: click.Context, rj_id: int):
         logger.error(f'RJ id {rj_id} not found!')
         return
     asmr_rj = id2rj(asmr.id)
-    rj_path = Path(config.save_path) / asmr_rj if not asmr.stored else Path(config.storage_path) / asmr_rj
+    rj_path = Path(config.download_path) / asmr_rj if not asmr.stored else Path(config.storage_path) / asmr_rj
 
     choices = []
     suf = ['.mp3', '.wav', '.flac']
