@@ -1,35 +1,38 @@
-'''
+"""
 Python IDM Helper by zackmark29
 Version v1.0.2 | 2021.11.28
-'''
+"""
 
 from typing import Optional, Any
 from pathlib import Path
-from comtypes import client
 from .module import get_module
-from comtypes.automation import VT_EMPTY
+
+from comtypes import client   # type: ignore
+from comtypes.automation import VT_EMPTY   # type: ignore
 
 
 class IDMHelper:
-    '''
+    """
     flags
         0: Display/Pop-up confirmation before downloading
         1: Download automatically without any confirmations dialogs
         2: Display confirmation if found duplicate and add only to queue
         3: Add only to queue without any confirmation
-    '''
-    def __init__(self,
-                 url: str,
-                 output_folder: str,
-                 output_file_name: str,
-                 flag: int,
-                 referer: Optional[str] = None,
-                 cookies: Optional[str] = None,
-                 post_data: Optional[str] = None,
-                 user_name: Optional[str] = None,
-                 password: Optional[str] = None,
-                 user_agent: Optional[str] = None
-                 ) -> None:
+    """
+
+    def __init__(
+        self,
+        url: str,
+        output_folder: str,
+        output_file_name: str,
+        flag: int,
+        referer: Optional[str] = None,
+        cookies: Optional[str] = None,
+        post_data: Optional[str] = None,
+        user_name: Optional[str] = None,
+        password: Optional[str] = None,
+        user_agent: Optional[str] = None,
+    ) -> None:
         # common
         self.url = url
         self.flag = flag
@@ -51,10 +54,10 @@ class IDMHelper:
 
         idm: Any = client.CreateObject(
             progid='IDMan.CIDMLinkTransmitter',
-            interface=self.idm_module.ICIDMLinkTransmitter
+            interface=self.idm_module.ICIDMLinkTransmitter,
         )
 
-        res:int = idm.SendLinkToIDM(
+        res: int = idm.SendLinkToIDM(
             bstrUrl=self.url,
             bstrLocalPath=self.output_folder,
             bstrLocalFileName=self.output_filename,
@@ -72,7 +75,7 @@ class IDMHelper:
 
         idm: Any = client.CreateObject(
             progid='IDMan.CIDMLinkTransmitter',
-            interface=self.idm_module.ICIDMLinkTransmitter2
+            interface=self.idm_module.ICIDMLinkTransmitter2,
         )
         idm.SendLinkToIDM2(
             bstrUrl=self.url,
@@ -85,7 +88,7 @@ class IDMHelper:
             bstrLocalFileName=self.output_filename,
             lFlags=self.flag,
             reserved1=self.user_agent if self.user_agent else VT_EMPTY,
-            reserved2=VT_EMPTY
+            reserved2=VT_EMPTY,
         )
 
 

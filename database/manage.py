@@ -1,17 +1,19 @@
-import sqlalchemy.orm
-from sqlalchemy.engine import Engine
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy import text, event
-from typing import Any, Dict, Union, Sequence, cast
 from datetime import date
+import math
+from typing import Any, Dict, Sequence, Union, cast
 
-from .database import *
-from .engine import get_engine
-from .q_func import QFunc
+from sqlalchemy import event, text
+from sqlalchemy.engine import Engine, ResultProxy
+import sqlalchemy.orm
+from sqlalchemy.orm import Session, sessionmaker
+from database.orm_type import ASMRInstance
 
 from logger import logger
 
-import math
+from .database import ASMR, bind_engine, Tag, VoiceActor
+from .engine import get_engine
+from .q_func import QFunc
+
 
 def create_math_functions_on_connect(dbapi_connection, connection_record):
     dbapi_connection.create_function('sin', 1, math.sin)
@@ -23,13 +25,16 @@ def create_math_functions_on_connect(dbapi_connection, connection_record):
 
 
 class DataBaseManager:
-    def __init__(self,
-                 engine: Union[Engine, None] = None,
-                 tag_filter: Sequence[str] = tuple()
-                 ):
+    def __init__(
+        self,
+        engine: Union[Engine, None] = None,
+        tag_filter: Sequence[str] = tuple(),
+    ):
         global create_math_functions_on_connect
         self.engine = engine or get_engine()
-        event.listens_for(self.engine, 'connect')(create_math_functions_on_connect)  # add a listener after engine created, before session created
+        event.listens_for(self.engine, 'connect')(
+            create_math_functions_on_connect
+        )  # add a listener after engine created, before session created
         bind_engine(self.engine)
 
         self.tag_filter = set(tag_filter)
@@ -37,11 +42,15 @@ class DataBaseManager:
         self.session: Session = sessionmaker(self.engine)()
         self.func = QFunc(self.session)
 
-    def check_exists(self, rj_id: int) -> Union[ASMR, None]:
+    def check_exists(self, rj_id: int) -> Union[ASMRInstance, None]:
         return self.session.query(ASMR).get(rj_id)
 
     def add_info(self, info: Dict[str, Any]) -> bool:
-        """add/update info to database and check if it has tag in the filter or not, return True if should download"""
+        """
+        add/update info to database and check
+        if it has tag in the filter or not,
+        return True if should download
+        """
         asmr = ASMR(
             id=info['id'],
             title=info['title'],
@@ -50,7 +59,7 @@ class DataBaseManager:
             release_date=date.fromisoformat(info['release']),
             price=info['price'],
             dl_count=info['dl_count'],
-            has_subtitle=info['has_subtitle']
+            has_subtitle=info['has_subtitle'],
         )
 
         # for vas
@@ -78,7 +87,9 @@ class DataBaseManager:
             return False
         return True
 
-    def update_review(self, rj_id: int, star: int, comment: str, update_stored: bool = False):
+    def update_review(
+        self, rj_id: int, star: int, comment: str, update_stored: bool = False
+    ):
         if not (asmr := self.check_exists(rj_id)):
             logger.error('Incorrect RJ ID, no item in database!')
             exit(-1)
@@ -98,7 +109,7 @@ class DataBaseManager:
         if update_stored:
             asmr.stored = True
 
-    def hold_item(self, rj_id: int, comment: str|None):
+    def hold_item(self, rj_id: int, comment: str | None):
         if not (asmr := self.check_exists(rj_id)):
             logger.error('Incorrect RJ ID, no item in database!')
             return
@@ -111,7 +122,7 @@ class DataBaseManager:
             comment = f'{date.today()}: {comment}\n'
             asmr.comment += comment
 
-    def execute(self, sql: str) -> sqlalchemy.ResultProxy:
+    def execute(self, sql: str) -> ResultProxy:
         return self.session.execute(text(sql))
 
     def query(self, *args, **kwargs) -> sqlalchemy.orm.Query:

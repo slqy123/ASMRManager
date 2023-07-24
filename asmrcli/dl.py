@@ -1,6 +1,8 @@
 import click
 from typing import Iterable, Tuple
 from asmrcli.core import (
+    create_database,
+    create_fm,
     create_spider_and_database,
     download_param_options,
     rjs2ids,
@@ -9,6 +11,7 @@ from asmrcli.core import (
 )
 from common.browse_params import BrowseParams
 from common.download_params import DownloadParams
+from file_manager.exceptions import DstItemAlreadyExistsException
 from logger import logger
 
 
@@ -145,6 +148,29 @@ def search(
     db.commit()
 
 
+@click.command()
+@click.argument('ids', type=str, nargs=-1)
+@click.option('--replace', '-r', is_flag=True, default=False, help='replace the files if exists')
+def store(ids: Iterable[str], replace: bool):
+    """
+    store the downloaded files to the download_path
+    """
+    try:
+        if not ids:
+            import cutie
+            res = cutie.prompt_yes_or_no('Are you sure to store all files in the download_path?', )
+            if res is None or res is False:
+                return
+            fm = create_fm()
+            fm.store_all(exists_ok=replace)
+        else:
+            fm = create_fm()
+            for id_ in ids:
+                fm.store(id_, exists_ok=replace)
+        logger.info('succesfully stored all files')
+    except DstItemAlreadyExistsException as e:
+        logger.error('storing terminated for %s', e)
+
 # @click.command()
 # @click.option('-n', '--name', type=str, default=None, show_default=True, help='tag name')
 # @click.option('tid', '-t', '--tag-id', type=int, default=None, show_default=True, help='tag id')
@@ -171,3 +197,4 @@ dl.add_command(get)
 # dl.add_command(update)
 dl.add_command(search)
 # dl.add_command(tag)
+dl.add_command(store)

@@ -10,7 +10,7 @@ class ASMR(Base):
     __tablename__ = 'asmr'
     id = Column(Integer, primary_key=True)
     title = Column(Text)
-    # domain = Column(Enum(DOMAIN), default=DOMAIN(data.data.domain), primary_key=True)
+
     circle_name = Column(Text)  # 对应name字段
     tags = relationship('Tag', secondary='asmrs2tags', backref='asmrs')
     vas = relationship('VoiceActor', secondary='asmrs2vas', backref='asmrs')
@@ -44,7 +44,7 @@ class ASMRs2Tags(Base):
     __tablename__ = 'asmrs2tags'
 
     asmr_id = Column(Integer, ForeignKey('asmr.id'), primary_key=True)
-    # domain = Column(Enum(DOMAIN), ForeignKey('asmr.domain'), primary_key=True)
+
     tag_id = Column(Integer, ForeignKey('tag.id'), primary_key=True)
 
 

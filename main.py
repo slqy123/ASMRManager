@@ -18,12 +18,13 @@ from asmrcli.sql import sql
 
 from logger import logger
 
-CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 
 # TODO 可能有的项目更新了汉化会被过滤不会下载，考虑对比has_subtitle
 # TODO dry run，clear zip file
 # TODO 全局search过滤条件
+# TODO query web local local 条件可以简单一些
 class OrderedGroup(click.Group):
     def __init__(self, name=None, commands=None, **attrs):
         super(OrderedGroup, self).__init__(name, commands, **attrs)
@@ -40,7 +41,7 @@ def main():
 
 
 try:
-    from trogon import tui
+    from trogon import tui  # type: ignore
 
     main = tui()(main)
 except ImportError:
@@ -55,5 +56,5 @@ main.add_command(view)
 main.add_command(hold)
 main.add_command(query)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

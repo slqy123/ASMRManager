@@ -22,8 +22,9 @@ class MusicPlayer:
         self.prev_time = 0
         self.prev_pos = 0
 
-        self.total_time = int(MutagenFile(
-            music_path).info.length * 1000)  # type:ignore
+        self.total_time = int(
+            MutagenFile(music_path).info.length * 1000
+        )  # type:ignore
 
     def is_playing(self):
         return self.player.get_busy()
@@ -89,8 +90,11 @@ class LyricsParser:
     @staticmethod
     def parse_lrc(lrc_str: str) -> List[Tuple[int, str]]:
         lrc = pylrc.parse(lrc_str)
-        res = [(int(line.time * 1000), line.text)
-               for line in lrc if line.text.strip()]
+        res = [
+            (int(line.time * 1000), line.text)
+            for line in lrc
+            if line.text.strip()
+        ]
         return sorted(res, key=lambda x: x[0])
 
     def get_next_index(self, t: int):
@@ -103,7 +107,7 @@ class LyricsParser:
     def get_lrc_data_by_time(self, t: int):
         def get_by_index(idx: int):
             res = []
-            for i in (idx-2, idx-1, idx):
+            for i in (idx - 2, idx - 1, idx):
                 if 0 <= i < len(self.lrc):
                     res.append(self.lrc[i][1])
                 else:
@@ -121,17 +125,19 @@ class LyricsParser:
 
         if idx == 0:
             return self.LyricsData(
-                int(t/self.lrc[0][0]*100) if self.lrc[0][0] != 0 else 0, get_by_index(idx))
+                int(t / self.lrc[0][0] * 100) if self.lrc[0][0] != 0 else 0,
+                get_by_index(idx),
+            )
 
-        if self.lrc[idx][0] - self.lrc[idx-1][0] != 0:
+        if self.lrc[idx][0] - self.lrc[idx - 1][0] != 0:
             progress = int(
-                (t - self.lrc[idx-1][0]) / (self.lrc[idx][0] - self.lrc[idx-1][0]) * 100)
+                (t - self.lrc[idx - 1][0])
+                / (self.lrc[idx][0] - self.lrc[idx - 1][0])
+                * 100
+            )
         else:
             progress = 0
-        return self.LyricsData(
-            progress,
-            get_by_index(idx)
-        )
+        return self.LyricsData(progress, get_by_index(idx))
 
 
 class MusicPlayerWithLyrics(MusicPlayer, LyricsParser):
@@ -160,12 +166,15 @@ class MusicPlayerWithLyrics(MusicPlayer, LyricsParser):
         if idx == -1:
             self.set_pos_by_index(-2)
             return
-        self.set_pos_by_index(idx-2)
+        self.set_pos_by_index(idx - 2)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     p = MusicPlayer(Path(r'E:\asmr\RJ339431\1日目 はじめてのさいみん(手マン).flac'))
-    l = LyricsParser(
-        Path(r'E:\asmr\RJ339431\1日目 はじめてのさいみん(手マン).lrc'), p.total_time)
-    pl = MusicPlayerWithLyrics(Path(r'E:\asmr\RJ339431\1日目 はじめてのさいみん(手マン).flac'), Path(
-        r'E:\asmr\RJ339431\1日目 はじめてのさいみん(手マン).lrc'))
+    lrc = LyricsParser(
+        Path(r'E:\asmr\RJ339431\1日目 はじめてのさいみん(手マン).lrc'), p.total_time
+    )
+    pl = MusicPlayerWithLyrics(
+        Path(r'E:\asmr\RJ339431\1日目 はじめてのさいみん(手マン).flac'),
+        Path(r'E:\asmr\RJ339431\1日目 はじめてのさいみん(手マン).lrc'),
+    )
