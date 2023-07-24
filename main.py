@@ -1,11 +1,11 @@
 # import os
 import collections
+
 # os.chdir(os.path.split(os.path.abspath(__file__))[0])
 import sys
 from typing import Any
 
 import click
-import os
 
 from asmrcli.dl import dl
 from asmrcli.review import review
@@ -17,7 +17,8 @@ from asmrcli.play import play
 from asmrcli.sql import sql
 
 from logger import logger
-CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
 # TODO 可能有的项目更新了汉化会被过滤不会下载，考虑对比has_subtitle
@@ -40,6 +41,7 @@ def main():
 
 try:
     from trogon import tui
+
     main = tui()(main)
 except ImportError:
     pass
@@ -53,5 +55,5 @@ main.add_command(view)
 main.add_command(hold)
 main.add_command(query)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

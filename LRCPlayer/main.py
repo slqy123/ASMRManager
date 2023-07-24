@@ -56,7 +56,7 @@ class LRCPlayer(App):
                     lrc_data.lyrics[i] + f'{max(self.player.get_pos(), self.player.prev_pos)}')
 
         else:
-            self.query_one(ProgressBar).update(progress=0)
+            self.query_one(ProgressBar).update(progress=self.player.get_total_percent())
             for i, l in enumerate(self.query('.lyrics')):
                 assert isinstance(l, Label)
                 l.update(('', 'no lyrics', '')[i])

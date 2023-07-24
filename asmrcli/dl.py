@@ -1,12 +1,18 @@
 import click
-from typing import Iterable, Optional, Tuple
-from asmrcli.core import create_spider_and_database, download_param_options, rjs2ids, browse_param_options, rj_argument, interval_preprocess_cb
+from typing import Iterable, Tuple
+from asmrcli.core import (
+    create_spider_and_database,
+    download_param_options,
+    rjs2ids,
+    browse_param_options,
+    interval_preprocess_cb,
+)
 from common.browse_params import BrowseParams
 from common.download_params import DownloadParams
 from logger import logger
 
 
-@click.group(help="download ASMR")
+@click.group(help='download ASMR')
 def dl():
     pass
 
@@ -36,21 +42,75 @@ def get(ids: Iterable[str], download_params: DownloadParams):
 
 @click.command()
 @click.argument('text', type=str, default='')
-@click.option('--tags', '-t', type=str, multiple=True, help='tags to include[multiple]')
-@click.option('--no-tags', '-nt', type=str, multiple=True, help='tags to exclude[multiple]')
-@click.option('--vas', '-v', type=str, multiple=True, help='voice actor(cv) to include[multiple]')
-@click.option('--no-vas', '-nv', type=str, multiple=True, help='voice actor(cv) to exclude[multiple]')
-@click.option('--circle', '-c', type=str, default=None, help='circle(社团) to include')
-@click.option('--no-circle', '-nc', type=str, multiple=True, help='circle(社团) to exclude[multiple]')
-@click.option('--rate', '-r',  help="rating interval", callback=interval_preprocess_cb)
-@click.option('--sell', '-s',  help="selling interval", callback=interval_preprocess_cb)
-@click.option('--price', '-pr', help="pirce interval", callback=interval_preprocess_cb)
+@click.option(
+    '--tags', '-t', type=str, multiple=True, help='tags to include[multiple]'
+)
+@click.option(
+    '--no-tags',
+    '-nt',
+    type=str,
+    multiple=True,
+    help='tags to exclude[multiple]',
+)
+@click.option(
+    '--vas',
+    '-v',
+    type=str,
+    multiple=True,
+    help='voice actor(cv) to include[multiple]',
+)
+@click.option(
+    '--no-vas',
+    '-nv',
+    type=str,
+    multiple=True,
+    help='voice actor(cv) to exclude[multiple]',
+)
+@click.option(
+    '--circle', '-c', type=str, default=None, help='circle(社团) to include'
+)
+@click.option(
+    '--no-circle',
+    '-nc',
+    type=str,
+    multiple=True,
+    help='circle(社团) to exclude[multiple]',
+)
+@click.option(
+    '--rate', '-r', help='rating interval', callback=interval_preprocess_cb
+)
+@click.option(
+    '--sell', '-s', help='selling interval', callback=interval_preprocess_cb
+)
+@click.option(
+    '--price', '-pr', help='pirce interval', callback=interval_preprocess_cb
+)
+@click.option(
+    'all_',
+    '--all/--select',
+    type=bool,
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help='download all RJs',
+)
 @browse_param_options
 @download_param_options
-def search(text: str, tags: Tuple[str], vas: Tuple[str], circle: str | None,
-           no_tags: Tuple[str], no_vas: Tuple[str], no_circle: Tuple[str],
-           rate: Tuple[float | None, float | None], sell: Tuple[int | None, int | None], price: Tuple[int | None, int | None],
-           browse_params: BrowseParams, download_params: DownloadParams):
+def search(
+    text: str,
+    tags: Tuple[str],
+    vas: Tuple[str],
+    circle: str | None,
+    no_tags: Tuple[str],
+    no_vas: Tuple[str],
+    no_circle: Tuple[str],
+    rate: Tuple[float | None, float | None],
+    sell: Tuple[int | None, int | None],
+    price: Tuple[int | None, int | None],
+    browse_params: BrowseParams,
+    download_params: DownloadParams,
+    all_: bool,
+):
     """
     search and download ASMR
 
@@ -62,13 +122,26 @@ def search(text: str, tags: Tuple[str], vas: Tuple[str], circle: str | None,
 
         --rate 3.9:4.7 --sell 1000: --price :200
 
-    the interval a:b means a <= x < b, if a or b is not given i.e. a: or :b, it means no lower or upper limit
+    the interval a:b means a <= x < b, if a or b is not given
+    i.e. a: or :b, it means no lower or upper limit
     """
     spider, db = create_spider_and_database(download_params=download_params)
-    spider.run(spider.search(text, tags=tags, vas=vas, circle=circle,
-                             no_tags=no_tags, no_vas=no_vas, no_circle=no_circle,
-                             rate=rate, sell=sell, price=price,
-                             params=browse_params))
+    spider.run(
+        spider.search(
+            text,
+            tags=tags,
+            vas=vas,
+            circle=circle,
+            no_tags=no_tags,
+            no_vas=no_vas,
+            no_circle=no_circle,
+            rate=rate,
+            sell=sell,
+            price=price,
+            params=browse_params,
+            all_=all_,
+        )
+    )
     db.commit()
 
 
@@ -93,7 +166,6 @@ def search(text: str, tags: Tuple[str], vas: Tuple[str], circle: str | None,
 
 #     spider.run(spider.tag(name, params))
 #     db.commit()
-
 
 dl.add_command(get)
 # dl.add_command(update)

@@ -1,7 +1,10 @@
+from asmrcli.core import id2rj
 from .spider import ASMRSpider
 from common.browse_params import BrowseParams
 import asyncio
 from typing import Iterable, Callable, Coroutine, Tuple, Any, Dict, Literal
+import cutie
+
 # from urllib.parse import quote
 # import os
 
@@ -9,24 +12,29 @@ from logger import logger
 
 
 class ASMRSpiderManager:
-    def __init__(self, name: str, 
-                 password: str,
-                 proxy: str,
-                 save_path: str,
-                 id_should_download: Callable[[int], bool] | None = None,
-                 json_should_download: Callable[[Dict[str, Any]], bool]|None=None,
-                 name_should_download: Callable[[str, Literal['directory', 'file']], bool] | None = None,
-                 replace=False,
-                 ):
+    def __init__(
+        self,
+        name: str,
+        password: str,
+        proxy: str,
+        save_path: str,
+        id_should_download: Callable[[int], bool] | None = None,
+        json_should_download: Callable[[Dict[str, Any]], bool] | None = None,
+        name_should_download: Callable[
+            [str, Literal['directory', 'file']], bool
+        ]
+        | None = None,
+        replace=False,
+    ):
         self.spider = ASMRSpider(
-                name=name,
-                password=password,
-                proxy=proxy,
-                save_path=save_path,
-                name_should_download=name_should_download or (lambda *_: True),
-                json_should_download=json_should_download or (lambda _: True),
-                replace=replace,
-                )
+            name=name,
+            password=password,
+            proxy=proxy,
+            save_path=save_path,
+            name_should_download=name_should_download or (lambda *_: True),
+            json_should_download=json_should_download or (lambda _: True),
+            replace=replace,
+        )
         self.id_should_download = id_should_download or (lambda _: True)
 
     async def get(self, ids: Iterable[int]):
@@ -38,11 +46,21 @@ class ASMRSpiderManager:
             tasks.append(self.spider.download(arg))
         await asyncio.gather(*tasks)
 
-    async def search(self, text: str, tags: Tuple[str], vas: Tuple[str], circle: str | None,
-                     no_tags: Tuple[str], no_vas: Tuple[str], no_circle: Tuple[str],
-                     rate: Tuple[float | None, float | None], sell: Tuple[int | None, int | None],
-                     price: Tuple[int | None, int | None],
-                     params: BrowseParams):
+    async def search(
+        self,
+        text: str,
+        tags: Tuple[str],
+        vas: Tuple[str],
+        circle: str | None,
+        no_tags: Tuple[str],
+        no_vas: Tuple[str],
+        no_circle: Tuple[str],
+        rate: Tuple[float | None, float | None],
+        sell: Tuple[int | None, int | None],
+        price: Tuple[int | None, int | None],
+        params: BrowseParams,
+        all_: bool,
+    ):
         filters = []
 
         filters += [f'$tag:{t}$' for t in tags]
@@ -67,12 +85,27 @@ class ASMRSpiderManager:
         if filters:
             logger.info(f'searching with {filters} {params}')
             search_result = await self.spider.get_search_result(
-                ' '.join(filters).replace('/', '%2F'), params=params.params)
+                ' '.join(filters).replace('/', '%2F'), params=params.params
+            )
         else:
             logger.info(f'list works with {params}')
             search_result = await self.spider.list(params=params.params)
         ids = [work['id'] for work in search_result['works']]
-        await self.get(ids)
+
+        if all_:
+            await self.get(ids)
+            return
+
+        # select RJs
+        titles = [work['title'] for work in search_result['works']]
+        indexes = cutie.select_multiple(
+            [f'{id2rj(id_)} | {title}' for id_, title in zip(ids, titles)],
+        )
+        if not indexes:
+            logger.error('Nothing was selected.')
+            return
+
+        await self.get([ids[i] for i in indexes])
 
     async def tag(self, tag_name: str, params: BrowseParams):
         """tag 和 va 一样，都是调用了特殊的search方法"""

@@ -67,6 +67,9 @@ class MusicPlayer:
         dst = self.get_pos() - int(t_ * 1000)
         self._set_pos(dst)
 
+    def get_total_percent(self) -> int:
+        return min(int(self.get_pos() / self.total_time * 100), 100)
+
 
 class LyricsParser:
     @dataclass
