@@ -1,21 +1,29 @@
 from typing import Literal
+
 import click
-from asmrcli.core import rj_argument, id2rj
+
+from asmrcli.core import rj_argument
+from common.rj_parse import RJID, id2rj
 
 
-@click.group(help="some operation about view_path")
+@click.group(help='some operation about view_path')
 def view():
     pass
 
 
 @click.command()
 @rj_argument
-@click.option('--mode', '-m', type=click.Choice([
-    'link', 'zip', 'adb'
-]), default='zip', show_default=True)
-def add(rj_id: int, mode: Literal['link', 'zip', 'adb']):
+@click.option(
+    '--mode',
+    '-m',
+    type=click.Choice(['link', 'zip', 'adb']),
+    default='zip',
+    show_default=True,
+)
+def add(rj_id: RJID, mode: Literal['link', 'zip', 'adb']):
     """add an ASMR to view path (use zip by default)"""
-    from asmrcli.core import id2rj, create_fm
+    from asmrcli.core import create_fm
+
     rj = id2rj(rj_id)
     fm = create_fm()
 
@@ -26,6 +34,7 @@ def add(rj_id: int, mode: Literal['link', 'zip', 'adb']):
             fm.view(rj, replace=True)
         case 'adb':
             raise NotImplementedError
+
 
 @click.command('list')
 def list_():
@@ -39,9 +48,10 @@ def list_():
 
 @click.command()
 @rj_argument
-def remove(rj_id: int):
+def remove(rj_id: RJID):
     """remove a file link in view path"""
     from asmrcli.core import create_fm
+
     fm = create_fm()
     fm.remove_view(id2rj(rj_id))
 

@@ -25,6 +25,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 # TODO dry run，clear zip file
 # TODO 全局search过滤条件
 # TODO query web local local 条件可以简单一些
+# catch oserror 然后提醒重试
 class OrderedGroup(click.Group):
     def __init__(self, name=None, commands=None, **attrs):
         super(OrderedGroup, self).__init__(name, commands, **attrs)
@@ -43,7 +44,7 @@ def main():
 try:
     from trogon import tui  # type: ignore
 
-    main = tui()(main)
+    main = tui()(main)  # type: ignore
 except ImportError:
     pass
 

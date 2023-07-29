@@ -1,16 +1,24 @@
 import click
 from typing import Iterable, Tuple
 from asmrcli.core import (
-    create_database,
     create_fm,
     create_spider_and_database,
     download_param_options,
-    rjs2ids,
     browse_param_options,
     interval_preprocess_cb,
+    create_database,
+    multi_rj_argument,
 )
 from common.browse_params import BrowseParams
 from common.download_params import DownloadParams
+from common.rj_parse import (
+    RJID,
+    id2rj,
+    ids2rjs,
+    rj2id,
+    rjs2ids,
+)
+
 from file_manager.exceptions import DstItemAlreadyExistsException
 from logger import logger
 
@@ -21,26 +29,57 @@ def dl():
 
 
 @click.command()
-@click.argument('ids', nargs=-1)
+@multi_rj_argument
 @download_param_options
-def get(ids: Iterable[str], download_params: DownloadParams):
+def get(rj_ids: Iterable[RJID], download_params: DownloadParams):
     """get ASMR by RJ ids"""
-    if not ids:
+    if not rj_ids:
         logger.error('You must give at least one RJ id!')
         return
     spider, db = create_spider_and_database(download_params)
-    spider.run(spider.get(rjs2ids(ids)))
+    spider.run(spider.get(rj_ids))
     db.commit()
 
 
-# @click.command()
-# @click.argument('ids', nargs=-1)
-# def update(ids: Iterable[str]):
-#     """Not implemented"""
-#     # ids = [(int(rj_id[2:]) if rj_id.startswith('RJ') else int(rj_id)) for rj_id in ids]
-#     spider, db = create_spider_and_database(dl_func='force')
-#     spider.run(spider.get(rjs2ids(ids)))
-#     db.commit()
+@click.command()
+@multi_rj_argument
+def update(rj_ids: Iterable[RJID]):
+    """just update stored field"""
+    fm = create_fm()
+    db = create_database()
+    dl_queue = []
+    for rj_id in rj_ids:
+        rj = id2rj(rj_id)
+
+        asmr = db.check_exists(rj_id)
+        if asmr is None:
+            logger.warning(
+                f'Not found In Database: {rj}, please manually download it'
+            )
+            continue
+
+        src = fm.get_location(rj)
+        if src is None:
+            logger.warning(f'Not found: {rj}, add to download')
+            dl_queue.append(rj)
+            continue
+
+        if src == 'download' and asmr.stored:
+            logger.info(f'Already stored: {rj}, move to storage path')
+            fm.store(rj)
+            continue
+
+        if src == 'storage' and not asmr.stored:
+            logger.info(f'Already in storage: {rj}, update database')
+            asmr.stored = True
+            continue
+
+        logger.info(f'No need to update {rj}')
+    db.commit()
+    print('Update succesfully.')
+    if dl_queue:
+        print('Please check the item to download and get theme manually:')
+        print(' '.join(dl_queue))
 
 
 @click.command()
@@ -149,52 +188,55 @@ def search(
 
 
 @click.command()
-@click.argument('ids', type=str, nargs=-1)
-@click.option('--replace', '-r', is_flag=True, default=False, help='replace the files if exists')
-def store(ids: Iterable[str], replace: bool):
+@multi_rj_argument
+@click.option(
+    '--replace',
+    '-r',
+    is_flag=True,
+    default=False,
+    help='replace the files if exists',
+)
+def store(rj_ids: Iterable[RJID], replace: bool):
     """
     store the downloaded files to the download_path
     """
+
+    rjs = ids2rjs(rj_ids)
+    db = create_database()
     try:
-        if not ids:
+        if not rj_ids:
             import cutie
-            res = cutie.prompt_yes_or_no('Are you sure to store all files in the download_path?', )
+
+            res = cutie.prompt_yes_or_no(
+                'Are you sure to store all files in the download_path?',
+            )
             if res is None or res is False:
                 return
             fm = create_fm()
             fm.store_all(exists_ok=replace)
+            id_to_store = fm.list_('download')
+
         else:
             fm = create_fm()
-            for id_ in ids:
-                fm.store(id_, exists_ok=replace)
+            for rj in rjs:
+                fm.store(rj, exists_ok=replace)
+            id_to_store = rj_ids
+
+        for id_ in id_to_store:
+            res = db.check_exists(id_)
+            if not res:
+                logger.error(
+                    'no such id: %s, which is an unexpected ocassion', id_
+                )
+                continue
+            res.stored = True
+        db.commit()
         logger.info('succesfully stored all files')
     except DstItemAlreadyExistsException as e:
         logger.error('storing terminated for %s', e)
 
-# @click.command()
-# @click.option('-n', '--name', type=str, default=None, show_default=True, help='tag name')
-# @click.option('tid', '-t', '--tag-id', type=int, default=None, show_default=True, help='tag id')
-# @browse_param_options
-# def tag(name: str, tid: int, **kwargs):
-#     """search ASMR by tags. either tagname or tagid could use.
-#     if search by tagid, the id must be in the local database"""
-#     if (bool(name) + bool(tid)) != 1:
-#         logger.error('You must give and should only give one param!')
-#         return
-#     params = BrowseParams(**kwargs)
-#     spider, db = create_spider_and_database()
-#     if tid:
-#         tag_res: Optional[str] = db.func.get_tag_name(tid)
-#         if tag_res is None:
-#             logger.error('tag id is not in the database!')
-#             return
-#         name = tag_res
-
-#     spider.run(spider.tag(name, params))
-#     db.commit()
 
 dl.add_command(get)
-# dl.add_command(update)
+dl.add_command(update)
 dl.add_command(search)
-# dl.add_command(tag)
 dl.add_command(store)

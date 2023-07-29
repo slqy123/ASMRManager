@@ -1,7 +1,12 @@
 import click
-from asmrcli.core import create_database, rj2id, rj_argument, create_spider_and_database
+from asmrcli.core import (
+    create_database,
+    rj_argument,
+)
 from pprint import pprint
+from common.rj_parse import RJID
 from logger import logger
+
 
 def info_from_web(rj_id: int):
     raise NotImplementedError
@@ -9,10 +14,18 @@ def info_from_web(rj_id: int):
     # spider.run(spider.get([rj_id]))
     # db.commit()
 
+
 @click.command()
-@click.option('--rand', '-r', is_flag=True, default=False, show_default=True, help='get a random info in the database')
+@click.option(
+    '--rand',
+    '-r',
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help='get a random info in the database',
+)
 @rj_argument
-def info(rj_id: int, rand: bool):
+def info(rj_id: RJID, rand: bool):
     """show info of the ASMR by id"""
     db = create_database()
 

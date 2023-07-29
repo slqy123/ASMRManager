@@ -1,8 +1,12 @@
 from datetime import date
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from common.rj_parse import RJID
 
 
 class ASMRInstance:
-    id: int
+    id: 'RJID'
     title: str
     circle_name: str
     tags: list['TagInstance']

@@ -6,11 +6,11 @@ from sqlalchemy import event, text
 from sqlalchemy.engine import Engine, ResultProxy
 import sqlalchemy.orm
 from sqlalchemy.orm import Session, sessionmaker
-from database.orm_type import ASMRInstance
 
+from database.orm_type import ASMRInstance
 from logger import logger
 
-from .database import ASMR, bind_engine, Tag, VoiceActor
+from .database import ASMR, Tag, VoiceActor, bind_engine
 from .engine import get_engine
 from .q_func import QFunc
 

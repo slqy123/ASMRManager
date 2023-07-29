@@ -23,8 +23,8 @@ class MusicPlayer:
         self.prev_pos = 0
 
         self.total_time = int(
-            MutagenFile(music_path).info.length * 1000
-        )  # type:ignore
+            MutagenFile(music_path).info.length * 1000  # type:ignore
+        )
 
     def is_playing(self):
         return self.player.get_busy()
@@ -119,7 +119,8 @@ class LyricsParser:
             t1 = t - self.lrc[-1][0]
             t2 = self.total_time - self.lrc[-1][0]
 
-            # 对于wav文件来说，get_pos 的最大值会和 total_time 有些许出入，误差大概几百个毫秒，一般都是get_pos更大，另外total_time是准确值
+            # 对于wav文件来说，get_pos 的最大值会和 total_time 有些许出入，误差大概几百个毫秒，
+            # 一般都是get_pos更大，另外total_time是准确值
             percentage = 0 if t2 == 0 else min(int(t1 / t2 * 100), 100)
             return self.LyricsData(percentage, get_by_index(len(self.lrc)))
 

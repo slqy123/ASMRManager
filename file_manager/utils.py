@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Tuple, List
 import cutie
 
+
 def folder_chooser(folder: Path):
     assert folder.is_dir()
     choices: List[Tuple[Path, str]] = []
@@ -14,6 +15,6 @@ def folder_chooser(folder: Path):
     index = cutie.select([f'{p} ({d})' for p, d in choices])
     return choices[index]
 
+
 if __name__ == '__main__':
     print(folder_chooser(Path('/home/quy/sage')))
-

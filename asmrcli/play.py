@@ -4,7 +4,8 @@ import click
 from pathlib import Path
 from collections import Counter
 
-from asmrcli.core import rj_argument, create_database, id2rj
+from asmrcli.core import rj_argument, create_database, create_fm
+from common.rj_parse import RJID, id2rj
 
 from logger import logger
 from config import config
@@ -15,20 +16,25 @@ import cutie
 @click.command()
 @click.pass_context
 @rj_argument
-def play(ctx: click.Context, rj_id: int):
+def play(ctx: click.Context, rj_id: RJID):
     """play an asmr in the terminal"""
-    from database.database import ASMR
     from LRCPlayer import lrc_play
 
     db = create_database()
-    asmr: ASMR | None = db.query(ASMR).get(rj_id)
+    asmr = db.check_exists(rj_id)
     if asmr is None:
         logger.error(f'RJ id {rj_id} not found!')
         return
     asmr_rj = id2rj(asmr.id)
+
+    fm = create_fm()
+    loc = fm.get_location(asmr_rj)
+    if loc is None:
+        logger.error(f'ASMR {asmr_rj} file not found!')
+        return
     rj_path = (
         Path(config.download_path) / asmr_rj
-        if not asmr.stored
+        if loc == 'download'
         else Path(config.storage_path) / asmr_rj
     )
 
@@ -45,7 +51,10 @@ def play(ctx: click.Context, rj_id: int):
 
     idx: int = cutie.select([f'{x[0]} | [{x[1]}]' for x in choices])
     # it's just ok to use cutie, no need for beaupy
-    # res = select(choices, preprocessor=lambda x: f"{x[0]} | [{x[1]}]", return_index=True)
+    # res = select(
+    #     choices, preprocessor=lambda x: f'{x[0]} | [{x[1]}]',
+    # return_index = True
+    # )
     path = Path(choices[idx][0])
 
     ctx.invoke(lrc_play, path=path)
