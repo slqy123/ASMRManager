@@ -1,10 +1,12 @@
-import click
-from pathlib import Path
-
-from logger import logger
-from subprocess import run
-from config import config
 import os
+from pathlib import Path
+from subprocess import run
+
+import click
+
+from config import config
+from logger import logger
+from common.output import print_table
 
 
 @click.command()
@@ -58,16 +60,3 @@ def sql(sql_name: str, save: bool = False):
             temp_file_path.read_text(encoding='utf8'), encoding='utf8'
         )
     os.remove(temp_file_path)
-
-
-def print_table(titles, rows):
-    from rich.console import Console
-    from rich.table import Table
-
-    console = Console()
-    table = Table(show_header=True, header_style='bold magenta')
-    for k in titles:
-        table.add_column(k)
-    for row in rows:
-        table.add_row(*(str(i) for i in row))
-    console.print(table)

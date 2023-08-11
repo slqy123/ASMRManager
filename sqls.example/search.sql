@@ -27,5 +27,5 @@ where true
                   where t.name in ('tag.name', )
                   group by asmr.id)
 group by asmr.id
-order by dl_count * price * random() desc  -- 排序，这里是按照下载量*价格*(一个0～1的随机数)的方式排序
+order by dl_count * log(price)  desc  -- 排序，这里是按照下载量*价格的对数 的方式排序
 limit 20;

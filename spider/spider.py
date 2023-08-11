@@ -28,7 +28,7 @@ from .utils.IDMHelper import IDMHelper
 
 class ASMRSpider:
     # base_api_url = 'https://api.asmr.one/api/'
-    base_api_url = 'https://api.asmr-100.com/api/'
+    base_api_url = 'https://api.asmr-300.com/api/'
 
     def __init__(
         self,
@@ -73,7 +73,7 @@ class ASMRSpider:
     async def login(self) -> None:
         try:
             async with self._session.post(
-                'https://api.asmr.one/api/auth/me',
+                self.base_api_url + 'auth/me',
                 json={'name': self.name, 'password': self.password},
                 headers=self.headers,
                 proxy=self.proxy,
