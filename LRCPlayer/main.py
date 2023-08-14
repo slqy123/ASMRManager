@@ -3,6 +3,7 @@ from textual.app import App, ComposeResult
 from textual.containers import ScrollableContainer, Center
 from textual.widgets import Button, Footer, Header, ProgressBar, Static, Label
 from textual.binding import Binding
+
 # from textual.reactive import reactive
 
 import click
@@ -17,7 +18,7 @@ class LRCPlayer(App):
         ('j', 'forward', ''),
         ('k', 'backward', ''),
         ('l', 'next_voice', ''),
-        ('h', 'prev_voice', '')
+        ('h', 'prev_voice', ''),
     ]
 
     def __init__(self, episodes: List[Tuple], *args, **kwargs):
@@ -31,10 +32,12 @@ class LRCPlayer(App):
         if self.players[self.voice_index] is None:
             if self.episodes[self.voice_index][1] is None:
                 self.players[self.voice_index] = MusicPlayer(
-                    self.episodes[self.voice_index][0])  # pyright: ignore
+                    self.episodes[self.voice_index][0]
+                )  # pyright: ignore
             else:
                 self.players[self.voice_index] = MusicPlayerWithLyrics(
-                    *self.episodes[self.voice_index])
+                    *self.episodes[self.voice_index]
+                )
 
         return self.players[self.voice_index]  # pyright: ignore
 
@@ -55,21 +58,35 @@ class LRCPlayer(App):
                 l.update(lrc_data.lyrics[i])
 
         else:
-            self.query_one(ProgressBar).update(progress=self.player.get_total_percent())
+            self.query_one(ProgressBar).update(
+                progress=self.player.get_total_percent()
+            )
             for i, l in enumerate(self.query('.lyrics')):
                 assert isinstance(l, Label)
                 l.update(('', 'no lyrics', '')[i])
+
+        # 更新播放时间
+        # 格式化成 x:xx / x:xx
+        def format_time(seconds: int):
+            return f'{seconds // 60_000}:{seconds % 60_000 // 1000:02d}'
+
+        self.query_one('#time', expect_type=Label).update(
+            f'[{format_time(self.player.get_pos())}'
+            f' / '
+            f'{format_time(self.player.total_time)}]'
+        )
 
     def compose(self) -> ComposeResult:
         yield Label(self.player.title, id='title')
 
         for i in range(3):
-            l = Label('', classes='lyrics')
-            l.styles.text_opacity = str(100 - abs(1-i)*50) + '%'
-            yield l
+            label = Label('', classes='lyrics')
+            label.styles.text_opacity = str(100 - abs(1 - i) * 50) + '%'
+            yield label
 
         with Center():
             yield ProgressBar(100, show_eta=False, id='pgbar')
+            yield Label('[0:00 / 0:00]', id='time')
 
     def action_pause(self):
         if self.player.is_playing():
@@ -106,9 +123,12 @@ class LRCPlayer(App):
 
 
 @click.command()
-@click.argument('path', type=click.Path(exists=True, dir_okay=True, path_type=Path))
+@click.argument(
+    'path', type=click.Path(exists=True, dir_okay=True, path_type=Path)
+)
 def main(path: Path):
     import os
+
     # 每个元素是一个元组，包含了文件名和歌词文件名，如果没有歌词则为None
     episodes: List[Tuple[Path, Path | None]] = []
     if path.is_dir():

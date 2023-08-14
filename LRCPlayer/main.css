@@ -24,3 +24,7 @@ Screen {
 #pgbar {
   margin-top: 5;
 }
+
+#time {
+  color: yellow;
+}

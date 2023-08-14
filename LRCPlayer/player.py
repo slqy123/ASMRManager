@@ -54,7 +54,11 @@ class MusicPlayer:
         mixer.music.unpause()
 
     def _set_pos(self, pos: int):
-        self.player.set_pos(pos / 1000)
+        # 对于wav类型的文件，set_pos可能会抛出错误，如果postion超出范围了的话
+        try:
+            self.player.set_pos(pos / 1000)
+        except Exception:
+            return self._set_pos(pos - 500)
         self.prev_pos = pos
         self.prev_time = self._get_play_time()
 

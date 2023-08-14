@@ -1,18 +1,29 @@
 import click
 from asmrcli.core import (
     create_database,
+    create_spider_and_database,
     rj_argument,
 )
 from pprint import pprint
 from common.rj_parse import RJID
+from database.orm_type import ASMRInstance
 from logger import logger
 
 
+def print_asmr_info(asmr: ASMRInstance):
+    res: dict = asmr.__dict__.copy()
+    res.pop('_sa_instance_state')
+    pprint(res)
+    print(' tags:', asmr.tags)
+    print(' CVs:', asmr.vas)
+
+
 def info_from_web(rj_id: int):
-    raise NotImplementedError
-    # spider, db = create_spider_and_database()
-    # spider.run(spider.get([rj_id]))
-    # db.commit()
+    spider, db = create_spider_and_database()
+    (rj_info,) = spider.run(spider.spider.get_voice_info(rj_id))
+
+    res = db.parse_info(rj_info)
+    print_asmr_info(res)
 
 
 @click.command()
@@ -35,8 +46,4 @@ def info(rj_id: RJID, rand: bool):
         info_from_web(rj_id)
         return
 
-    res: dict = v_info.__dict__.copy()
-    res.pop('_sa_instance_state')
-    pprint(res)
-    print(' tags:', v_info.tags)
-    print(' CVs:', v_info.vas)
+    print_asmr_info(v_info)

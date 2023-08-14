@@ -138,10 +138,9 @@ class FileManager:
         zip_chosen_folder(src, dst)
 
     def get_location(self, name: str) -> Literal['download', 'storage', None]:
-        assert self.could_store()
         if (self.download_path / name).exists():
             return 'download'
-        if (self.storage_path / name).exists():
+        if (self.storage_path / name).exists() and self.could_store():
             return 'storage'
         return None
 

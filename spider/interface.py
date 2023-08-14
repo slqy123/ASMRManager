@@ -137,7 +137,8 @@ class ASMRSpiderManager:
     def run(self, *tasks: Coroutine):
         async def _run():
             async with self.spider:
-                await asyncio.gather(*tasks)
+                return await asyncio.gather(*tasks)
 
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(_run())
+        return loop.run_until_complete(_run())
+        # return asyncio.run(_run())

@@ -25,11 +25,14 @@ def create_database():
 
 
 def create_spider_and_database(
-    download_params: DownloadParams,
+    download_params: DownloadParams | None = None,
 ) -> Tuple['ASMRSpiderManager', 'DataBaseManager']:
     from spider import ASMRSpiderManager
 
     db = create_database()
+
+    if download_params is None:
+        download_params = DownloadParams(False, False, False)
 
     return (
         ASMRSpiderManager(

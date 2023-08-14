@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from .database import *
+
+from database.orm_type import ASMRInstance
+from .database import ASMR, Tag
 
 from typing import Optional
 
@@ -9,7 +11,7 @@ class QFunc:
     def __init__(self, ss: Session):
         self.ss = ss
 
-    def get_info(self, rj_id: int, rand: bool):
+    def get_info(self, rj_id: int, rand: bool) -> ASMRInstance | None:
         if rand:
             return self.ss.query(ASMR).order_by(func.random()).first()
         return self.ss.query(ASMR).get(rj_id)
@@ -29,4 +31,3 @@ class QFunc:
     def get_stored(self, rj_id: int):
         res = self.ss.query(ASMR).get(rj_id)
         return res.stored if res is not None else None
-

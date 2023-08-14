@@ -6,6 +6,7 @@ from sqlalchemy import event, text
 from sqlalchemy.engine import Engine, ResultProxy
 import sqlalchemy.orm
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.engine.result import Result
 
 from database.orm_type import ASMRInstance
 from logger import logger
@@ -45,12 +46,8 @@ class DataBaseManager:
     def check_exists(self, rj_id: int) -> Union[ASMRInstance, None]:
         return self.session.query(ASMR).get(rj_id)
 
-    def add_info(self, info: Dict[str, Any]) -> bool:
-        """
-        add/update info to database and check
-        if it has tag in the filter or not,
-        return True if should download
-        """
+    @classmethod
+    def parse_info(cls, info: Dict[str, Any]) -> ASMRInstance:
         asmr = ASMR(
             id=info['id'],
             title=info['title'],
@@ -62,12 +59,10 @@ class DataBaseManager:
             has_subtitle=info['has_subtitle'],
         )
 
-        # for vas
         for actor_info in info['vas']:
             actor = VoiceActor(**actor_info)
             asmr.vas.append(actor)
 
-        # for tags
         for tag_info in info['tags']:
             if not tag_info.get('id'):
                 continue
@@ -77,6 +72,16 @@ class DataBaseManager:
             tag.en_name = tag_info['i18n']['en-us']['name']
 
             asmr.tags.append(tag)
+        return asmr
+
+    def add_info(self, info: Dict[str, Any]) -> bool:
+        """
+        add/update info to database and check
+        if it has tag in the filter or not,
+        return True if should download
+        """
+
+        asmr = self.parse_info(info)
 
         self.session.merge(asmr)
 
@@ -122,7 +127,7 @@ class DataBaseManager:
             comment = f'{date.today()}: {comment}\n'
             asmr.comment += comment
 
-    def execute(self, sql: str) -> ResultProxy:
+    def execute(self, sql: str) -> ResultProxy | Result:
         return self.session.execute(text(sql))
 
     def query(self, *args, **kwargs) -> sqlalchemy.orm.Query:
