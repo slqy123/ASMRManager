@@ -3,7 +3,7 @@ from typing import Any, Callable, Coroutine, Dict, Iterable, Literal, Tuple
 
 import cutie
 
-from common.rj_parse import id2rj
+from common.rj_parse import RJID, id2rj
 from common.browse_params import BrowseParams
 from logger import logger
 
@@ -17,7 +17,7 @@ class ASMRSpiderManager:
         password: str,
         proxy: str,
         save_path: str,
-        id_should_download: Callable[[int], bool] | None = None,
+        id_should_download: Callable[[RJID], bool] | None = None,
         json_should_download: Callable[[Dict[str, Any]], bool] | None = None,
         name_should_download: Callable[
             [str, Literal['directory', 'file']], bool

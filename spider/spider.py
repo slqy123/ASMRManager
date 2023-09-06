@@ -144,37 +144,56 @@ class ASMRSpider:
         return await self.get(f'tracks/{voice_id}')
 
     @staticmethod
-    def download_file(url: str, save_path: str, file_name: str) -> None:
+    def check_wav_flac_duplicate(file_path: str) -> bool:
+        """if file duplicate or already exists, return True"""
+        if path.exists(file_path):
+            logger.error(
+                (
+                    f'file already exists: {file_path}, please '
+                    'check for the existence of the download files first'
+                )
+            )
+            return True
+        match file_path.rsplit('.', 1)[1].lower():
+            case 'wav':
+                another_file_path = file_path.rsplit('.', 1)[0] + '.flac'
+                if path.exists(another_file_path):
+                    logger.info(f'Skipping {file_path} for same flac exists')
+                    return True
+            case 'flac':
+                another_file_path = file_path.rsplit('.', 1)[0] + '.wav'
+                if path.exists(another_file_path):
+                    logger.info(f'Skipping {file_path} for same wav exists')
+                    return True
+            case _:
+                pass
+
+        return False
+
+    @staticmethod
+    def download_file(url: str, save_path: str, file_name: str) -> bool:
+        """the save path + file should not exist,
+        and the filename should be legal"""
+        m = IDMHelper(url, path.abspath(save_path), file_name, 3)
+        res = m.send_link_to_idm()
+        if res != 0:
+            logger.error('IDM returns an error code!')
+            return False
+        return True
+
+    def process_download(self, url: str, save_path: str, file_name: str):
         file_name = file_name.translate(
             str.maketrans(r'/\:*?"<>|', '_________')
         )
         file_path = path.join(save_path, file_name)
         if not path.exists(file_path):
-            match file_path.rsplit('.', 1)[1].lower():
-                case 'wav':
-                    another_file_path = file_path.rsplit('.', 1)[0] + '.flac'
-                    if path.exists(another_file_path):
-                        logger.info(
-                            f'Skipping {file_path} for same flac exists'
-                        )
-                        return
-                case 'flac':
-                    another_file_path = file_path.rsplit('.', 1)[0] + '.wav'
-                    if path.exists(another_file_path):
-                        logger.info(
-                            f'Skipping {file_path} for same wav exists'
-                        )
-                        return
-                # case 'info':
-                #     logger.error(f"Info file should not be downloaded")
-                case _:
-                    pass
+            if self.check_wav_flac_duplicate(file_path):
+                return
 
             logger.info(f'Downloading {file_path}')
-            m = IDMHelper(url, path.abspath(save_path), file_name, 3)
-            res = m.send_link_to_idm()
-            if res != 0:
-                logger.error('IDM returns an error code!')
+            if not self.download_file(url, save_path, file_name):
+                logger.error(f'Download {file_path} failed')
+                return
         else:
             logger.warning(f'file {file_path} already exists ignore this file')
 
@@ -208,7 +227,7 @@ class ASMRSpider:
                 logger.info(f'replace mode, delete old file {file_path}')
                 os.remove(file_path)
             try:
-                self.download_file(
+                self.process_download(
                     file['mediaDownloadUrl'], voice_path, file['title']
                 )
             except Exception as e:

@@ -67,10 +67,12 @@ class DataBaseManager:
             if not tag_info.get('id'):
                 continue
             tag = Tag(id=tag_info['id'], name=tag_info['name'])
-            tag.cn_name = tag_info['i18n']['zh-cn']['name']
-            tag.jp_name = tag_info['i18n']['ja-jp']['name']
-            tag.en_name = tag_info['i18n']['en-us']['name']
-
+            if tag_info['i18n']:
+                tag.cn_name = tag_info['i18n']['zh-cn']['name']
+                tag.jp_name = tag_info['i18n']['ja-jp']['name']
+                tag.en_name = tag_info['i18n']['en-us']['name']
+            else:
+                assert tag.id == 10000
             asmr.tags.append(tag)
         return asmr
 

@@ -1,12 +1,14 @@
-from common.rj_parse import RJID, RJName, rj2id
-from logger import logger
-from .exceptions import SrcNotExistsException, DstItemAlreadyExistsException
-from file_manager.file_zipper import zip_chosen_folder
-
-from pathlib import Path
 import os
+from pathlib import Path
 import shutil
 from typing import Iterable, Literal
+
+from common.rj_parse import RJID, RJName, rj2id
+from config import config
+from file_manager.file_zipper import zip_chosen_folder
+from logger import logger
+
+from .exceptions import DstItemAlreadyExistsException, SrcNotExistsException
 
 
 class FileManager:
@@ -145,10 +147,7 @@ class FileManager:
         return None
 
 
-if __name__ == '__main__':
-    from config import config
-
-    fm = FileManager(
-        config.storage_path, config.download_path, config.view_path
-    )
-    fm.store('RJ097514')
+file_manager = FileManager(
+    config.storage_path, config.download_path, config.view_path
+)
+fm = file_manager

@@ -2,24 +2,13 @@ import click
 from asmrcli.core import create_database
 
 
-@click.group()
-def query():
-    return
-
-
-@click.command()
-def web():
-    """Not implemented"""
-    raise NotImplementedError
-
-
 @click.command()
 @click.argument('keyword', type=str)
-def local(keyword: str):
+def query(keyword: str):
     """
-    supports some simple queries,
+    simple keyword based query,
     it will match the input with name, circle_name and tag field.
-    if you want to use more complex queries, please use asmr sql instead.
+    if you want to use more complex queries, please use `asmr sql` instead.
     """
     from database.database import ASMR, ASMRs2Tags, Tag
     from common.output import print_table
@@ -59,6 +48,3 @@ def local(keyword: str):
         ],
         rows=res,
     )
-
-
-query.add_command(local)
