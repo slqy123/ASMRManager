@@ -28,7 +28,7 @@ def play(ctx: click.Context, rj_id: RJID):
     asmr_rj = id2rj(asmr.id)
 
     fm = create_fm()
-    loc = fm.get_location(asmr_rj)
+    loc = fm.get_location(asmr.id)
     if loc is None:
         logger.error(f'ASMR {asmr_rj} file not found!')
         return

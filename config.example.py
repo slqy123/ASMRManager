@@ -37,18 +37,25 @@ config = Config(
     password='password',  # 密码
     proxy='http://localhost:7890',  # 代理
     download_path='/path/to/some/place',  # 下载文件的存储位置
+
     # 使用review后，如果文件在download_path，将自动移至storage_path
     storage_path='/path/to/some/place',
-    # (可选)使用asmr view 的时候会在这个位置创建一个软链接，方便找。
+
+    # 使用asmr view 的时候会在这个位置创建一个软链接或压缩文件，方便查找。
+    # 如不使用 view 方法可以设为空
     view_path='/path/to/some/place',
+
     tag_filter=['tagname1', 'tagname2'],  # 过滤掉那些你不喜欢的标签
+
     # 编辑sql用的默认编辑器, 如果需使用powershell脚本例如lvim，
     # 此处可填入 'pwsh -nop -f /path/to/lvim.ps1'
     editor='code --wait',
+
     name_filters=[
         # 过滤所有的SE(不完全)
         Filter(r'(効果音|SE|ＳＥ)([な無无×][し]?|cut|切除|カット)'),
         Filter(r'([無无×]|不含|NO[ _]?)(効果音|SE|ＳＥ)'),
+        Filter(r'(声|ボイス|SE)のみ'),
         # 过滤所有的wav
         Filter(r'.*\.wav$', range='file'),
         # 过滤包含 "反転" 的wav文件

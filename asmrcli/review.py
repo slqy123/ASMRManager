@@ -24,7 +24,7 @@ def review(rj_id: RJID, star: int, comment: str):
     if not fm.could_store():
         logger.warning('storage path not found skip storing operation')
     else:
-        fm.store(id2rj(rj_id))
+        fm.store(rj_id)
         update_stored = True
     db.update_review(rj_id, star, comment, update_stored=update_stored)
     db.commit()

@@ -24,14 +24,13 @@ def add(rj_id: RJID, mode: Literal['link', 'zip', 'adb']):
     """add an ASMR to view path (use zip by default)"""
     from asmrcli.core import create_fm
 
-    rj = id2rj(rj_id)
     fm = create_fm()
 
     match mode:
         case 'zip':
-            fm.zip_file(rj)
+            fm.zip_file(rj_id)
         case 'link':
-            fm.view(rj, replace=True)
+            fm.view(rj_id, replace=True)
         case 'adb':
             raise NotImplementedError
 
@@ -53,7 +52,7 @@ def remove(rj_id: RJID):
     from asmrcli.core import create_fm
 
     fm = create_fm()
-    fm.remove_view(id2rj(rj_id))
+    fm.remove_view(rj_id)
 
 
 view.add_command(add)

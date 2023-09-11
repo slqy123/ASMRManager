@@ -28,7 +28,7 @@ def create_spider_and_database(
     download_params: DownloadParams | None = None,
 ) -> Tuple['ASMRSpiderManager', 'DataBaseManager']:
     from spider import ASMRSpiderManager
-    from file_manager.manager import fm
+    from filemanager.manager import fm
 
     db = create_database()
 
@@ -45,7 +45,7 @@ def create_spider_and_database(
             if download_params.force
             else (
                 lambda rj_id: (not db.check_exists(rj_id))
-                or (fm.get_location(id2rj(rj_id)) is None)
+                or (fm.get_location(rj_id) is None)
             ),  # 如果数据库中不存在或者文件不存在，都执行下载
             json_should_download=db.add_info,
             name_should_download=name_should_download
@@ -58,7 +58,7 @@ def create_spider_and_database(
 
 
 def create_fm():
-    from file_manager.manager import fm
+    from filemanager.manager import fm
 
     return fm
 

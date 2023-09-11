@@ -19,7 +19,7 @@ from common.rj_parse import (
     rjs2ids,
 )
 
-from file_manager.exceptions import DstItemAlreadyExistsException
+from filemanager.exceptions import DstItemAlreadyExistsException
 from logger import logger
 
 
@@ -58,7 +58,7 @@ def update(rj_ids: Iterable[RJID]):
             )
             continue
 
-        src = fm.get_location(rj)
+        src = fm.get_location(rj_id)
         if src is None:
             logger.warning(f'Not found: {rj}, add to download')
             dl_queue.append(rj)
@@ -66,7 +66,7 @@ def update(rj_ids: Iterable[RJID]):
 
         if src == 'download' and asmr.stored:
             logger.info(f'Already stored: {rj}, move to storage path')
-            fm.store(rj)
+            fm.store(rj_id)
             continue
 
         if src == 'storage' and not asmr.stored:
@@ -201,7 +201,6 @@ def store(rj_ids: Iterable[RJID], replace: bool):
     store the downloaded files to the download_path
     """
 
-    rjs = ids2rjs(rj_ids)
     db = create_database()
     try:
         if not rj_ids:
@@ -218,15 +217,15 @@ def store(rj_ids: Iterable[RJID], replace: bool):
 
         else:
             fm = create_fm()
-            for rj in rjs:
-                fm.store(rj, exists_ok=replace)
+            for rj_id in rj_ids:
+                fm.store(rj_id, exists_ok=replace)
             id_to_store = rj_ids
 
         for id_ in id_to_store:
             res = db.check_exists(id_)
             if not res:
                 logger.error(
-                    'no such id: %s, which is an unexpected ocassion', id_
+                    'no such id: %s, which is an unexpected situation', id_
                 )
                 continue
             res.stored = True

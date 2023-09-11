@@ -1,21 +1,26 @@
 import os
-from pathlib import Path
 import shutil
 from typing import Iterable, Literal
+from pathlib import Path
 
-from common.rj_parse import RJID, RJName, rj2id
+from common.rj_parse import RJID, RJName, id2rj, rj2id
 from config import config
-from file_manager.file_zipper import zip_chosen_folder
+from filemanager.file_zipper import zip_chosen_folder
 from logger import logger
 
 from .exceptions import DstItemAlreadyExistsException, SrcNotExistsException
 
 
 class FileManager:
-    def __init__(self, storage_path: str, download_path, view_path):
-        self.storage_path = Path(storage_path)
-        self.download_path = Path(download_path)
-        self.view_path = Path(view_path)
+    def __init__(
+        self,
+        storage_path: str | None = None,
+        download_path: str | None = None,
+        view_path: str | None = None,
+    ):
+        self.storage_path = Path(storage_path or config.storage_path)
+        self.download_path = Path(download_path or config.download_path)
+        self.view_path = Path(view_path or config.view_path)
 
         self.storage_path_exists = (
             True if os.path.exists(self.storage_path) else False
@@ -30,36 +35,39 @@ class FileManager:
     def could_store(self):
         return self.storage_path_exists and self.download_path_exists
 
-    def store(self, download_item: str, exists_ok: bool = False):
+    def store(self, rj_id: RJID, exists_ok: bool = False):
         assert self.could_store()
-        if not os.path.exists(self.download_path / download_item):
-            logger.warning(f'item {download_item} does not exists')
+        rj_name = id2rj(rj_id)
+        if not os.path.exists(self.download_path / rj_name):
+            logger.warning(f'item {rj_name} does not exists')
             return
 
-        if os.path.exists(self.storage_path / download_item):
+        if os.path.exists(self.storage_path / rj_name):
             if not exists_ok:
-                logger.error(
-                    f'the item {download_item} to store already exists!'
-                )
+                logger.error(f'the item {rj_name} to store already exists!')
                 raise DstItemAlreadyExistsException
 
-            logger.info(f'remove item {download_item} in storage')
-            shutil.rmtree(self.storage_path / download_item)
+            logger.info(f'remove item {rj_name} in storage')
+            shutil.rmtree(self.storage_path / rj_name)
 
         logger.info(
-            f'move {self.download_path / download_item} '
-            f'to {self.storage_path / download_item}'
+            f'move {self.download_path / rj_name} '
+            f'to {self.storage_path / rj_name}'
         )
         shutil.copytree(
-            self.download_path / download_item,
-            self.storage_path / download_item,
+            self.download_path / rj_name,
+            self.storage_path / rj_name,
             copy_function=shutil.copy2,
         )
-        shutil.rmtree(self.download_path / download_item)
+        shutil.rmtree(self.download_path / rj_name)
 
     def store_all(self, exists_ok: bool = False):
         for file in os.listdir(self.download_path):
-            self.store(file, exists_ok=exists_ok)
+            rj_id = rj2id(file)
+            if rj_id is None:
+                logger.warning(f'Ignore invalid file {file} in download path')
+                continue
+            self.store(rj_id, exists_ok=exists_ok)
 
     def could_view(self):
         """
@@ -70,28 +78,30 @@ class FileManager:
             self.storage_path_exists or self.download_path_exists
         )
 
-    def view(self, storage_item: str, replace=True):
+    def view(self, rj_id: RJID, replace=True):
         assert self.could_view()
-        if os.path.exists(self.storage_path / storage_item):
-            src = self.storage_path / storage_item
-        elif os.path.exists(self.download_path / storage_item):
-            src = self.download_path / storage_item
+        rj_name = id2rj(rj_id)
+        if os.path.exists(self.storage_path / rj_name):
+            src = self.storage_path / rj_name
+        elif os.path.exists(self.download_path / rj_name):
+            src = self.download_path / rj_name
         else:
-            logger.error(f'Failed to view {storage_item}, item not exists!')
+            logger.error(f'Failed to view {rj_name}, item not exists!')
             raise SrcNotExistsException
 
-        if os.path.exists(self.view_path / storage_item):
-            logger.warning(f'{storage_item} already exists!')
+        if os.path.exists(self.view_path / rj_name):
+            logger.warning(f'{rj_name} already exists!')
             if not replace:
                 raise DstItemAlreadyExistsException
 
-        os.symlink(src, self.view_path / storage_item)
+        os.symlink(src, self.view_path / rj_name)
 
-    def remove_view(self, name):
+    def remove_view(self, rj_id: RJID):
         assert self.could_view()
-        path = self.view_path / name
+        rj_name = id2rj(rj_id)
+        path = self.view_path / rj_name
         if not path.exists():
-            logger.error(f'file f{name} not exists')
+            logger.error(f'file f{rj_name} not exists')
             return
         assert path.is_dir() and path.is_symlink()
         os.remove(path)
@@ -115,34 +125,38 @@ class FileManager:
                 continue
             yield rj_id
 
-    def zip_file(self, name: str, stored: bool | None = None):
+    def zip_file(self, rj_id: RJID, stored: bool | None = None):
         assert self.could_view()
+        rj_name = id2rj(rj_id)
         if stored is None:
-            src1 = self.storage_path / name
-            src2 = self.download_path / name
+            src1 = self.storage_path / rj_name
+            src2 = self.download_path / rj_name
             if src1.exists():
                 src = src1
             elif src2.exists():
                 src = src2
             else:
-                logger.error(f'file {name} not exists, locate file failed')
+                logger.error(f'file {rj_name} not exists, locate file failed')
                 raise SrcNotExistsException
         else:
             path = self.storage_path if stored else self.download_path
-            src = path / name
+            src = path / rj_name
             assert src.exists()
 
-        dst = self.view_path / name
+        dst = self.view_path / rj_name
         dst = dst.with_suffix('.zip')
         if dst.exists():
             logger.error(f'file {dst} already exists please remove first')
             raise DstItemAlreadyExistsException
         zip_chosen_folder(src, dst)
 
-    def get_location(self, name: str) -> Literal['download', 'storage', None]:
-        if (self.download_path / name).exists():
+    def get_location(
+        self, rj_id: RJID
+    ) -> Literal['download', 'storage', None]:
+        rj_name = id2rj(rj_id)
+        if (self.download_path / rj_name).exists():
             return 'download'
-        if (self.storage_path / name).exists() and self.could_store():
+        if (self.storage_path / rj_name).exists() and self.could_store():
             return 'storage'
         return None
 

@@ -1,9 +1,5 @@
 import asyncio
 import json
-from os import makedirs, path
-import os
-import shutil
-from subprocess import CalledProcessError, run
 from typing import (
     Any,
     Callable,
@@ -17,11 +13,13 @@ from typing import (
 
 from aiohttp import ClientConnectorError, ClientSession
 from aiohttp.connector import TCPConnector
+from pathlib import Path
 
 from logger import logger
 
 from .utils.IDMHelper import IDMHelper
-
+from filemanager.manager import fm
+from common.rj_parse import id2rj, RJID
 
 # TODO 统一管理固定的参数
 
@@ -55,7 +53,7 @@ class ASMRSpider:
         }
         self.proxy = proxy
         self.limit = limit
-        self.save_path = save_path
+        self.save_path = Path(save_path)
         # self.pop_keys = (
         #             "create_date",
         #             "userRating",
@@ -107,7 +105,7 @@ class ASMRSpider:
     async def download(
         self,
         voice_id: int,
-        save_path: str | None = None,
+        save_path: Path | None = None,
     ) -> None:
         voice_info = await self.get_voice_info(voice_id)
 
@@ -115,13 +113,14 @@ class ASMRSpider:
         if not should_down:
             logger.info(f'stop download {voice_id}')
             return
-        save_path = save_path or self.save_path
+        if save_path is None:
+            save_path = self.save_path
 
-        voice_path = path.join(save_path, f'RJ{str(voice_id).zfill(6)}')
-        if path.exists(voice_path):
+        voice_path = save_path / id2rj(RJID(voice_id))
+        if voice_path.exists():
             logger.warning(f'path {voice_path} already exists.')
 
-        makedirs(voice_path, exist_ok=True)
+        voice_path.mkdir(parents=True, exist_ok=True)
         self.create_info_file(voice_info)
 
         tracks = await self.get_voice_tracks(voice_id)
@@ -144,9 +143,9 @@ class ASMRSpider:
         return await self.get(f'tracks/{voice_id}')
 
     @staticmethod
-    def check_wav_flac_duplicate(file_path: str) -> bool:
+    def check_wav_flac_duplicate(file_path: Path) -> bool:
         """if file duplicate or already exists, return True"""
-        if path.exists(file_path):
+        if file_path.exists():
             logger.error(
                 (
                     f'file already exists: {file_path}, please '
@@ -154,15 +153,15 @@ class ASMRSpider:
                 )
             )
             return True
-        match file_path.rsplit('.', 1)[1].lower():
-            case 'wav':
-                another_file_path = file_path.rsplit('.', 1)[0] + '.flac'
-                if path.exists(another_file_path):
+        match file_path.suffix.lower():
+            case '.wav':
+                another_file_path = file_path.with_suffix('.flac')
+                if another_file_path.exists():
                     logger.info(f'Skipping {file_path} for same flac exists')
                     return True
-            case 'flac':
-                another_file_path = file_path.rsplit('.', 1)[0] + '.wav'
-                if path.exists(another_file_path):
+            case '.flac':
+                another_file_path = file_path.with_suffix('.wav')
+                if another_file_path.exists():
                     logger.info(f'Skipping {file_path} for same wav exists')
                     return True
             case _:
@@ -171,22 +170,22 @@ class ASMRSpider:
         return False
 
     @staticmethod
-    def download_file(url: str, save_path: str, file_name: str) -> bool:
+    def download_file(url: str, save_path: Path, file_name: str) -> bool:
         """the save path + file should not exist,
         and the filename should be legal"""
-        m = IDMHelper(url, path.abspath(save_path), file_name, 3)
+        m = IDMHelper(url, str(save_path.absolute()), file_name, 3)
         res = m.send_link_to_idm()
         if res != 0:
             logger.error('IDM returns an error code!')
             return False
         return True
 
-    def process_download(self, url: str, save_path: str, file_name: str):
+    def process_download(self, url: str, save_path: Path, file_name: str):
         file_name = file_name.translate(
             str.maketrans(r'/\:*?"<>|', '_________')
         )
-        file_path = path.join(save_path, file_name)
-        if not path.exists(file_path):
+        file_path = save_path / file_name
+        if not file_path.exists():
             if self.check_wav_flac_duplicate(file_path):
                 return
 
@@ -198,34 +197,35 @@ class ASMRSpider:
             logger.warning(f'file {file_path} already exists ignore this file')
 
     def create_info_file(self, voice_info: Dict[str, Any]):
-        rj_id = f'RJ{str(voice_info["id"]).zfill(6)}'
-        voice_path = path.join(self.save_path, rj_id)
-        json_path = path.join(voice_path, f'{rj_id}.json')
-        if path.exists(json_path):
+        rj_name = id2rj(voice_info['id'])
+        # info中有名字信息，理论上应该是一样的，但有可能为空，所以不考虑使用
+        # recv_rj_name = voice_info['original_workno']
+        json_path = self.save_path / rj_name / f'{rj_name}.json'
+        if json_path.exists():
             logger.info(f'Path {json_path} already exists, update it...')
         with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(voice_info, f, ensure_ascii=False, indent=4)
 
     def create_dir_and_download(
-        self, tracks: List[Dict[str, Any]], voice_path: str, download=True
+        self, tracks: List[Dict[str, Any]], voice_path: Path, download=True
     ) -> None:
         folders = [track for track in tracks if track['type'] == 'folder']
         files = [track for track in tracks if track['type'] != 'folder']
         for file in files:
-            file_name = file['title'].translate(
+            file_name: str = file['title'].translate(
                 str.maketrans(r'/\:*?"<>|', '_________')
             )
-            file_path = os.path.join(voice_path, file_name)
+            file_path = voice_path / file_name
             if (not download) or (
                 not self.name_should_download(file['title'], 'file')
             ):
                 logger.info(f'filter file {file_path}')
-                with open(file_path + '.info', 'w', encoding='utf-8') as f:
+                with open(file_path.with_suffix(file_path.suffix + '.info'), 'w', encoding='utf-8') as f:
                     f.write(file['mediaDownloadUrl'])
                 continue
-            if os.path.exists(file_path) and self.replace:
+            if file_path.exists() and self.replace:
                 logger.info(f'replace mode, delete old file {file_path}')
-                os.remove(file_path)
+                file_path.unlink()
             try:
                 self.process_download(
                     file['mediaDownloadUrl'], voice_path, file['title']
@@ -239,11 +239,11 @@ class ASMRSpider:
                 if self.name_should_download(folder['title'], 'directory')
                 else False
             )
-            title = folder['title'].translate(
+            title: str = folder['title'].translate(
                 str.maketrans(r'/\:*?"<>|', '_________')
             )
-            new_path = path.join(voice_path, title)
-            makedirs(new_path, exist_ok=True)
+            new_path = voice_path / title
+            new_path.mkdir(parents=True, exist_ok=True)
             self.create_dir_and_download(
                 folder['children'], new_path, download=download and download_
             )

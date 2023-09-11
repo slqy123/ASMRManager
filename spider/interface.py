@@ -36,7 +36,7 @@ class ASMRSpiderManager:
         )
         self.id_should_download = id_should_download or (lambda _: True)
 
-    async def get(self, ids: Iterable[int]):
+    async def get(self, ids: Iterable[RJID]):
         tasks = []
         for arg in ids:
             if not self.id_should_download(arg):
