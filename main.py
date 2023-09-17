@@ -15,6 +15,7 @@ from asmrcli.hold import hold
 from asmrcli.view import view
 from asmrcli.play import play
 from asmrcli.sql import sql
+from asmrcli.show import show
 
 from logger import logger
 
@@ -56,6 +57,7 @@ main.add_command(sql)
 main.add_command(view)
 main.add_command(hold)
 main.add_command(query)
+main.add_command(show)
 
 if __name__ == '__main__':
     main()
