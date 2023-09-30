@@ -14,11 +14,11 @@ from .player import MusicPlayer, MusicPlayerWithLyrics
 class LRCPlayer(App):
     CSS_PATH = 'main.css'
     BINDINGS = [
-        ('space', 'pause', ''),
-        ('j', 'forward', ''),
-        ('k', 'backward', ''),
-        ('l', 'next_voice', ''),
-        ('h', 'prev_voice', ''),
+        ('space', 'pause', '暂停'),
+        ('j', 'forward', '快进'),
+        ('k', 'backward', '快退'),
+        ('l', 'next_voice', '下一首'),
+        ('h', 'prev_voice', '上一首'),
     ]
 
     def __init__(self, episodes: List[Tuple], *args, **kwargs):
@@ -87,6 +87,8 @@ class LRCPlayer(App):
         with Center():
             yield ProgressBar(100, show_eta=False, id='pgbar')
             yield Label('[0:00 / 0:00]', id='time')
+
+        yield Footer()
 
     def action_pause(self):
         if self.player.is_playing():

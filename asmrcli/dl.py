@@ -198,7 +198,7 @@ def search(
 )
 def store(rj_ids: Iterable[RJID], replace: bool):
     """
-    store the downloaded files to the download_path
+    store the downloaded files to the storage
     """
 
     db = create_database()

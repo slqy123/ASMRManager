@@ -7,14 +7,14 @@
 ### 下载
 
 支持网站所支持的所有索引方式(关键词，tag，circle，价格，声优，日期等等)，以及排序方式。
-目前只支持调用 IDM 下载，你也可以自己修改 spider.py 中的 `download_file` 方法。
+目前仅支持调用 IDM 或 aria2 下载。
 
 ```shell
 > asmr dl search -h
-2023-07-17 01:52:02 - INFO - Run program with: dl search -h
-Usage: main.py dl search [OPTIONS] [TEXT]
+2023-09-30 15:52:08 - INFO - Run program with: dl search -h
+Usage: asmr dl search [OPTIONS] [TEXT]
 
-  search and download ASMR by filters
+  search and download ASMR
 
   the [multiple] options means you can add multiple same option such as:
 
@@ -27,6 +27,16 @@ Usage: main.py dl search [OPTIONS] [TEXT]
   the interval a:b means a <= x < b, if a or b is not given i.e. a: or :b, it
   means no lower or upper limit
 
+  --force will check the download RJ files again though it is already  in the
+  database, it work just like update
+
+  --replace option will first delte the original file, then add the new file
+  to download queue(i.e. IDM or aria2)
+
+  nsfw will only show the full age ASMRs
+
+  for other --order values, you can refer to the website for explicit meaning
+
 Options:
   -t, --tags TEXT                 tags to include[multiple]
   -nt, --no-tags TEXT             tags to exclude[multiple]
@@ -37,14 +47,21 @@ Options:
   -r, --rate TEXT                 rating interval
   -s, --sell TEXT                 selling interval
   -pr, --price TEXT               pirce interval
+  --all / --select                download all RJs  [default: select]
   -p, --page INTEGER              page of the search result  [default: 1]
-  -s, --subtitle / -ns, --no-subtitle
-                                  if the ASMR has subtitle(中文字幕)  [default:
+  --subtitle / --no-subtitle      if the ASMR has subtitle(中文字幕)  [default:
                                   no-subtitle]
   -o, --order [create_date|rating|release|dl_count|price|rate_average_2dp|review_count|id|nsfw|random]
                                   ordering of the search result  [default:
                                   release]
   --asc / --desc                  ascending or descending
+  --force / --check-db            force download even if the RJ id exists in
+                                  database,or by default, RJ already in the
+                                  database will be skipped
+  --replace / --no-replace        replace the file if it exists  [default: no-
+                                  replace]
+  --filter / --no-filter          filter out the files to download, rules are
+                                  in the config file  [default: filter]
   -h, --help                      Show this message and exit.
 ```
 
@@ -63,12 +80,22 @@ Options:
 ```shell
 git clone https://github.com/slqy123/ASMRManager.git
 cd ASMRManager
-pip install -e .
+pip install -e .[依赖]
 ```
+可选则的依赖项有 `idm`, `aria2`, `tui`，多个依赖使用逗号分隔。例如 `pip install -e .[idm,tui]`
+
+> 此处也可以选择使用 `pipx` 来替代 `pip`，避免污染全局环境。
+> 安装方法：`pip install pipx` 
+
+---
 
 之后按照说明修改 `config.example.py` 文件，再将其重命名为 `config.py` 。
-如果需要使用`sql`命令的话，请自行定制 `sqls.example` 目录下的 sql 文件，若有不明白的地方可使用 sqlite 数据库工具查看目录下的 data.db 文件，再将文件夹重命名为 `sqls` 。
+
+如果需要使用`sql`命令的话，请自行定制 `sqls.example` 目录下的 sql 文件，若有不明白的地方可使用 sqlite 数据库工具查看目录下的 data.db 文件。最后将文件夹重命名为 `sqls` 即可。
+
 完成后使用 `asmr -h` 查看各命令的使用说明，对于子命令不清楚的同样可以查看帮助，例如 `asmr dl -h`。
+
+另外本工具提供基于 `trogon` 的可视化命令行界面，在安装`tui`依赖后使用 `asmr tui` 即可打开。
 
 ## 其他
 

@@ -54,12 +54,28 @@ class FileManager:
             f'move {self.download_path / rj_name} '
             f'to {self.storage_path / rj_name}'
         )
-        shutil.copytree(
-            self.download_path / rj_name,
-            self.storage_path / rj_name,
-            copy_function=shutil.copy2,
-        )
-        shutil.rmtree(self.download_path / rj_name)
+
+        try:
+            shutil.copytree(
+                self.download_path / rj_name,
+                self.storage_path / rj_name,
+                copy_function=shutil.copy2,
+            )
+        except (FileNotFoundError, PermissionError, shutil.Error) as e:
+            logger.error(
+                f'moving files error: {e}, terminated, '
+                f'please munually clean the files at {self.storage_path / rj_name}'
+            )
+            exit(-1)
+
+        try:
+            shutil.rmtree(self.download_path / rj_name)
+        except (FileNotFoundError, PermissionError, shutil.Error) as e:
+            logger.error(
+                f'deleting original files error: {e}, terminated, '
+                f'please munually clean the files at {self.download_path / rj_name}'
+            )
+            exit(-1)
 
     def store_all(self, exists_ok: bool = False):
         for file in os.listdir(self.download_path):
@@ -99,12 +115,22 @@ class FileManager:
     def remove_view(self, rj_id: RJID):
         assert self.could_view()
         rj_name = id2rj(rj_id)
-        path = self.view_path / rj_name
-        if not path.exists():
-            logger.error(f'file f{rj_name} not exists')
+
+        for path in self.view_path.iterdir():
+            if path.stem != rj_name:
+                continue
+            if path.is_dir() and path.is_symlink():
+                os.remove(path)
+                return
+            elif path.suffix == '.zip':
+                os.remove(path)
+                return
+        else:
+            logger.error(f'file {rj_name} not exists')
             return
-        assert path.is_dir() and path.is_symlink()
-        os.remove(path)
+        # path = self.view_path / rj_name
+        # assert path.is_dir() and path.is_symlink()
+        # os.remove(path)
 
     def list_(
         self, path: Literal['download', 'view', 'storage']

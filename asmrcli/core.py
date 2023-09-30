@@ -26,7 +26,7 @@ def create_database():
 
 def create_spider_and_database(
     download_params: DownloadParams | None = None,
-) -> Tuple['ASMRSpiderManager', 'DataBaseManager']:
+) -> Tuple["ASMRSpiderManager", "DataBaseManager"]:
     from spider import ASMRSpiderManager
     from filemanager.manager import fm
 
@@ -48,10 +48,14 @@ def create_spider_and_database(
                 or (fm.get_location(rj_id) is None)
             ),  # 如果数据库中不存在或者文件不存在，都执行下载
             json_should_download=db.add_info,
-            name_should_download=name_should_download
-            if download_params.filter
-            else (lambda *_: True),
+            name_should_download=(
+                name_should_download
+                if download_params.filter
+                else (lambda *_: True)
+            ),
             replace=download_params.replace,
+            download_method=config.download_method,
+            aria2_config=config.aria2_config,
         ),
         db,
     )
@@ -67,53 +71,53 @@ def browse_param_options(f):
     """pass the `browse_params` parameter to the function"""
 
     @click.option(
-        '-p',
-        '--page',
+        "-p",
+        "--page",
         type=int,
         default=1,
-        help='page of the search result',
+        help="page of the search result",
         show_default=True,
     )
     @click.option(
-        '--subtitle/--no-subtitle',
+        "--subtitle/--no-subtitle",
         is_flag=True,
         default=False,
-        help='if the ASMR has subtitle(中文字幕)',
+        help="if the ASMR has subtitle(中文字幕)",
         show_default=True,
     )  # no -s/-ns option for ocnfliction with --sell -s
     @click.option(
-        '-o',
-        '--order',
+        "-o",
+        "--order",
         type=click.Choice(
             [
-                'create_date',
-                'rating',
-                'release',
-                'dl_count',
-                'price',
-                'rate_average_2dp',
-                'review_count',
-                'id',
-                'nsfw',
-                'random',
+                "create_date",
+                "rating",
+                "release",
+                "dl_count",
+                "price",
+                "rate_average_2dp",
+                "review_count",
+                "id",
+                "nsfw",
+                "random",
             ],
             case_sensitive=False,
         ),
-        default='release',
-        help='ordering of the search result',
+        default="release",
+        help="ordering of the search result",
         show_default=True,
     )
     @click.option(
-        '--asc/--desc', default=False, help='ascending or descending'
+        "--asc/--desc", default=False, help="ascending or descending"
     )
     @functools.wraps(f)
     def wrapper_common_options(*args, **kwargs):
-        keys = ['page', 'subtitle', 'order', 'asc']
+        keys = ["page", "subtitle", "order", "asc"]
         browse_params = BrowseParams(**{k: kwargs.pop(k) for k in keys})
         return f(*args, **kwargs, browse_params=browse_params)
 
     wrapper_common_options.__doc__ = (
-        ''
+        ""
         if wrapper_common_options.__doc__ is None
         else wrapper_common_options.__doc__
     )
@@ -121,7 +125,7 @@ def browse_param_options(f):
 
     nsfw will only show the full age ASMRs
 
-    for other --order options, you can refer to the website for
+    for other --order values, you can refer to the website for
     explicit meaning
     """
 
@@ -132,83 +136,84 @@ def download_param_options(f):
     """pass the `download_params` parameter to the function"""
 
     @click.option(
-        '--force/--check-db',
+        "--force/--check-db",
         is_flag=True,
         default=False,
-        help='force download even if the RJ id exists in database,'
-        'or by default, RJ already in the database will be skipped',
+        help=(
+            "force download even if the RJ id exists in database,"
+            "or by default, RJ already in the database will be skipped"
+        ),
     )
     @click.option(
-        '--replace/--no-replace',
+        "--replace/--no-replace",
         is_flag=True,
         default=False,
         show_default=True,
-        help='replace the file if it exists',
+        help="replace the file if it exists",
     )
     @click.option(
-        '--filter/--no-filter',
+        "--filter/--no-filter",
         is_flag=True,
         default=True,
         show_default=True,
-        help='filter out the files to download,'
-        ' rules are in the config file',
+        help="filter out the files to download, rules are in the config file",
     )
     @functools.wraps(f)
     def wrap(*args, **kwargs):
-        keys = ['force', 'replace', 'filter']
+        keys = ["force", "replace", "filter"]
         download_params = DownloadParams(**{k: kwargs.pop(k) for k in keys})
         return f(*args, **kwargs, download_params=download_params)
 
-    wrap.__doc__ = '' if wrap.__doc__ is None else wrap.__doc__
+    wrap.__doc__ = "" if wrap.__doc__ is None else wrap.__doc__
     wrap.__doc__ += """
 
     --force will check the download RJ files again though it is already
      in the database, it work just like update
 
     --replace option will first delte the original file,
-    then add the new file to download queue(i.e. IDM)
+    then add the new file to download queue(i.e. IDM or aria2)
     """
     return wrap
 
 
 def get_prev_rj():
-    path = Path(__file__).parent.parent / '.prev_rj'
+    path = Path(__file__).parent.parent / ".prev_rj"
     if not os.path.exists(path):
-        return ''
-    with open(path, 'r', encoding='utf8') as f:
+        return ""
+    with open(path, "r", encoding="utf8") as f:
         rj = f.read()
-    logger.info(f'previous RJ id is {rj}')
+    logger.info(f"previous RJ id is {rj}")
     return rj
 
 
 def save_rj(rj: str):
-    path = Path(__file__).parent.parent / '.prev_rj'
-    with open(path, 'w', encoding='utf8') as f:
+    path = Path(__file__).parent.parent / ".prev_rj"
+    with open(path, "w", encoding="utf8") as f:
         f.write(rj)
 
 
 def rj_argument(f):
     """parse the rj_id: int, if not given it will use the previous rj_id"""
 
-    @click.argument('rj_id', type=str, default='__default__')
+    @click.argument("rj_id", type=str, default="__default__")
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        rj: str = kwargs['rj_id']
-        if kwargs['rj_id'] == '__default__':
+        rj: str = kwargs["rj_id"]
+        if kwargs["rj_id"] == "__default__":
             rj = get_prev_rj()
-        if rj == '':
+        if rj == "":
             logger.error(
-                'No previous RJ id available,'
-                ' please first run a command with Rj id'
+                "No previous RJ id available,"
+                " please first run a command with Rj id"
             )
             exit(-1)
 
         rj_id = rj2id(rj)
         if rj_id is None:
-            logger.error(f'Invalid input RJ ID{rj}')
+            logger.error(f"Invalid input RJ ID{rj}")
             exit(-1)
         save_rj(rj)
-        kwargs['rj_id'] = rj_id
+        kwargs["rj_id"] = rj_id
 
         f(*args, **kwargs)
 
@@ -218,25 +223,25 @@ def rj_argument(f):
 def multi_rj_argument(f):
     """parse multiple rj input to rj_id"""
 
-    @click.argument('rjs', nargs=-1)
+    @click.argument("rjs", nargs=-1)
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        rjs: Tuple[str] = kwargs['rjs']
-        del kwargs['rjs']
-        kwargs['rj_ids'] = []
+        rjs: Tuple[str] = kwargs["rjs"]
+        del kwargs["rjs"]
+        kwargs["rj_ids"] = []
         for rj in rjs:
             rj_id = rj2id(rj)
             if rj_id is None:
-                logger.error(f'Invalid input RJ ID{rj}')
+                logger.error(f"Invalid input RJ ID{rj}")
                 continue
-            kwargs['rj_ids'].append(rj_id)
+            kwargs["rj_ids"].append(rj_id)
 
         f(*args, **kwargs)
 
     return wrapper
 
 
-SEPARATOR = ':'
+SEPARATOR = ":"
 
 
 def interval_preprocess_cb(ctx: click.Context, opt: click.Option, val: str):
@@ -250,7 +255,7 @@ def interval_preprocess_cb(ctx: click.Context, opt: click.Option, val: str):
     assert len(vals) == 2
 
     def _check(x):
-        if x == '':
+        if x == "":
             return None
         xf = float(x)
         if xf.is_integer():

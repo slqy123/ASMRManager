@@ -5,10 +5,44 @@ Version v1.0.2 | 2021.11.28
 
 from typing import Optional, Any
 from pathlib import Path
-from .module import get_module
 
-from comtypes import client   # type: ignore
-from comtypes.automation import VT_EMPTY   # type: ignore
+from comtypes import client  # type: ignore
+from comtypes.automation import VT_EMPTY  # type: ignore
+
+from types import ModuleType
+
+
+def check_folder(*dirs: Path) -> Path:
+    for d in dirs:
+        if d.exists():
+            return d
+    raise NotADirectoryError(
+        "Looks like you don't have IDM installed in your system"
+    )
+
+
+def get_module() -> ModuleType:
+    idm_folder_64bit = Path(
+        r"C:\Program Files (x86)\Internet Download Manager"
+    )
+    idm_folder_32bit = Path(r"C:\Program Files\Internet Download Manager")
+
+    idm_folder = check_folder(idm_folder_64bit, idm_folder_32bit)
+
+    try:
+        # Registry path: Computer\HKEY_CLASSES_ROOT\TypeLib\
+        # {ECF21EAB-3AA8-4355-82BE-F777990001DD}
+        UUID = "{ECF21EAB-3AA8-4355-82BE-F777990001DD}"
+        return client.GetModule([UUID, 1, 0])
+    except OSError:
+        # if uuid is not exist in the registry use tlb module instead
+        tlb = idm_folder / "idmantypeinfo.tlb"
+        if not tlb.exists():
+            raise FileNotFoundError(
+                f"{tlb} is not exist. Try to re-install your idm"
+            )
+
+        return client.GetModule(tlb)
 
 
 class IDMHelper:
@@ -53,7 +87,7 @@ class IDMHelper:
         """Simple method with limited parameters"""
 
         idm: Any = client.CreateObject(
-            progid='IDMan.CIDMLinkTransmitter',
+            progid="IDMan.CIDMLinkTransmitter",
             interface=self.idm_module.ICIDMLinkTransmitter,
         )
 
@@ -74,7 +108,7 @@ class IDMHelper:
         """Method with all the parameters"""
 
         idm: Any = client.CreateObject(
-            progid='IDMan.CIDMLinkTransmitter',
+            progid="IDMan.CIDMLinkTransmitter",
             interface=self.idm_module.ICIDMLinkTransmitter2,
         )
         idm.SendLinkToIDM2(
@@ -92,13 +126,13 @@ class IDMHelper:
         )
 
 
-if __name__ == '__main__':
-    url = 'http://www.internetdownloadmanager.com/idman401.exe'
+if __name__ == "__main__":
+    url = "http://www.internetdownloadmanager.com/idman401.exe"
 
     output_folder = Path.cwd()
-    output_filename = 'idman.exe'
+    output_filename = "idman.exe"
     user_agent = None
-    flag = 3    # see above the flag information
+    flag = 3  # see above the flag information
     idm = IDMHelper(url, str(output_folder), output_filename, flag)
     idm.send_link_to_idm()
     # idm.send_link_to_idm2()

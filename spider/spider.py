@@ -1,5 +1,6 @@
 import asyncio
 import json
+from pathlib import Path
 from typing import (
     Any,
     Callable,
@@ -8,25 +9,36 @@ from typing import (
     List,
     Literal,
     Optional,
+    TYPE_CHECKING,
     Union,
 )
 
 from aiohttp import ClientConnectorError, ClientSession
 from aiohttp.connector import TCPConnector
-from pathlib import Path
 
+from common.rj_parse import RJID, id2rj
+from config import Aria2Config
 from logger import logger
 
-from .utils.IDMHelper import IDMHelper
-from filemanager.manager import fm
-from common.rj_parse import id2rj, RJID
+try:
+    IDMHELPER_EXIST = True
+    from .utils.IDMHelper import IDMHelper
+except (ImportError, ModuleNotFoundError):
+    IDMHELPER_EXIST = False
+
+try:
+    ARIA2_EXIST = True
+    from .utils.aria2_downloader import Aria2Downloader
+except (ImportError, ModuleNotFoundError):
+    ARIA2_EXIST = False
+
 
 # TODO 统一管理固定的参数
 
 
 class ASMRSpider:
     # base_api_url = 'https://api.asmr.one/api/'
-    base_api_url = 'https://api.asmr-300.com/api/'
+    base_api_url = "https://api.asmr-300.com/api/"
 
     def __init__(
         self,
@@ -36,20 +48,24 @@ class ASMRSpider:
         save_path: str,
         json_should_download: Callable[[Dict[str, Any]], bool],
         name_should_download: Callable[
-            [str, Literal['directory', 'file']], bool
+            [str, Literal["directory", "file"]], bool
         ],
         replace=False,
         limit: int = 3,
+        download_method: Literal["aria2", "idm"] = "idm",
+        aria2_config: Aria2Config | None = None,
     ):
         # self._session: Optional[ClientSession] = None  # for __aenter__
         self._session: ClientSession
         self.name = name
         self.password = password
         self.headers = {
-            'Referer': 'https://www.asmr.one/',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-            'AppleWebKit/537.36 (KHTML, like Gecko)'
-            ' Chrome/78.0.3904.108 Safari/537.36',
+            "Referer": "https://www.asmr.one/",
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko)"
+                " Chrome/78.0.3904.108 Safari/537.36"
+            ),
         }
         self.proxy = proxy
         self.limit = limit
@@ -67,23 +83,47 @@ class ASMRSpider:
         self.json_should_download = json_should_download
         self.name_should_download = name_should_download
         self.replace = replace
+        self.download_file = (
+            self.download_by_idm
+            if download_method == "idm"
+            else self.download_by_aria2
+        )
+
+        self.__aria2_downloader = None
+        self.aria2_config = aria2_config
+        self.download_method = download_method
+
+    @property
+    def aria2_downloader(self):
+        if self.__aria2_downloader is not None:
+            return self.__aria2_downloader
+        if self.download_method == "aria2" and self.aria2_config is not None:
+            self.__aria2_downloader = Aria2Downloader(
+                host=self.aria2_config.host,
+                port=self.aria2_config.port,
+                secret=self.aria2_config.secret,
+                proxy=self.proxy,
+            )
+        else:
+            self.__aria2_downloader = None
+        return self.__aria2_downloader
 
     async def login(self) -> None:
         try:
             async with self._session.post(
-                self.base_api_url + 'auth/me',
-                json={'name': self.name, 'password': self.password},
+                self.base_api_url + "auth/me",
+                json={"name": self.name, "password": self.password},
                 headers=self.headers,
                 proxy=self.proxy,
             ) as resp:
-                token = (await resp.json())['token']
+                token = (await resp.json())["token"]
                 self.headers.update(
                     {
-                        'Authorization': f'Bearer {token}',
+                        "Authorization": f"Bearer {token}",
                     }
                 )
         except ClientConnectorError as err:
-            logger.error(f'Login failed, {err}')
+            logger.error(f"Login failed, {err}")
 
     async def get(self, route: str, params: dict | None = None) -> Any:
         resp_json = None
@@ -98,7 +138,7 @@ class ASMRSpider:
                     resp_json = await resp.json()
                     return resp_json
             except Exception as e:
-                logger.warning(f'Request {route} failed: {e}')
+                logger.warning(f"Request {route} failed: {e}")
                 await asyncio.sleep(3)
         return resp_json
 
@@ -111,58 +151,56 @@ class ASMRSpider:
 
         should_down = self.json_should_download(voice_info)
         if not should_down:
-            logger.info(f'stop download {voice_id}')
+            logger.info(f"stop download {voice_id}")
             return
         if save_path is None:
             save_path = self.save_path
 
         voice_path = save_path / id2rj(RJID(voice_id))
         if voice_path.exists():
-            logger.warning(f'path {voice_path} already exists.')
+            logger.warning(f"path {voice_path} already exists.")
 
         voice_path.mkdir(parents=True, exist_ok=True)
         self.create_info_file(voice_info)
 
         tracks = await self.get_voice_tracks(voice_id)
         if isinstance(tracks, dict):
-            if error_info := tracks.get('error'):
-                logger.error(f'RJ{voice_id} not found, {error_info}')
+            if error_info := tracks.get("error"):
+                logger.error(f"RJ{voice_id} not found, {error_info}")
                 return
             else:
-                logger.error('Unexpected track type: dict')
+                logger.error("Unexpected track type: dict")
                 return
 
         self.create_dir_and_download(tracks, voice_path)
 
     async def get_voice_info(self, voice_id: int) -> Dict[str, Any]:
-        voice_info = await self.get(f'work/{voice_id}')
+        voice_info = await self.get(f"work/{voice_id}")
         assert isinstance(voice_info, dict)
         return voice_info
 
     async def get_voice_tracks(self, voice_id: int):
-        return await self.get(f'tracks/{voice_id}')
+        return await self.get(f"tracks/{voice_id}")
 
     @staticmethod
     def check_wav_flac_duplicate(file_path: Path) -> bool:
         """if file duplicate or already exists, return True"""
         if file_path.exists():
             logger.error(
-                (
-                    f'file already exists: {file_path}, please '
-                    'check for the existence of the download files first'
-                )
+                f"file already exists: {file_path}, please "
+                "check for the existence of the download files first"
             )
             return True
         match file_path.suffix.lower():
-            case '.wav':
-                another_file_path = file_path.with_suffix('.flac')
+            case ".wav":
+                another_file_path = file_path.with_suffix(".flac")
                 if another_file_path.exists():
-                    logger.info(f'Skipping {file_path} for same flac exists')
+                    logger.info(f"Skipping {file_path} for same flac exists")
                     return True
-            case '.flac':
-                another_file_path = file_path.with_suffix('.wav')
+            case ".flac":
+                another_file_path = file_path.with_suffix(".wav")
                 if another_file_path.exists():
-                    logger.info(f'Skipping {file_path} for same wav exists')
+                    logger.info(f"Skipping {file_path} for same wav exists")
                     return True
             case _:
                 pass
@@ -170,100 +208,121 @@ class ASMRSpider:
         return False
 
     @staticmethod
-    def download_file(url: str, save_path: Path, file_name: str) -> bool:
+    def download_by_idm(url: str, save_path: Path, file_name: str) -> bool:
         """the save path + file should not exist,
         and the filename should be legal"""
+        assert IDMHELPER_EXIST
         m = IDMHelper(url, str(save_path.absolute()), file_name, 3)
         res = m.send_link_to_idm()
         if res != 0:
-            logger.error('IDM returns an error code!')
+            logger.error("IDM returns an error code!")
             return False
+        return True
+
+    def download_by_aria2(
+        self, url: str, save_path: Path, file_name: str
+    ) -> bool:
+        """the save path + file should not exist,
+        and the filename should be legal"""
+        # TODO
+        assert self.aria2_downloader
+        self.aria2_downloader.download(url, save_path, file_name)
         return True
 
     def process_download(self, url: str, save_path: Path, file_name: str):
         file_name = file_name.translate(
-            str.maketrans(r'/\:*?"<>|', '_________')
+            str.maketrans(r'/\:*?"<>|', "_________")
         )
         file_path = save_path / file_name
         if not file_path.exists():
             if self.check_wav_flac_duplicate(file_path):
                 return
 
-            logger.info(f'Downloading {file_path}')
+            logger.info(f"Downloading {file_path}")
             if not self.download_file(url, save_path, file_name):
-                logger.error(f'Download {file_path} failed')
+                logger.error(f"Download {file_path} failed")
                 return
         else:
-            logger.warning(f'file {file_path} already exists ignore this file')
+            logger.warning(f"file {file_path} already exists ignore this file")
 
     def create_info_file(self, voice_info: Dict[str, Any]):
-        rj_name = id2rj(voice_info['id'])
+        rj_name = id2rj(voice_info["id"])
         # info中有名字信息，理论上应该是一样的，但有可能为空，所以不考虑使用
         # recv_rj_name = voice_info['original_workno']
-        json_path = self.save_path / rj_name / f'{rj_name}.json'
+        json_path = self.save_path / rj_name / f"{rj_name}.json"
         if json_path.exists():
-            logger.info(f'Path {json_path} already exists, update it...')
-        with open(json_path, 'w', encoding='utf-8') as f:
+            logger.info(f"Path {json_path} already exists, update it...")
+        with open(json_path, "w", encoding="utf-8") as f:
             json.dump(voice_info, f, ensure_ascii=False, indent=4)
 
     def create_dir_and_download(
         self, tracks: List[Dict[str, Any]], voice_path: Path, download=True
     ) -> None:
-        folders = [track for track in tracks if track['type'] == 'folder']
-        files = [track for track in tracks if track['type'] != 'folder']
+        folders = [track for track in tracks if track["type"] == "folder"]
+        files = [track for track in tracks if track["type"] != "folder"]
         for file in files:
-            file_name: str = file['title'].translate(
-                str.maketrans(r'/\:*?"<>|', '_________')
+            file_name: str = file["title"].translate(
+                str.maketrans(r'/\:*?"<>|', "_________")
             )
             file_path = voice_path / file_name
             if (not download) or (
-                not self.name_should_download(file['title'], 'file')
+                not self.name_should_download(file["title"], "file")
             ):
-                logger.info(f'filter file {file_path}')
-                with open(file_path.with_suffix(file_path.suffix + '.info'), 'w', encoding='utf-8') as f:
-                    f.write(file['mediaDownloadUrl'])
+                logger.info(f"filter file {file_path}")
+                with open(
+                    file_path.with_suffix(file_path.suffix + ".info"),
+                    "w",
+                    encoding="utf-8",
+                ) as f:
+                    f.write(file["mediaDownloadUrl"])
                 continue
             if file_path.exists() and self.replace:
-                logger.info(f'replace mode, delete old file {file_path}')
+                logger.info(f"replace mode, delete old file {file_path}")
                 file_path.unlink()
             try:
                 self.process_download(
-                    file['mediaDownloadUrl'], voice_path, file['title']
+                    file["mediaDownloadUrl"], voice_path, file["title"]
                 )
+            except ModuleNotFoundError as e:
+                logger.critical(
+                    f"Module not found: {e}, please read the install part of"
+                    " the README.md to install the corresponding module"
+                )
+                exit(-1)
             except Exception as e:
-                logger.error(f'Download error: {e}')
+                logger.error(f"Download error: {e}")
                 continue
         for folder in folders:
             download_ = (
                 True
-                if self.name_should_download(folder['title'], 'directory')
+                if self.name_should_download(folder["title"], "directory")
                 else False
             )
-            title: str = folder['title'].translate(
-                str.maketrans(r'/\:*?"<>|', '_________')
+            title: str = folder["title"].translate(
+                str.maketrans(r'/\:*?"<>|', "_________")
             )
             new_path = voice_path / title
             new_path.mkdir(parents=True, exist_ok=True)
             self.create_dir_and_download(
-                folder['children'], new_path, download=download and download_
+                folder["children"], new_path, download=download and download_
             )
 
     async def get_search_result(
         self, content: str, params: dict
     ) -> Dict[str, Any]:
-        return await self.get(f'search/{content}', params=params)
+        return await self.get(f"search/{content}", params=params)
 
     async def list(self, params: dict) -> Dict[str, Any]:
-        return await self.get('works', params=params)
+        return await self.get("works", params=params)
 
     async def tag(self, tag_name: str, params: dict):
         # return await self.get(f'tags/{tag_id}/works', params=params)
-        return await self.get_search_result(f'$tag:{tag_name}$', params=params)
+        return await self.get_search_result(f"$tag:{tag_name}$", params=params)
 
     async def va(self, va_name: str, params: dict):
-        return await self.get_search_result(f'$va:{va_name}$', params=params)
+        return await self.get_search_result(f"$va:{va_name}$", params=params)
 
-    async def __aenter__(self) -> 'ASMRSpider':
+    async def __aenter__(self) -> "ASMRSpider":
         self._session = ClientSession(connector=TCPConnector(limit=self.limit))
         await self.login()
         return self

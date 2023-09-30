@@ -2,8 +2,9 @@ from typing import Literal
 from config import config
 import re
 
+
 def name_should_download(name: str, type_: Literal['directory', 'file']):
-    for filter_ in config.name_filters:
+    for filter_ in config.filename_filters:
         range_check = filter_.range == 'all' or filter_.range == type_
         if not range_check:
             continue

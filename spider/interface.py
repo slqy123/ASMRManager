@@ -1,13 +1,16 @@
 import asyncio
 from typing import Any, Callable, Coroutine, Dict, Iterable, Literal, Tuple
+import typing
 
 import cutie
 
-from common.rj_parse import RJID, id2rj
 from common.browse_params import BrowseParams
+from common.rj_parse import RJID, id2rj
 from logger import logger
 
 from .spider import ASMRSpider
+
+from config import Aria2Config
 
 
 class ASMRSpiderManager:
@@ -20,10 +23,12 @@ class ASMRSpiderManager:
         id_should_download: Callable[[RJID], bool] | None = None,
         json_should_download: Callable[[Dict[str, Any]], bool] | None = None,
         name_should_download: Callable[
-            [str, Literal['directory', 'file']], bool
+            [str, Literal["directory", "file"]], bool
         ]
         | None = None,
         replace=False,
+        download_method: Literal["aria2", "idm"] = "idm",
+        aria2_config: Aria2Config | None = None,
     ):
         self.spider = ASMRSpider(
             name=name,
@@ -33,6 +38,8 @@ class ASMRSpiderManager:
             name_should_download=name_should_download or (lambda *_: True),
             json_should_download=json_should_download or (lambda _: True),
             replace=replace,
+            download_method=download_method,
+            aria2_config=aria2_config,
         )
         self.id_should_download = id_should_download or (lambda _: True)
 
@@ -40,7 +47,7 @@ class ASMRSpiderManager:
         tasks = []
         for arg in ids:
             if not self.id_should_download(arg):
-                logger.info(f'RJ{arg} already exists.')
+                logger.info(f"RJ{arg} already exists.")
                 continue
             tasks.append(self.spider.download(arg))
         await asyncio.gather(*tasks)
@@ -62,46 +69,46 @@ class ASMRSpiderManager:
     ):
         filters = []
 
-        filters += [f'$tag:{t}$' for t in tags]
-        filters += [f'$-tag:{nt}$' for nt in no_tags]
+        filters += [f"$tag:{t}$" for t in tags]
+        filters += [f"$-tag:{nt}$" for nt in no_tags]
 
-        filters += [f'$va:{va}$' for va in vas]
-        filters += [f'$-va:{nva}$' for nva in no_vas]
+        filters += [f"$va:{va}$" for va in vas]
+        filters += [f"$-va:{nva}$" for nva in no_vas]
 
-        filters += [f'$-circle:{nc}$' for nc in no_circle]
+        filters += [f"$-circle:{nc}$" for nc in no_circle]
 
-        for name, value in (('rate', rate), ('sell', sell), ('price', price)):
+        for name, value in (("rate", rate), ("sell", sell), ("price", price)):
             if value[0] is not None:
-                filters.append(f'${name}:{value[0]}$')
+                filters.append(f"${name}:{value[0]}$")
             if value[1] is not None:
-                filters.append(f'$-{name}:{value[1]}$')
+                filters.append(f"$-{name}:{value[1]}$")
 
         if circle:
-            filters.append(f'$circle:{circle}$')
+            filters.append(f"$circle:{circle}$")
         if text:
             filters.append(text)
 
         if filters:
-            logger.info(f'searching with {filters} {params}')
+            logger.info(f"searching with {filters} {params}")
             search_result = await self.spider.get_search_result(
-                ' '.join(filters).replace('/', '%2F'), params=params.params
+                " ".join(filters).replace("/", "%2F"), params=params.params
             )
         else:
-            logger.info(f'list works with {params}')
+            logger.info(f"list works with {params}")
             search_result = await self.spider.list(params=params.params)
-        ids = [work['id'] for work in search_result['works']]
+        ids = [work["id"] for work in search_result["works"]]
 
         if all_:
             await self.get(ids)
             return
 
         # select RJs
-        titles = [work['title'] for work in search_result['works']]
+        titles = [work["title"] for work in search_result["works"]]
         indexes = cutie.select_multiple(
-            [f'{id2rj(id_)} | {title}' for id_, title in zip(ids, titles)],
+            [f"{id2rj(id_)} | {title}" for id_, title in zip(ids, titles)],
         )
         if not indexes:
-            logger.error('Nothing was selected.')
+            logger.error("Nothing was selected.")
             return
 
         await self.get([ids[i] for i in indexes])
@@ -109,22 +116,22 @@ class ASMRSpiderManager:
     async def tag(self, tag_name: str, params: BrowseParams):
         """tag 和 va 一样，都是调用了特殊的search方法"""
         tag_res = await self.spider.tag(tag_name, params=params.params)
-        ids = [work['id'] for work in tag_res['works']]
+        ids = [work["id"] for work in tag_res["works"]]
         await self.get(ids)
 
     async def va(self, va_name: str, params: BrowseParams):
         """tag 和 va 一样，都是调用了特殊的search方法"""
         va_res = await self.spider.tag(va_name, params=params.params)
-        ids = [work['id'] for work in va_res['works']]
+        ids = [work["id"] for work in va_res["works"]]
         await self.get(ids)
 
     async def update(self, ids: Iterable[int]):
         async def update_one(rj_id_: int):
             rj_info = await self.spider.get_voice_info(rj_id_)
-            if err := rj_info.get('error'):
-                logger.error(f'Info Error: {err}')
+            if err := rj_info.get("error"):
+                logger.error(f"Info Error: {err}")
                 return
-            logger.info(f'Get asmr info id=RJ{rj_id_}')
+            logger.info(f"Get asmr info id=RJ{rj_id_}")
             self.spider.json_should_download(rj_info)
             self.spider.create_info_file(rj_info)
 
