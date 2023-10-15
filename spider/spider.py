@@ -5,12 +5,9 @@ from typing import (
     Any,
     Callable,
     Dict,
-    Iterable,
     List,
     Literal,
-    Optional,
-    TYPE_CHECKING,
-    Union,
+    Tuple,
 )
 
 from aiohttp import ClientConnectorError, ClientSession
@@ -32,10 +29,12 @@ try:
 except (ImportError, ModuleNotFoundError):
     ARIA2_EXIST = False
 
+from filemanager import fm
 
+from typing import NamedTuple
 # TODO 统一管理固定的参数
 
-
+FileInfo = NamedTuple('FileInfo', [('path', Path), ('url', str), ('should_download', bool)])
 class ASMRSpider:
     # base_api_url = 'https://api.asmr.one/api/'
     base_api_url = "https://api.asmr-300.com/api/"
@@ -45,7 +44,6 @@ class ASMRSpider:
         name: str,
         password: str,
         proxy: str,
-        save_path: str,
         json_should_download: Callable[[Dict[str, Any]], bool],
         name_should_download: Callable[
             [str, Literal["directory", "file"]], bool
@@ -69,7 +67,7 @@ class ASMRSpider:
         }
         self.proxy = proxy
         self.limit = limit
-        self.save_path = Path(save_path)
+        self.save_path = fm.download_path
         # self.pop_keys = (
         #             "create_date",
         #             "userRating",
@@ -161,7 +159,7 @@ class ASMRSpider:
             logger.warning(f"path {voice_path} already exists.")
 
         voice_path.mkdir(parents=True, exist_ok=True)
-        self.create_info_file(voice_info)
+        self.create_info_file(voice_info, voice_path=voice_path)
 
         tracks = await self.get_voice_tracks(voice_id)
         if isinstance(tracks, dict):
@@ -172,7 +170,18 @@ class ASMRSpider:
                 logger.error("Unexpected track type: dict")
                 return
 
-        self.create_dir_and_download(tracks, voice_path)
+        file_list = self.get_file_list(tracks, voice_path)
+        self.create_recover_file(file_list, voice_path)
+        self.create_dir_and_download(file_list)
+
+    def create_recover_file(self, file_list: List[FileInfo], voice_path: Path):
+        recover = [{
+            "path": str(file.path.relative_to(voice_path)).replace('\\', '/'),
+            "url": file.url,
+            "should_download": file.should_download
+        } for file in file_list]
+        with open(voice_path / ".recover", "w", encoding="utf-8") as f:
+            json.dump(recover, f, ensure_ascii=False, indent=4)
 
     async def get_voice_info(self, voice_id: int) -> Dict[str, Any]:
         voice_info = await self.get(f"work/{voice_id}")
@@ -182,30 +191,7 @@ class ASMRSpider:
     async def get_voice_tracks(self, voice_id: int):
         return await self.get(f"tracks/{voice_id}")
 
-    @staticmethod
-    def check_wav_flac_duplicate(file_path: Path) -> bool:
-        """if file duplicate or already exists, return True"""
-        if file_path.exists():
-            logger.error(
-                f"file already exists: {file_path}, please "
-                "check for the existence of the download files first"
-            )
-            return True
-        match file_path.suffix.lower():
-            case ".wav":
-                another_file_path = file_path.with_suffix(".flac")
-                if another_file_path.exists():
-                    logger.info(f"Skipping {file_path} for same flac exists")
-                    return True
-            case ".flac":
-                another_file_path = file_path.with_suffix(".wav")
-                if another_file_path.exists():
-                    logger.info(f"Skipping {file_path} for same wav exists")
-                    return True
-            case _:
-                pass
 
-        return False
 
     @staticmethod
     def download_by_idm(url: str, save_path: Path, file_name: str) -> bool:
@@ -228,60 +214,67 @@ class ASMRSpider:
         assert self.aria2_downloader
         self.aria2_downloader.download(url, save_path, file_name)
         return True
+    
+    def check_exists(self, download_file_path: Path):
+        p = fm.download_path if download_file_path.is_relative_to(fm.download_path) else fm.storage_path
+        rel_path = str(download_file_path.relative_to(p))
+        return fm.check_exists(rel_path)
+
+
+
 
     def process_download(self, url: str, save_path: Path, file_name: str):
-        file_name = file_name.translate(
-            str.maketrans(r'/\:*?"<>|', "_________")
-        )
+        # file_name = file_name.translate(
+        #     str.maketrans(r'/\:*?"<>|', "_________")
+        # )
+
         file_path = save_path / file_name
-        if not file_path.exists():
-            if self.check_wav_flac_duplicate(file_path):
-                return
+        exist_info = self.check_exists(file_path)
+        if exist_info.download and self.replace:
+            logger.info(f"replace mode, delete old file {file_path}")
+            file_path.unlink()
+        
+        if exist_info.download:
+            logger.warning(f"file {file_path} already exists in download, ignore this file")
+            return
+        
+        if exist_info.storage:
+            logger.warning(f"file {file_path} already exists in storage, ignore this file")
+            return
 
-            logger.info(f"Downloading {file_path}")
-            if not self.download_file(url, save_path, file_name):
-                logger.error(f"Download {file_path} failed")
-                return
-        else:
-            logger.warning(f"file {file_path} already exists ignore this file")
+        logger.info(f"Downloading {file_path}")
+        if not self.download_file(url, save_path, file_name):
+            logger.error(f"Download {file_path} failed")
+            return
 
-    def create_info_file(self, voice_info: Dict[str, Any]):
+    def create_info_file(self, voice_info: Dict[str, Any], voice_path: Path):
         rj_name = id2rj(voice_info["id"])
         # info中有名字信息，理论上应该是一样的，但有可能为空，所以不考虑使用
         # recv_rj_name = voice_info['original_workno']
-        json_path = self.save_path / rj_name / f"{rj_name}.json"
+        json_path = voice_path / f"{rj_name}.json"
         if json_path.exists():
             logger.info(f"Path {json_path} already exists, update it...")
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(voice_info, f, ensure_ascii=False, indent=4)
 
     def create_dir_and_download(
-        self, tracks: List[Dict[str, Any]], voice_path: Path, download=True
+        self, file_list: List[FileInfo]
     ) -> None:
-        folders = [track for track in tracks if track["type"] == "folder"]
-        files = [track for track in tracks if track["type"] != "folder"]
-        for file in files:
-            file_name: str = file["title"].translate(
-                str.maketrans(r'/\:*?"<>|', "_________")
-            )
-            file_path = voice_path / file_name
-            if (not download) or (
-                not self.name_should_download(file["title"], "file")
-            ):
+        for file_info in file_list:
+            file_path = file_info.path
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            if not file_info.should_download:
                 logger.info(f"filter file {file_path}")
-                with open(
-                    file_path.with_suffix(file_path.suffix + ".info"),
-                    "w",
-                    encoding="utf-8",
-                ) as f:
-                    f.write(file["mediaDownloadUrl"])
+                # with open(
+                #     file_path.with_suffix(file_path.suffix + ".info"),
+                #     "w",
+                #     encoding="utf-8",
+                # ) as f:
+                #     f.write(file["mediaDownloadUrl"])
                 continue
-            if file_path.exists() and self.replace:
-                logger.info(f"replace mode, delete old file {file_path}")
-                file_path.unlink()
             try:
                 self.process_download(
-                    file["mediaDownloadUrl"], voice_path, file["title"]
+                    file_info.url, file_path.parent, file_path.name
                 )
             except ModuleNotFoundError as e:
                 logger.critical(
@@ -290,8 +283,30 @@ class ASMRSpider:
                 )
                 exit(-1)
             except Exception as e:
-                logger.error(f"Download error: {e}")
+                logger.error(f"Unknow download error: {e}")
                 continue
+
+    def get_file_list(self, tracks: List[Dict[str, Any]], voice_path: Path, download=True):
+        file_list: List[FileInfo] = []
+        folders = [track for track in tracks if track["type"] == "folder"]
+        files = [track for track in tracks if track["type"] != "folder"]
+
+        for file in files:
+            file_name: str = file["title"].translate(
+                str.maketrans(r'/\:*?"<>|', "_________")
+            )
+            file_path = voice_path / file_name
+
+            if (not download) or (
+                not self.name_should_download(file["title"], "file")
+            ):
+                should_download = False
+            else:
+                should_download = True
+            
+            file_list.append(FileInfo(file_path, file["mediaDownloadUrl"], should_download))
+
+
         for folder in folders:
             download_ = (
                 True
@@ -302,10 +317,15 @@ class ASMRSpider:
                 str.maketrans(r'/\:*?"<>|', "_________")
             )
             new_path = voice_path / title
-            new_path.mkdir(parents=True, exist_ok=True)
-            self.create_dir_and_download(
-                folder["children"], new_path, download=download and download_
+            file_list.extend(
+                self.get_file_list(
+                    folder["children"],
+                    new_path,
+                    download and download_
+                )
             )
+
+        return file_list
 
     async def get_search_result(
         self, content: str, params: dict

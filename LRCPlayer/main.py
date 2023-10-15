@@ -8,17 +8,21 @@ from textual.binding import Binding
 
 import click
 from pathlib import Path
+
+import logger
 from .player import MusicPlayer, MusicPlayerWithLyrics
+
+from common.vtt2lrc import vtt2lrc
 
 
 class LRCPlayer(App):
-    CSS_PATH = 'main.css'
+    CSS_PATH = "main.css"
     BINDINGS = [
-        ('space', 'pause', '暂停'),
-        ('j', 'forward', '快进'),
-        ('k', 'backward', '快退'),
-        ('l', 'next_voice', '下一首'),
-        ('h', 'prev_voice', '上一首'),
+        ("space", "pause", "暂停"),
+        ("j", "forward", "快进"),
+        ("k", "backward", "快退"),
+        ("l", "next_voice", "下一首"),
+        ("h", "prev_voice", "上一首"),
     ]
 
     def __init__(self, episodes: List[Tuple], *args, **kwargs):
@@ -53,7 +57,7 @@ class LRCPlayer(App):
         if isinstance(self.player, MusicPlayerWithLyrics):
             lrc_data = self.player.get_lyrics()
             self.query_one(ProgressBar).update(progress=lrc_data.progress)
-            for i, l in enumerate(self.query('.lyrics')):
+            for i, l in enumerate(self.query(".lyrics")):
                 assert isinstance(l, Label)
                 l.update(lrc_data.lyrics[i])
 
@@ -61,32 +65,32 @@ class LRCPlayer(App):
             self.query_one(ProgressBar).update(
                 progress=self.player.get_total_percent()
             )
-            for i, l in enumerate(self.query('.lyrics')):
+            for i, l in enumerate(self.query(".lyrics")):
                 assert isinstance(l, Label)
-                l.update(('', 'no lyrics', '')[i])
+                l.update(("", "no lyrics", "")[i])
 
         # 更新播放时间
         # 格式化成 x:xx / x:xx
         def format_time(seconds: int):
-            return f'{seconds // 60_000}:{seconds % 60_000 // 1000:02d}'
+            return f"{seconds // 60_000}:{seconds % 60_000 // 1000:02d}"
 
-        self.query_one('#time', expect_type=Label).update(
-            f'[{format_time(self.player.get_pos())}'
-            f' / '
-            f'{format_time(self.player.total_time)}]'
+        self.query_one("#time", expect_type=Label).update(
+            f"[{format_time(self.player.get_pos())}"
+            " / "
+            f"{format_time(self.player.total_time)}]"
         )
 
     def compose(self) -> ComposeResult:
-        yield Label(self.player.title, id='title')
+        yield Label(self.player.title, id="title")
 
         for i in range(3):
-            label = Label('', classes='lyrics')
-            label.styles.text_opacity = str(100 - abs(1 - i) * 50) + '%'
+            label = Label("", classes="lyrics")
+            label.styles.text_opacity = str(100 - abs(1 - i) * 50) + "%"
             yield label
 
         with Center():
-            yield ProgressBar(100, show_eta=False, id='pgbar')
-            yield Label('[0:00 / 0:00]', id='time')
+            yield ProgressBar(100, show_eta=False, id="pgbar")
+            yield Label("[0:00 / 0:00]", id="time")
 
         yield Footer()
 
@@ -113,7 +117,7 @@ class LRCPlayer(App):
     def switch_voice(self, idx: int):
         self.voice_index = idx
         self.player.play()
-        self.query_one('#title', expect_type=Label).update(self.player.title)
+        self.query_one("#title", expect_type=Label).update(self.player.title)
 
     def action_next_voice(self):
         if self.voice_index + 1 < len(self.episodes):
@@ -126,7 +130,7 @@ class LRCPlayer(App):
 
 @click.command()
 @click.argument(
-    'path', type=click.Path(exists=True, dir_okay=True, path_type=Path)
+    "path", type=click.Path(exists=True, dir_okay=True, path_type=Path)
 )
 def main(path: Path):
     import os
@@ -136,25 +140,38 @@ def main(path: Path):
     if path.is_dir():
         for file in os.listdir(path):
             file_path = path / file
-            if file_path.suffix in ('.mp3', '.wav', '.m4a', '.flac'):
-                lrc_path = file_path.with_suffix('.lrc')
+            if file_path.suffix in (".mp3", ".wav", ".m4a", ".flac"):
+                lrc_path = file_path.with_suffix(".lrc")
                 if not lrc_path.exists():
                     lrc_path = None
                 episodes.append((file_path, lrc_path))
     else:
-        if path.suffix in ('.mp3', '.wav', '.m4a', '.flac'):
-            lrc_path = path.with_suffix('.lrc')
-            if not lrc_path.exists():
-                lrc_path = None
-            episodes.append((path, lrc_path))
+        if path.suffix in (".mp3", ".wav", ".m4a", ".flac"):
+            lrc_path = path.with_suffix(".lrc")
+            vtt_path = path.with_suffix(path.suffix + ".vtt")
+            if (not lrc_path.exists()) and (not vtt_path.exists()):
+                subtitle_path = None
+
+            match (lrc_path.exists(), vtt_path.exists()):
+                case (True, True) | (True, False):
+                    subtitle_path = lrc_path
+                case (False, True):
+                    logger.logger.info(f"convert vtt to lrc: {vtt_path}")
+                    lrc_content = vtt2lrc(vtt_path)
+                    with open(lrc_path, "w", encoding="utf-8") as f:
+                        f.write(lrc_content)
+                    subtitle_path = lrc_path
+                case _:
+                    subtitle_path = None
+            episodes.append((path, subtitle_path))
 
     if not episodes:
-        print('error input')
+        print("error input")
         return
 
     app = LRCPlayer(episodes)
     app.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

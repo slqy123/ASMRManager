@@ -1,6 +1,5 @@
 import asyncio
 from typing import Any, Callable, Coroutine, Dict, Iterable, Literal, Tuple
-import typing
 
 import cutie
 
@@ -11,6 +10,7 @@ from logger import logger
 from .spider import ASMRSpider
 
 from config import Aria2Config
+from filemanager import fm
 
 
 class ASMRSpiderManager:
@@ -19,7 +19,6 @@ class ASMRSpiderManager:
         name: str,
         password: str,
         proxy: str,
-        save_path: str,
         id_should_download: Callable[[RJID], bool] | None = None,
         json_should_download: Callable[[Dict[str, Any]], bool] | None = None,
         name_should_download: Callable[
@@ -34,7 +33,6 @@ class ASMRSpiderManager:
             name=name,
             password=password,
             proxy=proxy,
-            save_path=save_path,
             name_should_download=name_should_download or (lambda *_: True),
             json_should_download=json_should_download or (lambda _: True),
             replace=replace,
@@ -125,15 +123,36 @@ class ASMRSpiderManager:
         ids = [work["id"] for work in va_res["works"]]
         await self.get(ids)
 
-    async def update(self, ids: Iterable[int]):
-        async def update_one(rj_id_: int):
-            rj_info = await self.spider.get_voice_info(rj_id_)
-            if err := rj_info.get("error"):
-                logger.error(f"Info Error: {err}")
-                return
-            logger.info(f"Get asmr info id=RJ{rj_id_}")
-            self.spider.json_should_download(rj_info)
-            self.spider.create_info_file(rj_info)
+    async def update(self, ids: Iterable[RJID]):
+        async def update_one(rj_id_: RJID):
+
+            voice_info = await self.spider.get_voice_info(rj_id_)
+
+            # should_down = self.spider.json_should_download(voice_info)
+            # if not should_down:
+            #     logger.info(f"stop download {rj_id_}")
+            #     return
+            save_path = fm.storage_path
+
+            voice_path = save_path / id2rj(rj_id_)
+            if not voice_path.exists():
+                logger.warning(f"There are such file in your storage path for RJ{rj_id_}")
+
+            voice_path.mkdir(parents=True, exist_ok=True)
+            self.spider.create_info_file(voice_info, voice_path)
+
+            tracks = await self.spider.get_voice_tracks(rj_id_)
+            if isinstance(tracks, dict):
+                if error_info := tracks.get("error"):
+                    logger.error(f"RJ{rj_id_} not found, {error_info}")
+                    return
+                else:
+                    logger.error("Unexpected track type: dict")
+                    return
+
+            file_list = self.spider.get_file_list(tracks, voice_path)
+            self.spider.create_recover_file(file_list, voice_path)
+
 
         tasks = []
         for rj_id in ids:

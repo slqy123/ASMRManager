@@ -1,5 +1,5 @@
 import click
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, List
 from asmrcli.core import (
     create_fm,
     create_spider_and_database,
@@ -40,11 +40,22 @@ def get(rj_ids: Iterable[RJID], download_params: DownloadParams):
     spider.run(spider.get(rj_ids))
     db.commit()
 
-
 @click.command()
 @multi_rj_argument
 def update(rj_ids: Iterable[RJID]):
-    """just update stored field"""
+    """update metadata, including recover file and description file"""
+    if not rj_ids:
+        logger.error('You must give at least one RJ id!')
+        return
+    spider, db = create_spider_and_database(DownloadParams(False, False, True))
+    spider.run(spider.update(rj_ids))
+    db.commit()
+
+
+@click.command()
+@multi_rj_argument
+def check(rj_ids: Iterable[RJID]):
+    """check for existence of the file and its store field"""
     fm = create_fm()
     db = create_database()
     dl_queue = []
@@ -190,20 +201,22 @@ def search(
 @click.command()
 @multi_rj_argument
 @click.option(
-    '--replace',
-    '-r',
+    '--replace/--no-replace',
+    '-r/-nr',
     is_flag=True,
-    default=False,
+    default=True,
+    show_default=True,
     help='replace the files if exists',
 )
-def store(rj_ids: Iterable[RJID], replace: bool):
+@click.option('--all', '-a', 'all_', is_flag=True, default=False, show_default=True, help='store all files')
+def store(rj_ids: List[RJID], replace: bool, all_: bool):
     """
     store the downloaded files to the storage
     """
 
     db = create_database()
     try:
-        if not rj_ids:
+        if all_:
             import cutie
 
             res = cutie.prompt_yes_or_no(
@@ -212,13 +225,13 @@ def store(rj_ids: Iterable[RJID], replace: bool):
             if res is None or res is False:
                 return
             fm = create_fm()
-            fm.store_all(exists_ok=replace)
+            fm.store_all(replace=replace)
             id_to_store = fm.list_('download')
 
         else:
             fm = create_fm()
             for rj_id in rj_ids:
-                fm.store(rj_id, exists_ok=replace)
+                fm.store(rj_id, replace=replace)
             id_to_store = rj_ids
 
         for id_ in id_to_store:
@@ -236,6 +249,7 @@ def store(rj_ids: Iterable[RJID], replace: bool):
 
 
 dl.add_command(get)
-dl.add_command(update)
+dl.add_command(check)
 dl.add_command(search)
 dl.add_command(store)
+dl.add_command(update)

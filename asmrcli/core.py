@@ -40,7 +40,6 @@ def create_spider_and_database(
             name=config.username,
             password=config.password,
             proxy=config.proxy,
-            save_path=config.download_path,
             id_should_download=(lambda _: True)
             if download_params.force
             else (
@@ -235,6 +234,23 @@ def multi_rj_argument(f):
                 logger.error(f"Invalid input RJ ID{rj}")
                 continue
             kwargs["rj_ids"].append(rj_id)
+        
+        if len(kwargs["rj_ids"]) == 0:
+            rj = get_prev_rj()
+            if rj == "":
+                logger.error(
+                    "No previous RJ id available,"
+                    " please first run a command with Rj id"
+                )
+                exit(-1)
+
+            rj_id = rj2id(rj)
+            if rj_id is None:
+                logger.error(f"Invalid input RJ ID{rj}")
+                exit(-1)
+            kwargs["rj_ids"].append(rj_id)
+        elif len(kwargs["rj_ids"]) == 1:
+            save_rj(id2rj(kwargs["rj_ids"][0]))
 
         f(*args, **kwargs)
 
@@ -254,7 +270,7 @@ def interval_preprocess_cb(ctx: click.Context, opt: click.Option, val: str):
     vals = val.split(SEPARATOR)
     assert len(vals) == 2
 
-    def _check(x):
+    def _check(x: str):
         if x == "":
             return None
         xf = float(x)

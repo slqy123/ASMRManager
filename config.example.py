@@ -64,8 +64,8 @@ config = Config(
     # 文件和文件夹的过滤规则
     filename_filters=[
         # 过滤所有的SE(不完全)
-        Filter(r"(効果音|SE|ＳＥ)([な無无×][し]?|cut|切除|カット)"),
-        Filter(r"([無无×]|不含|NO[ _]?)(効果音|SE|ＳＥ)"),
+        Filter(r"(効果音|SE|ＳＥ|BGM|音效)([な無无×][し]?|cut|切除|カット)"),
+        Filter(r"([無无×]|不含|NO[ _]?)(効果音|SE|ＳＥ|BGM|音效)"),
         Filter(r"(声|ボイス|SE)のみ"),
         # 过滤所有的wav
         Filter(r".*\.wav$", range="file"),
