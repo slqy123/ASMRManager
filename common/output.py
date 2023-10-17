@@ -3,7 +3,7 @@ def print_table(titles, rows):
     from rich.table import Table
 
     console = Console()
-    table = Table(show_header=True, header_style='bold magenta')
+    table = Table(show_header=True, header_style="bold magenta")
     for k in titles:
         table.add_column(k)
     for row in rows:

@@ -17,12 +17,12 @@ from .q_func import QFunc
 
 
 def create_math_functions_on_connect(dbapi_connection, connection_record):
-    dbapi_connection.create_function('sin', 1, math.sin)
-    dbapi_connection.create_function('cos', 1, math.cos)
-    dbapi_connection.create_function('acos', 1, math.acos)
-    dbapi_connection.create_function('radians', 1, math.radians)
-    dbapi_connection.create_function('log2', 1, math.log2)
-    dbapi_connection.create_function('log10', 1, math.log10)
+    dbapi_connection.create_function("sin", 1, math.sin)
+    dbapi_connection.create_function("cos", 1, math.cos)
+    dbapi_connection.create_function("acos", 1, math.acos)
+    dbapi_connection.create_function("radians", 1, math.radians)
+    dbapi_connection.create_function("log2", 1, math.log2)
+    dbapi_connection.create_function("log10", 1, math.log10)
 
 
 class DataBaseManager:
@@ -33,7 +33,7 @@ class DataBaseManager:
     ):
         global create_math_functions_on_connect
         self.engine = engine or get_engine()
-        event.listens_for(self.engine, 'connect')(
+        event.listens_for(self.engine, "connect")(
             create_math_functions_on_connect
         )  # add a listener after engine created, before session created
         bind_engine(self.engine)
@@ -49,28 +49,28 @@ class DataBaseManager:
     @classmethod
     def parse_info(cls, info: Dict[str, Any]) -> ASMRInstance:
         asmr = ASMR(
-            id=info['id'],
-            title=info['title'],
-            circle_name=info['name'],
-            nsfw=info['nsfw'],
-            release_date=date.fromisoformat(info['release']),
-            price=info['price'],
-            dl_count=info['dl_count'],
-            has_subtitle=info['has_subtitle'],
+            id=info["id"],
+            title=info["title"],
+            circle_name=info["name"],
+            nsfw=info["nsfw"],
+            release_date=date.fromisoformat(info["release"]),
+            price=info["price"],
+            dl_count=info["dl_count"],
+            has_subtitle=info["has_subtitle"],
         )
 
-        for actor_info in info['vas']:
+        for actor_info in info["vas"]:
             actor = VoiceActor(**actor_info)
             asmr.vas.append(actor)
 
-        for tag_info in info['tags']:
-            if not tag_info.get('id'):
+        for tag_info in info["tags"]:
+            if not tag_info.get("id"):
                 continue
-            tag = Tag(id=tag_info['id'], name=tag_info['name'])
-            if tag_info['i18n']:
-                tag.cn_name = tag_info['i18n']['zh-cn']['name']
-                tag.jp_name = tag_info['i18n']['ja-jp']['name']
-                tag.en_name = tag_info['i18n']['en-us']['name']
+            tag = Tag(id=tag_info["id"], name=tag_info["name"])
+            if tag_info["i18n"]:
+                tag.cn_name = tag_info["i18n"]["zh-cn"]["name"]
+                tag.jp_name = tag_info["i18n"]["ja-jp"]["name"]
+                tag.en_name = tag_info["i18n"]["en-us"]["name"]
             else:
                 assert tag.id == 10000
             asmr.tags.append(tag)
@@ -88,9 +88,9 @@ class DataBaseManager:
         self.session.merge(asmr)
 
         # check for tag filter
-        tags = [t['name'] for t in info['tags']]
+        tags = [t["name"] for t in info["tags"]]
         if self.tag_filter.intersection(tags):
-            logger.info(f'ignore {asmr.id} since it has tags: {tags}')
+            logger.info(f"ignore {asmr.id} since it has tags: {tags}")
             return False
         return True
 
@@ -98,19 +98,19 @@ class DataBaseManager:
         self, rj_id: int, star: int, comment: str, update_stored: bool = False
     ):
         if not (asmr := self.check_exists(rj_id)):
-            logger.error('Incorrect RJ ID, no item in database!')
+            logger.error("Incorrect RJ ID, no item in database!")
             exit(-1)
 
         asmr.count += 1
 
         if star is not None:
             if (not isinstance(star, int)) or star < 1 or star > 5:
-                logger.error('Your star should be a integer between 1 and 5')
+                logger.error("Your star should be a integer between 1 and 5")
                 exit(-1)
             asmr.star = star
 
         if comment is not None:
-            comment = f'{date.today()}: {comment}\n'
+            comment = f"{date.today()}: {comment}\n"
             asmr.comment += comment
 
         if update_stored:
@@ -118,15 +118,15 @@ class DataBaseManager:
 
     def hold_item(self, rj_id: int, comment: str | None):
         if not (asmr := self.check_exists(rj_id)):
-            logger.error('Incorrect RJ ID, no item in database!')
+            logger.error("Incorrect RJ ID, no item in database!")
             return
 
         if asmr.held:
-            logger.warning(f'ASMR id={rj_id} has already been held!')
+            logger.warning(f"ASMR id={rj_id} has already been held!")
 
         asmr.held = True
         if comment is not None:
-            comment = f'{date.today()}: {comment}\n'
+            comment = f"{date.today()}: {comment}\n"
             asmr.comment += comment
 
     def execute(self, sql: str) -> ResultProxy | Result:
@@ -137,4 +137,4 @@ class DataBaseManager:
 
     def commit(self):
         self.session.commit()
-        logger.info('successfully committed')
+        logger.info("successfully committed")

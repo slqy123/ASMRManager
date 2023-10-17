@@ -40,11 +40,13 @@ def create_spider_and_database(
             name=config.username,
             password=config.password,
             proxy=config.proxy,
-            id_should_download=(lambda _: True)
-            if download_params.force
-            else (
-                lambda rj_id: (not db.check_exists(rj_id))
-                or (fm.get_location(rj_id) is None)
+            id_should_download=(
+                (lambda _: True)
+                if download_params.force
+                else (
+                    lambda rj_id: (not db.check_exists(rj_id))
+                    or (fm.get_location(rj_id) is None)
+                )
             ),  # 如果数据库中不存在或者文件不存在，都执行下载
             json_should_download=db.add_info,
             name_should_download=(
@@ -234,7 +236,7 @@ def multi_rj_argument(f):
                 logger.error(f"Invalid input RJ ID{rj}")
                 continue
             kwargs["rj_ids"].append(rj_id)
-        
+
         if len(kwargs["rj_ids"]) == 0:
             rj = get_prev_rj()
             if rj == "":

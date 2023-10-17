@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+import click
+from pathlib import Path
 
 
 def parse_time(time_str):
@@ -43,10 +45,6 @@ def vtt2lrc(vtt, header=True, threshold=DEFAULT_THRESHOLD):
     lrc += f"[{format_time(last_end)}]\n"
 
     return lrc
-
-
-import click
-from pathlib import Path
 
 
 @click.command()

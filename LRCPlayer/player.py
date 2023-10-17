@@ -84,9 +84,9 @@ class LyricsParser:
 
     def __init__(self, lrc_path: Path, total_time: int) -> None:
         content = lrc_path.read_bytes()
-        encoding = detect(content)['encoding']
+        encoding = detect(content)["encoding"]
         if encoding is None:
-            raise EncodingWarning('Unrecognizable encoding')
+            raise EncodingWarning("Unrecognizable encoding")
         self.lrc = self.parse_lrc(content.decode(encoding))
 
         self.total_time = total_time
@@ -115,7 +115,7 @@ class LyricsParser:
                 if 0 <= i < len(self.lrc):
                     res.append(self.lrc[i][1])
                 else:
-                    res.append('')
+                    res.append("")
             return res
 
         idx = self.get_next_index(t)
@@ -174,12 +174,15 @@ class MusicPlayerWithLyrics(MusicPlayer, LyricsParser):
         self.set_pos_by_index(idx - 2)
 
 
-if __name__ == '__main__':
-    p = MusicPlayer(Path(r'E:\asmr\RJ339431\1日目 はじめてのさいみん(手マン).flac'))
+if __name__ == "__main__":
+    p = MusicPlayer(
+        Path(r"E:\asmr\RJ339431\1日目 はじめてのさいみん(手マン).flac")
+    )
     lrc = LyricsParser(
-        Path(r'E:\asmr\RJ339431\1日目 はじめてのさいみん(手マン).lrc'), p.total_time
+        Path(r"E:\asmr\RJ339431\1日目 はじめてのさいみん(手マン).lrc"),
+        p.total_time,
     )
     pl = MusicPlayerWithLyrics(
-        Path(r'E:\asmr\RJ339431\1日目 はじめてのさいみん(手マン).flac'),
-        Path(r'E:\asmr\RJ339431\1日目 はじめてのさいみん(手マン).lrc'),
+        Path(r"E:\asmr\RJ339431\1日目 はじめてのさいみん(手マン).flac"),
+        Path(r"E:\asmr\RJ339431\1日目 はじめてのさいみん(手マン).lrc"),
     )

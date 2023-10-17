@@ -6,11 +6,11 @@ if TYPE_CHECKING:
 
 
 class ASMRInstance:
-    id: 'RJID'
+    id: "RJID"
     title: str
     circle_name: str
-    tags: list['TagInstance']
-    vas: list['VoiceActorInstance']
+    tags: list["TagInstance"]
+    vas: list["VoiceActorInstance"]
     nsfw: bool
     release_date: date
     price: int

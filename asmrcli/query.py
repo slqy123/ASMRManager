@@ -3,7 +3,7 @@ from asmrcli.core import create_database
 
 
 @click.command()
-@click.argument('keyword', type=str)
+@click.argument("keyword", type=str)
 def query(keyword: str):
     """
     simple keyword based query,
@@ -38,13 +38,13 @@ def query(keyword: str):
     print(res)
     print_table(
         titles=[
-            'id',
-            'title',
-            'circle_name',
-            'nsfw',
-            'subtitle',
-            'count',
-            'star',
+            "id",
+            "title",
+            "circle_name",
+            "nsfw",
+            "subtitle",
+            "count",
+            "star",
         ],
         rows=res,
     )

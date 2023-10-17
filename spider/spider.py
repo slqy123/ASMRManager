@@ -7,7 +7,6 @@ from typing import (
     Dict,
     List,
     Literal,
-    Tuple,
 )
 
 from aiohttp import ClientConnectorError, ClientSession
@@ -32,9 +31,14 @@ except (ImportError, ModuleNotFoundError):
 from filemanager import fm
 
 from typing import NamedTuple
+
 # TODO 统一管理固定的参数
 
-FileInfo = NamedTuple('FileInfo', [('path', Path), ('url', str), ('should_download', bool)])
+FileInfo = NamedTuple(
+    "FileInfo", [("path", Path), ("url", str), ("should_download", bool)]
+)
+
+
 class ASMRSpider:
     # base_api_url = 'https://api.asmr.one/api/'
     base_api_url = "https://api.asmr-300.com/api/"
@@ -175,11 +179,16 @@ class ASMRSpider:
         self.create_dir_and_download(file_list)
 
     def create_recover_file(self, file_list: List[FileInfo], voice_path: Path):
-        recover = [{
-            "path": str(file.path.relative_to(voice_path)).replace('\\', '/'),
-            "url": file.url,
-            "should_download": file.should_download
-        } for file in file_list]
+        recover = [
+            {
+                "path": str(file.path.relative_to(voice_path)).replace(
+                    "\\", "/"
+                ),
+                "url": file.url,
+                "should_download": file.should_download,
+            }
+            for file in file_list
+        ]
         with open(voice_path / ".recover", "w", encoding="utf-8") as f:
             json.dump(recover, f, ensure_ascii=False, indent=4)
 
@@ -190,8 +199,6 @@ class ASMRSpider:
 
     async def get_voice_tracks(self, voice_id: int):
         return await self.get(f"tracks/{voice_id}")
-
-
 
     @staticmethod
     def download_by_idm(url: str, save_path: Path, file_name: str) -> bool:
@@ -214,14 +221,15 @@ class ASMRSpider:
         assert self.aria2_downloader
         self.aria2_downloader.download(url, save_path, file_name)
         return True
-    
+
     def check_exists(self, download_file_path: Path):
-        p = fm.download_path if download_file_path.is_relative_to(fm.download_path) else fm.storage_path
+        p = (
+            fm.download_path
+            if download_file_path.is_relative_to(fm.download_path)
+            else fm.storage_path
+        )
         rel_path = str(download_file_path.relative_to(p))
         return fm.check_exists(rel_path)
-
-
-
 
     def process_download(self, url: str, save_path: Path, file_name: str):
         # file_name = file_name.translate(
@@ -233,13 +241,18 @@ class ASMRSpider:
         if exist_info.download and self.replace:
             logger.info(f"replace mode, delete old file {file_path}")
             file_path.unlink()
-        
+
         if exist_info.download:
-            logger.warning(f"file {file_path} already exists in download, ignore this file")
+            logger.warning(
+                f"file {file_path} already exists in download, ignore this"
+                " file"
+            )
             return
-        
+
         if exist_info.storage:
-            logger.warning(f"file {file_path} already exists in storage, ignore this file")
+            logger.warning(
+                f"file {file_path} already exists in storage, ignore this file"
+            )
             return
 
         logger.info(f"Downloading {file_path}")
@@ -257,9 +270,7 @@ class ASMRSpider:
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(voice_info, f, ensure_ascii=False, indent=4)
 
-    def create_dir_and_download(
-        self, file_list: List[FileInfo]
-    ) -> None:
+    def create_dir_and_download(self, file_list: List[FileInfo]) -> None:
         for file_info in file_list:
             file_path = file_info.path
             file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -286,7 +297,9 @@ class ASMRSpider:
                 logger.error(f"Unknow download error: {e}")
                 continue
 
-    def get_file_list(self, tracks: List[Dict[str, Any]], voice_path: Path, download=True):
+    def get_file_list(
+        self, tracks: List[Dict[str, Any]], voice_path: Path, download=True
+    ):
         file_list: List[FileInfo] = []
         folders = [track for track in tracks if track["type"] == "folder"]
         files = [track for track in tracks if track["type"] != "folder"]
@@ -303,9 +316,10 @@ class ASMRSpider:
                 should_download = False
             else:
                 should_download = True
-            
-            file_list.append(FileInfo(file_path, file["mediaDownloadUrl"], should_download))
 
+            file_list.append(
+                FileInfo(file_path, file["mediaDownloadUrl"], should_download)
+            )
 
         for folder in folders:
             download_ = (
@@ -319,9 +333,7 @@ class ASMRSpider:
             new_path = voice_path / title
             file_list.extend(
                 self.get_file_list(
-                    folder["children"],
-                    new_path,
-                    download and download_
+                    folder["children"], new_path, download and download_
                 )
             )
 

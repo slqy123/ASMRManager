@@ -13,12 +13,12 @@ def show(rj_id: RJID):
     from filemanager.manager import fm
 
     match fm.get_location(rj_id):
-        case 'download':
+        case "download":
             path = fm.download_path
-        case 'storage':
+        case "storage":
             path = fm.storage_path
         case None:
-            logger.error(f'id {rj_id} not exists')
+            logger.error(f"id {rj_id} not exists")
             return
         case _:
             raise NotImplementedError

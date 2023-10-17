@@ -14,16 +14,13 @@ from common.download_params import DownloadParams
 from common.rj_parse import (
     RJID,
     id2rj,
-    ids2rjs,
-    rj2id,
-    rjs2ids,
 )
 
 from filemanager.exceptions import DstItemAlreadyExistsException
 from logger import logger
 
 
-@click.group(help='download ASMR')
+@click.group(help="download ASMR")
 def dl():
     pass
 
@@ -34,18 +31,19 @@ def dl():
 def get(rj_ids: Iterable[RJID], download_params: DownloadParams):
     """get ASMR by RJ ids"""
     if not rj_ids:
-        logger.error('You must give at least one RJ id!')
+        logger.error("You must give at least one RJ id!")
         return
     spider, db = create_spider_and_database(download_params)
     spider.run(spider.get(rj_ids))
     db.commit()
+
 
 @click.command()
 @multi_rj_argument
 def update(rj_ids: Iterable[RJID]):
     """update metadata, including recover file and description file"""
     if not rj_ids:
-        logger.error('You must give at least one RJ id!')
+        logger.error("You must give at least one RJ id!")
         return
     spider, db = create_spider_and_database(DownloadParams(False, False, True))
     spider.run(spider.update(rj_ids))
@@ -65,87 +63,87 @@ def check(rj_ids: Iterable[RJID]):
         asmr = db.check_exists(rj_id)
         if asmr is None:
             logger.warning(
-                f'Not found In Database: {rj}, please manually download it'
+                f"Not found In Database: {rj}, please manually download it"
             )
             continue
 
         src = fm.get_location(rj_id)
         if src is None:
-            logger.warning(f'Not found: {rj}, add to download')
+            logger.warning(f"Not found: {rj}, add to download")
             dl_queue.append(rj)
             continue
 
-        if src == 'download' and asmr.stored:
-            logger.info(f'Already stored: {rj}, move to storage path')
+        if src == "download" and asmr.stored:
+            logger.info(f"Already stored: {rj}, move to storage path")
             fm.store(rj_id)
             continue
 
-        if src == 'storage' and not asmr.stored:
-            logger.info(f'Already in storage: {rj}, update database')
+        if src == "storage" and not asmr.stored:
+            logger.info(f"Already in storage: {rj}, update database")
             asmr.stored = True
             continue
 
-        logger.info(f'No need to update {rj}')
+        logger.info(f"No need to update {rj}")
     db.commit()
-    print('Update succesfully.')
+    print("Update succesfully.")
     if dl_queue:
-        print('Please check the item to download and get theme manually:')
-        print(' '.join(dl_queue))
+        print("Please check the item to download and get theme manually:")
+        print(" ".join(dl_queue))
 
 
 @click.command()
-@click.argument('text', type=str, default='')
+@click.argument("text", type=str, default="")
 @click.option(
-    '--tags', '-t', type=str, multiple=True, help='tags to include[multiple]'
+    "--tags", "-t", type=str, multiple=True, help="tags to include[multiple]"
 )
 @click.option(
-    '--no-tags',
-    '-nt',
+    "--no-tags",
+    "-nt",
     type=str,
     multiple=True,
-    help='tags to exclude[multiple]',
+    help="tags to exclude[multiple]",
 )
 @click.option(
-    '--vas',
-    '-v',
+    "--vas",
+    "-v",
     type=str,
     multiple=True,
-    help='voice actor(cv) to include[multiple]',
+    help="voice actor(cv) to include[multiple]",
 )
 @click.option(
-    '--no-vas',
-    '-nv',
+    "--no-vas",
+    "-nv",
     type=str,
     multiple=True,
-    help='voice actor(cv) to exclude[multiple]',
+    help="voice actor(cv) to exclude[multiple]",
 )
 @click.option(
-    '--circle', '-c', type=str, default=None, help='circle(社团) to include'
+    "--circle", "-c", type=str, default=None, help="circle(社团) to include"
 )
 @click.option(
-    '--no-circle',
-    '-nc',
+    "--no-circle",
+    "-nc",
     type=str,
     multiple=True,
-    help='circle(社团) to exclude[multiple]',
+    help="circle(社团) to exclude[multiple]",
 )
 @click.option(
-    '--rate', '-r', help='rating interval', callback=interval_preprocess_cb
+    "--rate", "-r", help="rating interval", callback=interval_preprocess_cb
 )
 @click.option(
-    '--sell', '-s', help='selling interval', callback=interval_preprocess_cb
+    "--sell", "-s", help="selling interval", callback=interval_preprocess_cb
 )
 @click.option(
-    '--price', '-pr', help='pirce interval', callback=interval_preprocess_cb
+    "--price", "-pr", help="pirce interval", callback=interval_preprocess_cb
 )
 @click.option(
-    'all_',
-    '--all/--select',
+    "all_",
+    "--all/--select",
     type=bool,
     is_flag=True,
     default=False,
     show_default=True,
-    help='download all RJs',
+    help="download all RJs",
 )
 @browse_param_options
 @download_param_options
@@ -201,14 +199,22 @@ def search(
 @click.command()
 @multi_rj_argument
 @click.option(
-    '--replace/--no-replace',
-    '-r/-nr',
+    "--replace/--no-replace",
+    "-r/-nr",
     is_flag=True,
     default=True,
     show_default=True,
-    help='replace the files if exists',
+    help="replace the files if exists",
 )
-@click.option('--all', '-a', 'all_', is_flag=True, default=False, show_default=True, help='store all files')
+@click.option(
+    "--all",
+    "-a",
+    "all_",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="store all files",
+)
 def store(rj_ids: List[RJID], replace: bool, all_: bool):
     """
     store the downloaded files to the storage
@@ -220,13 +226,13 @@ def store(rj_ids: List[RJID], replace: bool, all_: bool):
             import cutie
 
             res = cutie.prompt_yes_or_no(
-                'Are you sure to store all files in the download_path?',
+                "Are you sure to store all files in the download_path?",
             )
             if res is None or res is False:
                 return
             fm = create_fm()
             fm.store_all(replace=replace)
-            id_to_store = fm.list_('download')
+            id_to_store = fm.list_("download")
 
         else:
             fm = create_fm()
@@ -238,14 +244,14 @@ def store(rj_ids: List[RJID], replace: bool, all_: bool):
             res = db.check_exists(id_)
             if not res:
                 logger.error(
-                    'no such id: %s, which is an unexpected situation', id_
+                    "no such id: %s, which is an unexpected situation", id_
                 )
                 continue
             res.stored = True
         db.commit()
-        logger.info('succesfully stored all files')
+        logger.info("succesfully stored all files")
     except DstItemAlreadyExistsException as e:
-        logger.error('storing terminated for %s', e)
+        logger.error("storing terminated for %s", e)
 
 
 dl.add_command(get)

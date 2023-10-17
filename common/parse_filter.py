@@ -3,9 +3,9 @@ from config import config
 import re
 
 
-def name_should_download(name: str, type_: Literal['directory', 'file']):
+def name_should_download(name: str, type_: Literal["directory", "file"]):
     for filter_ in config.filename_filters:
-        range_check = filter_.range == 'all' or filter_.range == type_
+        range_check = filter_.range == "all" or filter_.range == type_
         if not range_check:
             continue
 
@@ -15,11 +15,11 @@ def name_should_download(name: str, type_: Literal['directory', 'file']):
 
         regex_match = bool(match_method(filter_.regex, name, flag))
 
-        if regex_match ^ (filter_.type == 'include'):
+        if regex_match ^ (filter_.type == "include"):
             return False
 
     return True
 
 
-if __name__ == '__main__':
-    print(name_should_download('効果音なしver', type_='directory'))
+if __name__ == "__main__":
+    print(name_should_download("効果音なしver", type_="directory"))

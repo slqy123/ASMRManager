@@ -125,7 +125,6 @@ class ASMRSpiderManager:
 
     async def update(self, ids: Iterable[RJID]):
         async def update_one(rj_id_: RJID):
-
             voice_info = await self.spider.get_voice_info(rj_id_)
 
             # should_down = self.spider.json_should_download(voice_info)
@@ -136,7 +135,9 @@ class ASMRSpiderManager:
 
             voice_path = save_path / id2rj(rj_id_)
             if not voice_path.exists():
-                logger.warning(f"There are such file in your storage path for RJ{rj_id_}")
+                logger.warning(
+                    f"There are such file in your storage path for RJ{rj_id_}"
+                )
 
             voice_path.mkdir(parents=True, exist_ok=True)
             self.spider.create_info_file(voice_info, voice_path)
@@ -152,7 +153,6 @@ class ASMRSpiderManager:
 
             file_list = self.spider.get_file_list(tracks, voice_path)
             self.spider.create_recover_file(file_list, voice_path)
-
 
         tasks = []
         for rj_id in ids:

@@ -58,7 +58,9 @@ class FileManager:
         )
 
         for root, _, files in os.walk(self.download_path / rj_name):
-            dst_root = self.storage_path / Path(root).relative_to(self.download_path)
+            dst_root = self.storage_path / Path(root).relative_to(
+                self.download_path
+            )
             dst_root.mkdir(parents=True, exist_ok=True)
             for file in files:
                 src_file = Path(root) / file
@@ -70,14 +72,11 @@ class FileManager:
                         continue
                     logger.info(f"In replace mode, remove {dst_file}")
                     os.remove(dst_file)
-                
+
                 logger.info(f"move {src_file} to {dst_file}")
                 shutil.move(src_file, dst_file)
-        
+
         shutil.rmtree(self.download_path / rj_name)
-
-
-
 
         # try:
         #     shutil.copytree(
@@ -220,7 +219,7 @@ class FileManager:
                 return self.storage_path / id2rj(rj_id)
             case _:
                 return None
-    
+
     def check_exists(self, rel_path: str):
         download, storage = False, False
         download_file_path = self.download_path / rel_path
@@ -229,12 +228,16 @@ class FileManager:
             download = True
         if storage_file_path.exists():
             storage = True
-        if (not download) and self.check_wav_flac_duplicate(download_file_path):
+        if (not download) and self.check_wav_flac_duplicate(
+            download_file_path
+        ):
             download = True
         if (not storage) and self.check_wav_flac_duplicate(storage_file_path):
             storage = True
 
-        return NamedTuple('ExistInfo', [('download', bool), ('storage', bool)])(download, storage)
+        return NamedTuple(
+            "ExistInfo", [("download", bool), ("storage", bool)]
+        )(download, storage)
 
     @staticmethod
     def check_wav_flac_duplicate(file_path: Path) -> bool:
@@ -260,7 +263,6 @@ class FileManager:
                 pass
 
         return False
-
 
 
 file_manager = FileManager(

@@ -31,7 +31,9 @@ def del_(rj_id: RJID):
 
     folders = folder_chooser_multiple(
         rj_path,
-        lambda p: any([i.suffix != ".info" for i in p.iterdir() if not i.is_dir()]),
+        lambda p: any(
+            [i.suffix != ".info" for i in p.iterdir() if not i.is_dir()]
+        ),
     )
 
     for folder in folders:
@@ -40,7 +42,9 @@ def del_(rj_id: RJID):
 
 @click.command()
 @rj_argument
-@click.option("--regex", "-r", type=str, default=".*", help="use regex to match")
+@click.option(
+    "--regex", "-r", type=str, default=".*", help="use regex to match"
+)
 @click.option(
     "--ignore-filter",
     "-i",
@@ -70,7 +74,9 @@ def recover(rj_id: RJID, regex: str, ignore_filter: bool):
 
     import json
 
-    recovers: List[Dict[str, Any]] = json.loads(recover_path.read_text(encoding="utf8"))
+    recovers: List[Dict[str, Any]] = json.loads(
+        recover_path.read_text(encoding="utf8")
+    )
 
     url2download: List[Tuple[str, Path]] = []
 
@@ -87,11 +93,14 @@ def recover(rj_id: RJID, regex: str, ignore_filter: bool):
         if not recover["should_download"]:
             if not ignore_filter:
                 logger.info(
-                    f"file {rel_path} is filtered out and should not be recovered"
+                    f"file {rel_path} is filtered out and should not be"
+                    " recovered"
                 )
                 continue
             else:
-                logger.warning(f"recover file {rel_path} since filters are ignored")
+                logger.warning(
+                    f"recover file {rel_path} since filters are ignored"
+                )
 
         url2download.append((recover["url"], recover_file))
 

@@ -12,10 +12,10 @@ from logger import logger
 
 def print_asmr_info(asmr: ASMRInstance):
     res: dict = asmr.__dict__.copy()
-    res.pop('_sa_instance_state')
+    res.pop("_sa_instance_state")
     pprint(res)
-    print(' tags:', asmr.tags)
-    print(' CVs:', asmr.vas)
+    print(" tags:", asmr.tags)
+    print(" CVs:", asmr.vas)
 
 
 def info_from_web(rj_id: int):
@@ -28,12 +28,12 @@ def info_from_web(rj_id: int):
 
 @click.command()
 @click.option(
-    '--rand',
-    '-r',
+    "--rand",
+    "-r",
     is_flag=True,
     default=False,
     show_default=True,
-    help='get a random info in the database',
+    help="get a random info in the database",
 )
 @rj_argument
 def info(rj_id: RJID, rand: bool):
@@ -42,7 +42,7 @@ def info(rj_id: RJID, rand: bool):
 
     v_info = db.func.get_info(rj_id, rand=rand)
     if v_info is None:
-        logger.info(f'RJ{rj_id} not exists, try getting from web')
+        logger.info(f"RJ{rj_id} not exists, try getting from web")
         info_from_web(rj_id)
         return
 
