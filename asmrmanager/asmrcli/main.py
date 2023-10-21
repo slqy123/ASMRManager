@@ -1,24 +1,21 @@
 # import os
 import collections
-
-# os.chdir(os.path.split(os.path.abspath(__file__))[0])
 import sys
 from typing import Any
 
 import click
 
-from asmrcli.dl import dl
-from asmrcli.review import review
-from asmrcli.query import query
-from asmrcli.info import info
-from asmrcli.hold import hold
-from asmrcli.view import view
-from asmrcli.play import play
-from asmrcli.sql import sql
-from asmrcli.show import show
-from asmrcli.file import file
-
-from logger import logger
+from asmrmanager.asmrcli.dl import dl
+from asmrmanager.asmrcli.file import file
+from asmrmanager.asmrcli.hold import hold
+from asmrmanager.asmrcli.info import info
+from asmrmanager.asmrcli.play import play
+from asmrmanager.asmrcli.query import query
+from asmrmanager.asmrcli.review import review
+from asmrmanager.asmrcli.show import show
+from asmrmanager.asmrcli.sql import sql
+from asmrmanager.asmrcli.view import view
+from asmrmanager.logger import logger
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 

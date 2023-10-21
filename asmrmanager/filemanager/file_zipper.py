@@ -2,7 +2,7 @@ from pathlib import Path
 import zipfile
 
 from .utils import folder_chooser
-from logger import logger
+from asmrmanager.logger import logger
 
 
 def zip_chosen_folder(src: Path, dst: Path):

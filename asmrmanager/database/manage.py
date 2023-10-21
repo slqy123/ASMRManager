@@ -8,8 +8,8 @@ import sqlalchemy.orm
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.engine.result import Result
 
-from database.orm_type import ASMRInstance
-from logger import logger
+from asmrmanager.database.orm_type import ASMRInstance
+from asmrmanager.logger import logger
 
 from .database import ASMR, Tag, VoiceActor, bind_engine
 from .engine import get_engine

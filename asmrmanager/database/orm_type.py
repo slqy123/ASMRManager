@@ -2,7 +2,7 @@ from datetime import date
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from common.rj_parse import RJID
+    from asmrmanager.common.rj_parse import RJID
 
 
 class ASMRInstance:

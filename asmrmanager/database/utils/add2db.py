@@ -1,5 +1,5 @@
 import os
-from database.manage import DataBaseManager
+from asmrmanager.database.manage import DataBaseManager
 import json
 
 

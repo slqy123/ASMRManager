@@ -1,16 +1,16 @@
 import click
 import os
 
-from common.rj_parse import RJID, id2rj
-from asmrcli.core import rj_argument
-from logger import logger
+from asmrmanager.common.rj_parse import RJID, id2rj
+from asmrmanager.asmrcli.core import rj_argument
+from asmrmanager.logger import logger
 
 
 @click.command()
 @rj_argument
 def show(rj_id: RJID):
     """Show directory in file explorer"""
-    from filemanager.manager import fm
+    from asmrmanager.filemanager.manager import fm
 
     match fm.get_location(rj_id):
         case "download":

@@ -3,10 +3,10 @@ import shutil
 from typing import Iterable, Literal, NamedTuple
 from pathlib import Path
 
-from common.rj_parse import RJID, id2rj, rj2id
+from asmrmanager.common.rj_parse import RJID, id2rj, rj2id
 from config import config
-from filemanager.file_zipper import zip_chosen_folder
-from logger import logger
+from asmrmanager.filemanager.file_zipper import zip_chosen_folder
+from asmrmanager.logger import logger
 
 from .exceptions import DstItemAlreadyExistsException, SrcNotExistsException
 

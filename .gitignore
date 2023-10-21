@@ -139,6 +139,5 @@ Voice/
 
 .prev_rj
 config.py
-database/test_interface.py
-logger/logs/*
+asmrmanager/logger/logs/*
 .pdm-python

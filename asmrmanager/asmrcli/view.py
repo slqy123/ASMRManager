@@ -2,9 +2,9 @@ from typing import Literal
 
 import click
 
-from asmrcli.core import rj_argument
-from common.rj_parse import RJID, id2rj
-from filemanager import fm
+from asmrmanager.asmrcli.core import rj_argument
+from asmrmanager.common.rj_parse import RJID, id2rj
+from asmrmanager.filemanager import fm
 
 
 @click.group(help="some operation about view_path")
@@ -23,7 +23,7 @@ def view():
 )
 def add(rj_id: RJID, mode: Literal["link", "zip", "adb"]):
     """add an ASMR to view path (use zip by default)"""
-    from filemanager import fm
+    from asmrmanager.filemanager import fm
 
     match mode:
         case "zip":

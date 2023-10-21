@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from database.orm_type import ASMRInstance
+from asmrmanager.database.orm_type import ASMRInstance
 from .database import ASMR, Tag
 
 from typing import Optional

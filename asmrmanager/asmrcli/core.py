@@ -1,25 +1,24 @@
+import functools
 import os.path
 from pathlib import Path
-from common.browse_params import BrowseParams
-from common.download_params import DownloadParams
-
-from config import config
-from logger import logger
-from common.parse_filter import name_should_download
-from common.rj_parse import id2rj, rj2id
-
-from typing import Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple
 
 import click
-import functools
+
+from asmrmanager.common.browse_params import BrowseParams
+from asmrmanager.common.download_params import DownloadParams
+from asmrmanager.common.parse_filter import name_should_download
+from asmrmanager.common.rj_parse import id2rj, rj2id
+from config import config
+from asmrmanager.logger import logger
 
 if TYPE_CHECKING:
-    from spider import ASMRSpiderManager
-    from database.manage import DataBaseManager
+    from asmrmanager.spider import ASMRSpiderManager
+    from asmrmanager.database.manage import DataBaseManager
 
 
 def create_database():
-    from database.manage import DataBaseManager
+    from asmrmanager.database.manage import DataBaseManager
 
     return DataBaseManager(tag_filter=config.tag_filter or tuple())
 
@@ -27,8 +26,8 @@ def create_database():
 def create_spider_and_database(
     download_params: DownloadParams | None = None,
 ) -> Tuple["ASMRSpiderManager", "DataBaseManager"]:
-    from spider import ASMRSpiderManager
-    from filemanager.manager import fm
+    from asmrmanager.spider import ASMRSpiderManager
+    from asmrmanager.filemanager.manager import fm
 
     db = create_database()
 
@@ -62,9 +61,9 @@ def create_spider_and_database(
     )
 
 
-# deprecated, use `from filemanager import fm` instead
+# deprecated, use `from asmrmanager.filemanager import fm` instead
 # def create_fm():
-#     from filemanager.manager import fm
+#     from asmrmanager.filemanager.manager import fm
 
 #     return fm
 

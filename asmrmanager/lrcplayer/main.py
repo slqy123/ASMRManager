@@ -12,7 +12,7 @@ from pathlib import Path
 import logger
 from .player import MusicPlayer, MusicPlayerWithLyrics
 
-from common.vtt2lrc import vtt2lrc
+from asmrmanager.common.vtt2lrc import vtt2lrc
 
 
 class LRCPlayer(App):

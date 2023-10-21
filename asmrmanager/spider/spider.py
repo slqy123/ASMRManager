@@ -12,9 +12,9 @@ from typing import (
 from aiohttp import ClientConnectorError, ClientSession
 from aiohttp.connector import TCPConnector
 
-from common.rj_parse import RJID, id2rj
+from asmrmanager.common.rj_parse import RJID, id2rj
 from config import Aria2Config
-from logger import logger
+from asmrmanager.logger import logger
 
 try:
     IDMHELPER_EXIST = True
@@ -28,7 +28,7 @@ try:
 except (ImportError, ModuleNotFoundError):
     ARIA2_EXIST = False
 
-from filemanager import fm
+from asmrmanager.filemanager import fm
 
 from typing import NamedTuple
 

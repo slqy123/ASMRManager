@@ -1,13 +1,13 @@
 import click
-from asmrcli.core import (
+from asmrmanager.asmrcli.core import (
     create_database,
     create_spider_and_database,
     rj_argument,
 )
 from pprint import pprint
-from common.rj_parse import RJID
-from database.orm_type import ASMRInstance
-from logger import logger
+from asmrmanager.common.rj_parse import RJID
+from asmrmanager.database.orm_type import ASMRInstance
+from asmrmanager.logger import logger
 
 
 def print_asmr_info(asmr: ASMRInstance):

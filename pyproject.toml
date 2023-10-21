@@ -28,7 +28,7 @@ requires = ["pdm-backend"]
 build-backend = "pdm.backend"
 
 [project.scripts]
-asmr = "main:main"
+asmr = "asmrmanager.asmrcli.main:main"
 
 [project.optional-dependencies]
 aria2 = [

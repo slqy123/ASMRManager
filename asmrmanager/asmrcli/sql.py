@@ -5,8 +5,8 @@ from subprocess import run
 import click
 
 from config import config
-from logger import logger
-from common.output import print_table
+from asmrmanager.logger import logger
+from asmrmanager.common.output import print_table
 
 
 @click.command()
@@ -47,7 +47,7 @@ def sql(sql_name: str, save: bool = False):
     #         temp_file_path.read_text(encoding='utf8'),
     #     ]
     # )
-    from asmrcli.core import create_database
+    from asmrmanager.asmrcli.core import create_database
 
     db = create_database()
     res = db.execute(temp_file_path.read_text(encoding="utf8"))

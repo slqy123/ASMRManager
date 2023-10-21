@@ -4,11 +4,11 @@ import click
 from pathlib import Path
 from collections import Counter
 
-from asmrcli.core import rj_argument, create_database
-from common.rj_parse import RJID, id2rj
-from filemanager import fm
+from asmrmanager.asmrcli.core import rj_argument, create_database
+from asmrmanager.common.rj_parse import RJID, id2rj
+from asmrmanager.filemanager import fm
 
-from logger import logger
+from asmrmanager.logger import logger
 from config import config
 
 import cutie
@@ -19,7 +19,7 @@ import cutie
 @rj_argument
 def play(ctx: click.Context, rj_id: RJID):
     """play an asmr in the terminal"""
-    from lrcplayer import lrc_play
+    from asmrmanager.lrcplayer import lrc_play
 
     db = create_database()
     asmr = db.check_exists(rj_id)

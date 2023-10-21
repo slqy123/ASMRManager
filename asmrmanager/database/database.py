@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, Text, ForeignKey, Date, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from database.utils.uuid_sqlite import GUID
+from asmrmanager.database.utils.uuid_sqlite import GUID
 
 Base = declarative_base()
 
