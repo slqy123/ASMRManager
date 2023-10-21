@@ -276,7 +276,12 @@ def interval_preprocess_cb(ctx: click.Context, opt: click.Option, val: str):
     def _check(x: str):
         if x == "":
             return None
-        xf = float(x)
+        try:
+            xf: float = float(x)
+        except ValueError:
+            ctx.fail(f"{x} is not a valid number")
+
+        assert isinstance(xf, float)
         if xf.is_integer():
             return int(xf)
         return xf

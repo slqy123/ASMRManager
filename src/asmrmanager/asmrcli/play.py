@@ -19,7 +19,7 @@ import cutie
 @rj_argument
 def play(ctx: click.Context, rj_id: RJID):
     """play an asmr in the terminal"""
-    from LRCPlayer import lrc_play
+    from lrcplayer import lrc_play
 
     db = create_database()
     asmr = db.check_exists(rj_id)
