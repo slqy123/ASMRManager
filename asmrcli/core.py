@@ -8,7 +8,7 @@ from logger import logger
 from common.parse_filter import name_should_download
 from common.rj_parse import id2rj, rj2id
 
-from typing import Optional, Iterable, List, Tuple, Literal, TYPE_CHECKING
+from typing import Tuple, TYPE_CHECKING
 
 import click
 import functools
@@ -62,10 +62,11 @@ def create_spider_and_database(
     )
 
 
-def create_fm():
-    from filemanager.manager import fm
+# deprecated, use `from filemanager import fm` instead
+# def create_fm():
+#     from filemanager.manager import fm
 
-    return fm
+#     return fm
 
 
 def browse_param_options(f):

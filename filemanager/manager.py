@@ -3,7 +3,7 @@ import shutil
 from typing import Iterable, Literal, NamedTuple
 from pathlib import Path
 
-from common.rj_parse import RJID, RJName, id2rj, rj2id
+from common.rj_parse import RJID, id2rj, rj2id
 from config import config
 from filemanager.file_zipper import zip_chosen_folder
 from logger import logger

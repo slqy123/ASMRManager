@@ -1,7 +1,6 @@
 import click
-from typing import Iterable, Tuple, List
+from typing import Iterable, Tuple
 from asmrcli.core import (
-    create_fm,
     create_spider_and_database,
     download_param_options,
     browse_param_options,
@@ -15,8 +14,8 @@ from common.rj_parse import (
     RJID,
     id2rj,
 )
+from filemanager import fm
 
-from filemanager.exceptions import DstItemAlreadyExistsException
 from logger import logger
 
 
@@ -54,7 +53,6 @@ def update(rj_ids: Iterable[RJID]):
 @multi_rj_argument
 def check(rj_ids: Iterable[RJID]):
     """check for existence of the file and its store field"""
-    fm = create_fm()
     db = create_database()
     dl_queue = []
     for rj_id in rj_ids:
@@ -196,66 +194,7 @@ def search(
     db.commit()
 
 
-@click.command()
-@multi_rj_argument
-@click.option(
-    "--replace/--no-replace",
-    "-r/-nr",
-    is_flag=True,
-    default=True,
-    show_default=True,
-    help="replace the files if exists",
-)
-@click.option(
-    "--all",
-    "-a",
-    "all_",
-    is_flag=True,
-    default=False,
-    show_default=True,
-    help="store all files",
-)
-def store(rj_ids: List[RJID], replace: bool, all_: bool):
-    """
-    store the downloaded files to the storage
-    """
-
-    db = create_database()
-    try:
-        if all_:
-            import cutie
-
-            res = cutie.prompt_yes_or_no(
-                "Are you sure to store all files in the download_path?",
-            )
-            if res is None or res is False:
-                return
-            fm = create_fm()
-            fm.store_all(replace=replace)
-            id_to_store = fm.list_("download")
-
-        else:
-            fm = create_fm()
-            for rj_id in rj_ids:
-                fm.store(rj_id, replace=replace)
-            id_to_store = rj_ids
-
-        for id_ in id_to_store:
-            res = db.check_exists(id_)
-            if not res:
-                logger.error(
-                    "no such id: %s, which is an unexpected situation", id_
-                )
-                continue
-            res.stored = True
-        db.commit()
-        logger.info("succesfully stored all files")
-    except DstItemAlreadyExistsException as e:
-        logger.error("storing terminated for %s", e)
-
-
 dl.add_command(get)
 dl.add_command(check)
 dl.add_command(search)
-dl.add_command(store)
 dl.add_command(update)

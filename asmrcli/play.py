@@ -4,8 +4,9 @@ import click
 from pathlib import Path
 from collections import Counter
 
-from asmrcli.core import rj_argument, create_database, create_fm
+from asmrcli.core import rj_argument, create_database
 from common.rj_parse import RJID, id2rj
+from filemanager import fm
 
 from logger import logger
 from config import config
@@ -27,7 +28,6 @@ def play(ctx: click.Context, rj_id: RJID):
         return
     asmr_rj = id2rj(asmr.id)
 
-    fm = create_fm()
     loc = fm.get_location(asmr.id)
     if loc is None:
         logger.error(f"ASMR {asmr_rj} file not found!")

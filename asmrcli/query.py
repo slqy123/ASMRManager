@@ -35,7 +35,6 @@ def query(keyword: str):
         .all()
     )
 
-    print(res)
     print_table(
         titles=[
             "id",

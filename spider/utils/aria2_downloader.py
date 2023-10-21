@@ -22,4 +22,5 @@ class Aria2Downloader:
     def download(self, url: str, save_path: Path, filename: str):
         self.options.out = filename
         self.options.dir = str(save_path)
+        self.options.auto_file_renaming = False
         self.api.add(url, options=self.options)

@@ -1,7 +1,7 @@
 import click
 from logger import logger
 from asmrcli.core import rj_argument
-from common.rj_parse import RJID, id2rj
+from common.rj_parse import RJID
 
 
 @click.command()
@@ -14,10 +14,10 @@ def review(rj_id: RJID, star: int, comment: str):
         f"run command review with rj_id={rj_id}, star={star} comment={comment}"
     )
 
-    from asmrcli.core import create_database, create_fm
+    from asmrcli.core import create_database
+    from filemanager import fm
 
     db = create_database()
-    fm = create_fm()
 
     update_stored = False
     if not fm.could_store():
