@@ -79,12 +79,10 @@ Options:
 本工具支持 `python >= 3.10`, 安装方法如下：
 
 ```shell
-git clone https://github.com/slqy123/ASMRManager.git
-cd ASMRManager
-pip install .[依赖]
+pip install ASMRManager[依赖]
 ```
 
-可选则的依赖项有 `idm`, `aria2`, `tui`，多个依赖使用逗号分隔。例如 `pip install -e .[idm,tui]`
+可选则的依赖项有 `idm`, `aria2`, `tui`，`all`，多个依赖使用逗号分隔，其中`all`为安装所有依赖。例如 `pip install -e .[idm,tui]`
 
 > 此处也可以选择使用 `pipx` 来替代 `pip`，避免污染全局环境。
 > 安装方法：`pip install pipx`
