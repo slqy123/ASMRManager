@@ -6,7 +6,7 @@ from collections import Counter
 
 from asmrmanager.cli.core import rj_argument, create_database
 from asmrmanager.common.rj_parse import RJID, id2rj
-from asmrmanager.filemanager import fm
+from asmrmanager.cli.core import fm
 
 from asmrmanager.logger import logger
 from asmrmanager.config import config

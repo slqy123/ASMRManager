@@ -13,7 +13,7 @@ from asmrmanager.cli.core import (
 from asmrmanager.common.browse_params import BrowseParams
 from asmrmanager.common.download_params import DownloadParams
 from asmrmanager.common.rj_parse import RJID, id2rj
-from asmrmanager.filemanager import fm
+from asmrmanager.cli.core import fm
 from asmrmanager.logger import logger
 
 

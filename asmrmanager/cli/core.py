@@ -11,7 +11,9 @@ from asmrmanager.common.parse_filter import name_should_download
 from asmrmanager.common.rj_parse import id2rj, rj2id
 from asmrmanager.config import config
 from asmrmanager.logger import logger
-from asmrmanager.filemanager import fm
+from asmrmanager.filemanager.manager import FileManager
+
+fm = FileManager(config.storage_path, config.download_method, config.view_path)
 
 if TYPE_CHECKING:
     from asmrmanager.spider import ASMRSpiderManager
@@ -28,7 +30,6 @@ def create_spider_and_database(
     download_params: DownloadParams | None = None,
 ) -> Tuple["ASMRSpiderManager", "DataBaseManager"]:
     from asmrmanager.spider import ASMRSpiderManager
-    from asmrmanager.filemanager.manager import fm
 
     db = create_database()
 
@@ -60,14 +61,6 @@ def create_spider_and_database(
         ),
         db,
     )
-
-
-# deprecated, use `from asmrmanager.filemanager import fm` instead
-# def create_fm():
-#     from asmrmanager.filemanager.manager import fm
-
-#     return fm
-
 
 def browse_param_options(f):
     """pass the `browse_params` parameter to the function"""

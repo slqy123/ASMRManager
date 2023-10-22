@@ -7,7 +7,7 @@ import click
 from asmrmanager.config import config
 from asmrmanager.logger import logger
 from asmrmanager.common.output import print_table
-from asmrmanager.filemanager import fm
+from asmrmanager.cli.core import fm
 
 
 @click.command()

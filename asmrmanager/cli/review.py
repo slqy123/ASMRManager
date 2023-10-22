@@ -15,7 +15,7 @@ def review(rj_id: RJID, star: int, comment: str):
     )
 
     from asmrmanager.cli.core import create_database
-    from asmrmanager.filemanager import fm
+    from asmrmanager.cli.core import fm
 
     db = create_database()
 

@@ -1,4 +1,4 @@
-from asmrmanager.filemanager import fm
+from asmrmanager.cli.core import fm
 
 _instance = None
 

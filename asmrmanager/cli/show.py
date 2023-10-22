@@ -10,7 +10,7 @@ from asmrmanager.logger import logger
 @rj_argument
 def show(rj_id: RJID):
     """Show directory in file explorer"""
-    from asmrmanager.filemanager.manager import fm
+    from asmrmanager.cli.core import fm
 
     match fm.get_location(rj_id):
         case "download":

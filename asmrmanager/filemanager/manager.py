@@ -4,7 +4,6 @@ from typing import Iterable, Literal, NamedTuple
 from pathlib import Path
 
 from asmrmanager.common.rj_parse import RJID, id2rj, rj2id
-from asmrmanager.config import config
 from asmrmanager.filemanager.file_zipper import zip_chosen_folder
 from asmrmanager.logger import logger
 import asmrmanager
@@ -53,13 +52,13 @@ class FileManager:
 
     def __init__(
         self,
-        storage_path: str | None = None,
-        download_path: str | None = None,
-        view_path: str | None = None,
+        storage_path: str,
+        download_path: str,
+        view_path: str,
     ):
-        self.storage_path = Path(storage_path or config.storage_path)
-        self.download_path = Path(download_path or config.download_path)
-        self.view_path = Path(view_path or config.view_path)
+        self.storage_path = Path(storage_path)
+        self.download_path = Path(download_path)
+        self.view_path = Path(view_path)
 
         self.storage_path_exists = (
             True if os.path.exists(self.storage_path) else False
@@ -302,9 +301,3 @@ class FileManager:
                 pass
 
         return False
-
-
-file_manager = FileManager(
-    config.storage_path, config.download_path, config.view_path
-)
-fm = file_manager

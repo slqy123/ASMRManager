@@ -1,6 +1,6 @@
 import click
 from asmrmanager.cli.core import rj_argument, create_database, multi_rj_argument
-from asmrmanager.filemanager import fm
+from asmrmanager.cli.core import fm
 from asmrmanager.filemanager.exceptions import DstItemAlreadyExistsException
 from asmrmanager.common.rj_parse import RJID
 from asmrmanager.logger import logger

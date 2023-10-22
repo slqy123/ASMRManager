@@ -28,7 +28,7 @@ try:
 except (ImportError, ModuleNotFoundError):
     ARIA2_EXIST = False
 
-from asmrmanager.filemanager import fm
+from asmrmanager.cli.core import fm
 
 from typing import NamedTuple
 

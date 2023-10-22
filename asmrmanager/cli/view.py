@@ -4,7 +4,7 @@ import click
 
 from asmrmanager.cli.core import rj_argument
 from asmrmanager.common.rj_parse import RJID, id2rj
-from asmrmanager.filemanager import fm
+from asmrmanager.cli.core import fm
 
 
 @click.group(help="some operation about view_path")
@@ -23,7 +23,7 @@ def view():
 )
 def add(rj_id: RJID, mode: Literal["link", "zip", "adb"]):
     """add an ASMR to view path (use zip by default)"""
-    from asmrmanager.filemanager import fm
+    from asmrmanager.cli.core import fm
 
     match mode:
         case "zip":
