@@ -19,6 +19,7 @@ dependencies = [
     "SQLAlchemy==2.0.10",
     "textual==0.26.0",
     "mutagen>=1.46.0",
+    "appdirs>=1.4.4",
 ]
 requires-python = ">=3.10"
 readme = "README.md"
