@@ -3,9 +3,8 @@ from typing import List, Tuple
 
 import click
 from textual.app import App, ComposeResult
-from textual.binding import Binding
-from textual.containers import Center, ScrollableContainer
-from textual.widgets import Button, Footer, Header, Label, ProgressBar, Static
+from textual.containers import Center
+from textual.widgets import Footer, Label, ProgressBar
 
 from asmrmanager.common.vtt2lrc import vtt2lrc
 from asmrmanager.logger import logger
@@ -13,9 +12,6 @@ from asmrmanager.logger import logger
 from .player import MusicPlayer, MusicPlayerWithLyrics
 
 # from textual.reactive import reactive
-
-
-
 
 
 class LRCPlayer(App):

@@ -1,6 +1,4 @@
 import functools
-import os.path
-from pathlib import Path
 from typing import TYPE_CHECKING, Tuple
 
 import click
@@ -13,7 +11,7 @@ from asmrmanager.config import config
 from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
 
-fm = FileManager(config.storage_path, config.download_method, config.view_path)
+fm = FileManager(config.storage_path, config.download_path, config.view_path)
 
 if TYPE_CHECKING:
     from asmrmanager.database.manage import DataBaseManager

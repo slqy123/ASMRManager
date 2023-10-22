@@ -18,7 +18,6 @@ from asmrmanager.logger import logger
 @click.group()
 def file():
     """file management"""
-    pass
 
 
 @click.command("del")

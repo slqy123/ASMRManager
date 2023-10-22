@@ -1,6 +1,4 @@
-from pathlib import Path
 
-import appdirs
 
 from asmrmanager.filemanager.appdirs_ import CONFIG_PATH, DATA_PATH
 from asmrmanager.filemanager.manager import FileManager
