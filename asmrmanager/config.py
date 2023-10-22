@@ -40,26 +40,29 @@ class Aria2Config:
     secret: str = ""
 
 
-_config = toml.load(CONFIG_PATH / 'config.toml')
+_config = toml.load(CONFIG_PATH / "config.toml")
 
-_filename_filters: list = _config.get('filename_filters', [])
+_filename_filters: list = _config.get("filename_filters", [])
 filename_filters = list(
-    map(lambda x: Filter(**x) if isinstance(x, dict)
-        else Filter(x), _filename_filters)
+    map(
+        lambda x: Filter(**x) if isinstance(x, dict) else Filter(x),
+        _filename_filters,
+    )
 )
-_aria2_config: dict = _config.get('aria2_config', {})
+_aria2_config: dict = _config.get("aria2_config", {})
 aria2_config = Aria2Config(**_aria2_config)
 
 
 config = Config(
-    username=_config['username'],
-    password=_config['password'],
-    proxy=_config['proxy'],
-    download_path=_config['download_path'],
-    storage_path=_config['storage_path'],
-    view_path=_config['view_path'],
-    tag_filter=_config['tag_filter'],
-    editor=_config['editor'],
+    username=_config["username"],
+    password=_config["password"],
+    proxy=_config["proxy"],
+    download_path=_config["download_path"],
+    storage_path=_config["storage_path"],
+    view_path=_config["view_path"],
+    tag_filter=_config["tag_filter"],
+    editor=_config["editor"],
     filename_filters=filename_filters,
-    download_method=_config['download_method'],
-    aria2_config=aria2_config)
+    download_method=_config["download_method"],
+    aria2_config=aria2_config,
+)
