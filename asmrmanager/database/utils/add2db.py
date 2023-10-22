@@ -1,6 +1,7 @@
-import os
-from asmrmanager.database.manage import DataBaseManager
 import json
+import os
+
+from asmrmanager.database.manage import DataBaseManager
 
 
 def add2db(start_dir: str):

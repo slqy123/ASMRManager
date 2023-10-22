@@ -30,7 +30,7 @@ build-backend = "pdm.backend"
 [tool.pdm.version]
 source = "scm"
 write_to = "asmrmanager/_version.py"
-write_template = "__version__ = '{}'"
+write_template = "__version__ = \"{}\""
 
 [project.scripts]
 asmr = "asmrmanager.cli.main:main"
@@ -50,3 +50,7 @@ all = ['asmrmanager[aria2,idm,tui]']
 [tool.black]
 line-length = 79
 preview = true
+
+[tool.isort]
+profile = "black"
+line_length=79

@@ -1,10 +1,12 @@
+from pprint import pprint
+
 import click
+
 from asmrmanager.cli.core import (
     create_database,
     create_spider_and_database,
     rj_argument,
 )
-from pprint import pprint
 from asmrmanager.common.rj_parse import RJID
 from asmrmanager.database.orm_type import ASMRInstance
 from asmrmanager.logger import logger

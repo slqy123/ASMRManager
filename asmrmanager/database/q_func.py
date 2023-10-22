@@ -1,10 +1,11 @@
-from sqlalchemy.orm import Session
+from typing import Optional
+
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 from asmrmanager.database.orm_type import ASMRInstance
-from .database import ASMR, Tag
 
-from typing import Optional
+from .database import ASMR, Tag
 
 
 class QFunc:

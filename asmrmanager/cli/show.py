@@ -1,8 +1,9 @@
-import click
 import os
 
-from asmrmanager.common.rj_parse import RJID, id2rj
+import click
+
 from asmrmanager.cli.core import rj_argument
+from asmrmanager.common.rj_parse import RJID, id2rj
 from asmrmanager.logger import logger
 
 

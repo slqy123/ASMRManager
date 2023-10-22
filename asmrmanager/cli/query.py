@@ -1,4 +1,5 @@
 import click
+
 from asmrmanager.cli.core import create_database
 
 
@@ -10,8 +11,8 @@ def query(keyword: str):
     it will match the input with name, circle_name and tag field.
     if you want to use more complex queries, please use `asmr sql` instead.
     """
-    from asmrmanager.database.database import ASMR, ASMRs2Tags, Tag
     from asmrmanager.common.output import print_table
+    from asmrmanager.database.database import ASMR, ASMRs2Tags, Tag
 
     db = create_database()
     res = (

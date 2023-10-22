@@ -1,8 +1,9 @@
-from pathlib import Path
 import zipfile
+from pathlib import Path
+
+from asmrmanager.logger import logger
 
 from .utils import folder_chooser
-from asmrmanager.logger import logger
 
 
 def zip_chosen_folder(src: Path, dst: Path):

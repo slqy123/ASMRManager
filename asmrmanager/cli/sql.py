@@ -4,10 +4,10 @@ from subprocess import run
 
 import click
 
+from asmrmanager.cli.core import fm
+from asmrmanager.common.output import print_table
 from asmrmanager.config import config
 from asmrmanager.logger import logger
-from asmrmanager.common.output import print_table
-from asmrmanager.cli.core import fm
 
 
 @click.command()

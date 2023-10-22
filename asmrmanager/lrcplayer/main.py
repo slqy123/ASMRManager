@@ -1,18 +1,21 @@
+from pathlib import Path
 from typing import List, Tuple
+
+import click
 from textual.app import App, ComposeResult
-from textual.containers import ScrollableContainer, Center
-from textual.widgets import Button, Footer, Header, ProgressBar, Static, Label
 from textual.binding import Binding
+from textual.containers import Center, ScrollableContainer
+from textual.widgets import Button, Footer, Header, Label, ProgressBar, Static
+
+from asmrmanager.common.vtt2lrc import vtt2lrc
+from asmrmanager.logger import logger
+
+from .player import MusicPlayer, MusicPlayerWithLyrics
 
 # from textual.reactive import reactive
 
-import click
-from pathlib import Path
 
-from asmrmanager.logger import logger
-from .player import MusicPlayer, MusicPlayerWithLyrics
 
-from asmrmanager.common.vtt2lrc import vtt2lrc
 
 
 class LRCPlayer(App):

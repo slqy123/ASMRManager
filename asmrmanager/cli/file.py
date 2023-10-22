@@ -1,12 +1,18 @@
-import click
-from asmrmanager.cli.core import rj_argument, create_database, multi_rj_argument
-from asmrmanager.cli.core import fm
-from asmrmanager.filemanager.exceptions import DstItemAlreadyExistsException
-from asmrmanager.common.rj_parse import RJID
-from asmrmanager.logger import logger
-from typing import Dict, List, Tuple, Any
-from pathlib import Path
 import re
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
+
+import click
+
+from asmrmanager.cli.core import (
+    create_database,
+    fm,
+    multi_rj_argument,
+    rj_argument,
+)
+from asmrmanager.common.rj_parse import RJID
+from asmrmanager.filemanager.exceptions import DstItemAlreadyExistsException
+from asmrmanager.logger import logger
 
 
 @click.group()
@@ -20,8 +26,8 @@ def file():
 def del_(rj_id: RJID):
     """not implemented"""
     raise NotImplementedError
-    from asmrmanager.filemanager.utils import folder_chooser_multiple
     from asmrmanager.cli.core import create_fm
+    from asmrmanager.filemanager.utils import folder_chooser_multiple
 
     fm = create_fm()
 

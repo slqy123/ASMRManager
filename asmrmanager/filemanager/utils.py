@@ -1,7 +1,8 @@
-from collections import Counter
 import os
+from collections import Counter
 from pathlib import Path
-from typing import Tuple, List, Callable
+from typing import Callable, List, Tuple
+
 import cutie
 
 

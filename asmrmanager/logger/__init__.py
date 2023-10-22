@@ -2,11 +2,12 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 from os import makedirs
 from sys import stdout
-import asmrmanager
 
 from colorlog import ColoredFormatter
 
-log_path = asmrmanager.LOG_PATH
+from asmrmanager.filemanager.appdirs_ import LOG_PATH
+
+log_path = LOG_PATH
 makedirs(log_path, exist_ok=True)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

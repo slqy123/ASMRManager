@@ -1,17 +1,14 @@
 import os
+from collections import Counter
+from pathlib import Path
 
 import click
-from pathlib import Path
-from collections import Counter
-
-from asmrmanager.cli.core import rj_argument, create_database
-from asmrmanager.common.rj_parse import RJID, id2rj
-from asmrmanager.cli.core import fm
-
-from asmrmanager.logger import logger
-from asmrmanager.config import config
-
 import cutie
+
+from asmrmanager.cli.core import create_database, fm, rj_argument
+from asmrmanager.common.rj_parse import RJID, id2rj
+from asmrmanager.config import config
+from asmrmanager.logger import logger
 
 
 @click.command()

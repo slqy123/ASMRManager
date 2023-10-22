@@ -7,13 +7,13 @@ from asmrmanager.cli.core import (
     create_database,
     create_spider_and_database,
     download_param_options,
+    fm,
     interval_preprocess_cb,
     multi_rj_argument,
 )
 from asmrmanager.common.browse_params import BrowseParams
 from asmrmanager.common.download_params import DownloadParams
 from asmrmanager.common.rj_parse import RJID, id2rj
-from asmrmanager.cli.core import fm
 from asmrmanager.logger import logger
 
 

@@ -1,6 +1,7 @@
-from typing import Literal
-from asmrmanager.config import config
 import re
+from typing import Literal
+
+from asmrmanager.config import config
 
 
 def name_should_download(name: str, type_: Literal["directory", "file"]):

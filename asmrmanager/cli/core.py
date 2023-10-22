@@ -10,14 +10,14 @@ from asmrmanager.common.download_params import DownloadParams
 from asmrmanager.common.parse_filter import name_should_download
 from asmrmanager.common.rj_parse import id2rj, rj2id
 from asmrmanager.config import config
-from asmrmanager.logger import logger
 from asmrmanager.filemanager.manager import FileManager
+from asmrmanager.logger import logger
 
 fm = FileManager(config.storage_path, config.download_method, config.view_path)
 
 if TYPE_CHECKING:
-    from asmrmanager.spider import ASMRSpiderManager
     from asmrmanager.database.manage import DataBaseManager
+    from asmrmanager.spider import ASMRSpiderManager
 
 
 def create_database():
@@ -61,6 +61,7 @@ def create_spider_and_database(
         ),
         db,
     )
+
 
 def browse_param_options(f):
     """pass the `browse_params` parameter to the function"""
@@ -170,7 +171,9 @@ def download_param_options(f):
     """
     return wrap
 
-PREVIOUS_RJ_PATH = fm.DATA_PATH / '.prev_rj'
+
+PREVIOUS_RJ_PATH = fm.DATA_PATH / ".prev_rj"
+
 
 def get_prev_rj():
     if not PREVIOUS_RJ_PATH.exists():

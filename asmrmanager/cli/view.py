@@ -2,9 +2,8 @@ from typing import Literal
 
 import click
 
-from asmrmanager.cli.core import rj_argument
+from asmrmanager.cli.core import fm, rj_argument
 from asmrmanager.common.rj_parse import RJID, id2rj
-from asmrmanager.cli.core import fm
 
 
 @click.group(help="some operation about view_path")

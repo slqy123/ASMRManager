@@ -1,11 +1,14 @@
+import contextlib
 from dataclasses import dataclass
 from typing import List, Tuple
+
 import pylrc
-import contextlib
 
 with contextlib.redirect_stdout(None):
     from pygame import mixer
+
 from pathlib import Path
+
 from chardet import detect
 from mutagen._file import File as MutagenFile
 

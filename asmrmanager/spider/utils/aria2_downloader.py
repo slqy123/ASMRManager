@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from asmrmanager.logger import logger
 
 
@@ -11,6 +12,7 @@ class Aria2Downloader:
         proxy: str,
     ) -> None:
         import aria2p
+
         self.client = aria2p.Client(host=host, port=port, secret=secret)
         logger.info(f"Connecting to aria2 rpc server: {self.client}")
         self.api = aria2p.API(self.client)

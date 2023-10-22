@@ -1,13 +1,7 @@
 import asyncio
 import json
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Literal,
-)
+from typing import Any, Callable, Dict, List, Literal
 
 from aiohttp import ClientConnectorError, ClientSession
 from aiohttp.connector import TCPConnector
@@ -28,9 +22,9 @@ try:
 except (ImportError, ModuleNotFoundError):
     ARIA2_EXIST = False
 
-from asmrmanager.cli.core import fm
-
 from typing import NamedTuple
+
+from asmrmanager.cli.core import fm
 
 # TODO 统一管理固定的参数
 

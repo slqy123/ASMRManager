@@ -1,6 +1,7 @@
 import click
-from asmrmanager.logger import logger
+
 from asmrmanager.cli.core import rj_argument
+from asmrmanager.logger import logger
 
 
 @click.command()

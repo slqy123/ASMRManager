@@ -3,13 +3,12 @@ Python IDM Helper by zackmark29
 Version v1.0.2 | 2021.11.28
 """
 
-from typing import Optional, Any
 from pathlib import Path
+from types import ModuleType
+from typing import Any, Optional
 
 from comtypes import client  # type: ignore
 from comtypes.automation import VT_EMPTY  # type: ignore
-
-from types import ModuleType
 
 
 def check_folder(*dirs: Path) -> Path:

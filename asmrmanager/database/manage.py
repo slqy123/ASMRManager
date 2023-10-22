@@ -1,12 +1,12 @@
-from datetime import date
 import math
+from datetime import date
 from typing import Any, Dict, Sequence, Union, cast
 
+import sqlalchemy.orm
 from sqlalchemy import event, text
 from sqlalchemy.engine import Engine, ResultProxy
-import sqlalchemy.orm
-from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.engine.result import Result
+from sqlalchemy.orm import Session, sessionmaker
 
 from asmrmanager.database.orm_type import ASMRInstance
 from asmrmanager.logger import logger

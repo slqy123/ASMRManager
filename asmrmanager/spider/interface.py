@@ -3,14 +3,13 @@ from typing import Any, Callable, Coroutine, Dict, Iterable, Literal, Tuple
 
 import cutie
 
+from asmrmanager.cli.core import fm
 from asmrmanager.common.browse_params import BrowseParams
 from asmrmanager.common.rj_parse import RJID, id2rj
+from asmrmanager.config import Aria2Config
 from asmrmanager.logger import logger
 
 from .spider import ASMRSpider
-
-from asmrmanager.config import Aria2Config
-from asmrmanager.cli.core import fm
 
 
 class ASMRSpiderManager:

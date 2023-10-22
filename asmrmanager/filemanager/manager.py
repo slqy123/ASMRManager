@@ -1,21 +1,26 @@
 import os
 import shutil
-from typing import Iterable, Literal, NamedTuple
 from pathlib import Path
+from typing import Iterable, Literal, NamedTuple
 
 from asmrmanager.common.rj_parse import RJID, id2rj, rj2id
+from asmrmanager.filemanager.appdirs_ import (
+    CACHE_PATH,
+    CONFIG_PATH,
+    DATA_PATH,
+    LOG_PATH,
+)
 from asmrmanager.filemanager.file_zipper import zip_chosen_folder
 from asmrmanager.logger import logger
-import asmrmanager
 
 from .exceptions import DstItemAlreadyExistsException, SrcNotExistsException
 
 
 class FileManager:
-    CONFIG_PATH = asmrmanager.CONFIG_PATH
-    DATA_PATH = asmrmanager.DATA_PATH
-    LOG_PATH = asmrmanager.LOG_PATH
-    CACHE_PATH = asmrmanager.CACHE_PATH
+    CONFIG_PATH = CONFIG_PATH
+    DATA_PATH = DATA_PATH
+    LOG_PATH = LOG_PATH
+    CACHE_PATH = CACHE_PATH
 
     @classmethod
     def init_config(cls):
@@ -25,7 +30,7 @@ class FileManager:
             return
 
         shutil.copy(
-            Path(__file__).parent / "resources"/"config.example.toml",
+            Path(__file__).parent / "resources" / "config.example.toml",
             dst_path,
         )
         logger.info(
@@ -33,7 +38,7 @@ class FileManager:
             " modify it and run this command again"
         )
         exit(0)
-    
+
     @classmethod
     def init_sqls(cls):
         cls.DATA_PATH.mkdir(parents=True, exist_ok=True)
@@ -42,12 +47,10 @@ class FileManager:
             return
 
         shutil.copytree(
-            Path(__file__).parent / "resources"/"sqls.example",
+            Path(__file__).parent / "resources" / "sqls.example",
             dst_path,
         )
-        logger.info(
-            f"First time to run, copy default sqls to {dst_path}"
-        )
+        logger.info(f"First time to run, copy default sqls to {dst_path}")
 
     def __init__(
         self,

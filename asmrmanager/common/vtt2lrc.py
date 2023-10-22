@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
-import click
 from pathlib import Path
+
+import click
 
 
 def parse_time(time_str):
