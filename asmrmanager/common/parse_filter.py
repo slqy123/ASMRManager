@@ -1,5 +1,5 @@
 from typing import Literal
-from config import config
+from asmrmanager.config import config
 import re
 
 

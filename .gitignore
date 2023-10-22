@@ -141,3 +141,4 @@ Voice/
 config.py
 asmrmanager/logger/logs/*
 .pdm-python
+.pdm-build

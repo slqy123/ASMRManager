@@ -9,7 +9,7 @@ from asmrmanager.logger import logger
 
 from .spider import ASMRSpider
 
-from config import Aria2Config
+from asmrmanager.config import Aria2Config
 from asmrmanager.filemanager import fm
 
 

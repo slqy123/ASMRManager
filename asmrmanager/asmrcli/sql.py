@@ -4,9 +4,10 @@ from subprocess import run
 
 import click
 
-from config import config
+from asmrmanager.config import config
 from asmrmanager.logger import logger
 from asmrmanager.common.output import print_table
+from asmrmanager.filemanager import fm
 
 
 @click.command()
@@ -18,12 +19,12 @@ from asmrmanager.common.output import print_table
     default=True,
     help="should your change to the file be saved",
 )
-def sql(sql_name: str, save: bool = False):
+def sql(sql_name: str, save: bool):
     """
     execute a sql statement by sql file name in `sqls` directory
     and print the results on your terminal
     """
-    sql_path = Path(__file__).parent.parent / "sqls" / sql_name
+    sql_path = fm.DATA_PATH / "sqls" / sql_name
     sql_path = sql_path.with_suffix(".sql")
     if not sql_path.exists():
         logger.error(
@@ -32,11 +33,12 @@ def sql(sql_name: str, save: bool = False):
         )
         return
 
-    temp_file_path = sql_path.parent.parent / "tempfile.sql"
+    fm.CACHE_PATH.mkdir(parents=True, exist_ok=True)
+    temp_file_path = fm.CACHE_PATH / "tempfile.sql"
     temp_file_path.write_text(
         sql_path.read_text(encoding="utf8"), encoding="utf8"
     )
-    run(f"{config.editor} {temp_file_path}")
+    run(f'{config.editor} "{temp_file_path}"')
     # db_path = temp_file_path.with_name('data.db')
     # print(db_path, temp_file_path)
     # run(

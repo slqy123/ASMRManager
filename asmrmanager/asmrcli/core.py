@@ -9,8 +9,9 @@ from asmrmanager.common.browse_params import BrowseParams
 from asmrmanager.common.download_params import DownloadParams
 from asmrmanager.common.parse_filter import name_should_download
 from asmrmanager.common.rj_parse import id2rj, rj2id
-from config import config
+from asmrmanager.config import config
 from asmrmanager.logger import logger
+from asmrmanager.filemanager import fm
 
 if TYPE_CHECKING:
     from asmrmanager.spider import ASMRSpiderManager
@@ -176,21 +177,18 @@ def download_param_options(f):
     """
     return wrap
 
+PREVIOUS_RJ_PATH = fm.DATA_PATH / '.prev_rj'
 
 def get_prev_rj():
-    path = Path(__file__).parent.parent / ".prev_rj"
-    if not os.path.exists(path):
+    if not PREVIOUS_RJ_PATH.exists():
         return ""
-    with open(path, "r", encoding="utf8") as f:
-        rj = f.read()
+    rj = PREVIOUS_RJ_PATH.read_text(encoding="utf8")
     logger.info(f"previous RJ id is {rj}")
     return rj
 
 
 def save_rj(rj: str):
-    path = Path(__file__).parent.parent / ".prev_rj"
-    with open(path, "w", encoding="utf8") as f:
-        f.write(rj)
+    PREVIOUS_RJ_PATH.write_text(rj, encoding="utf8")
 
 
 def rj_argument(f):

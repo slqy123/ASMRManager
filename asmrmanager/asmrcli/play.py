@@ -9,7 +9,7 @@ from asmrmanager.common.rj_parse import RJID, id2rj
 from asmrmanager.filemanager import fm
 
 from asmrmanager.logger import logger
-from config import config
+from asmrmanager.config import config
 
 import cutie
 

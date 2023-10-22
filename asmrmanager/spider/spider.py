@@ -13,7 +13,7 @@ from aiohttp import ClientConnectorError, ClientSession
 from aiohttp.connector import TCPConnector
 
 from asmrmanager.common.rj_parse import RJID, id2rj
-from config import Aria2Config
+from asmrmanager.config import Aria2Config
 from asmrmanager.logger import logger
 
 try:

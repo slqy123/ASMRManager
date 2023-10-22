@@ -24,8 +24,8 @@ where true
                            join tag t on a2t.tag_id = t.id
                            join asmrs2vas a2v on asmr.id = a2v.asmr_id
                            join voice_actor va on a2v.actor_id = va.id
-                  where t.name in ('tag.name', )
+                  where t.name in ('tag.name1', 'tag.name2')  -- 过滤掉其中含有这些标签的结果
                   group by asmr.id)
 group by asmr.id
-order by dl_count * log(price)  desc  -- 排序，这里是按照下载量*价格的对数 的方式排序
+order by dl_count * log(price+1)  desc  -- 排序，这里是按照下载量*价格的对数 的方式排序
 limit 20;

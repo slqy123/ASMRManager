@@ -9,7 +9,7 @@ from textual.binding import Binding
 import click
 from pathlib import Path
 
-import logger
+from asmrmanager.logger import logger
 from .player import MusicPlayer, MusicPlayerWithLyrics
 
 from asmrmanager.common.vtt2lrc import vtt2lrc

@@ -1,13 +1,13 @@
 
 [project]
 name = "ASMRManager"
-version = "0.1.0"
+dynamic = ["version"]
 description = "download, manage and play the voices on asmr.one"
 authors = [
     {name = "Quy", email = "quyue294@qq.com"},
 ]
 dependencies = [
-    "aiohttp==3.8.4",
+    "aiohttp>=3.8.6",
     "chardet==5.1.0",
     "click==8.1.3",
     "colorlog==6.7.0",
@@ -26,6 +26,11 @@ license = {text = "MIT"}
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
+
+[tool.pdm.version]
+source = "scm"
+write_to = "asmrmanager/_version.py"
+write_template = "__version__ = '{}'"
 
 [project.scripts]
 asmr = "asmrmanager.asmrcli.main:main"
