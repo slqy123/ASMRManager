@@ -33,7 +33,7 @@ write_to = "asmrmanager/_version.py"
 write_template = "__version__ = '{}'"
 
 [project.scripts]
-asmr = "asmrmanager.asmrcli.main:main"
+asmr = "asmrmanager.cli.main:main"
 
 [project.optional-dependencies]
 aria2 = [

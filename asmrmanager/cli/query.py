@@ -1,5 +1,5 @@
 import click
-from asmrmanager.asmrcli.core import create_database
+from asmrmanager.cli.core import create_database
 
 
 @click.command()

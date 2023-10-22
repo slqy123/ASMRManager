@@ -5,16 +5,16 @@ from typing import Any
 
 import click
 
-from asmrmanager.asmrcli.dl import dl
-from asmrmanager.asmrcli.file import file
-from asmrmanager.asmrcli.hold import hold
-from asmrmanager.asmrcli.info import info
-from asmrmanager.asmrcli.play import play
-from asmrmanager.asmrcli.query import query
-from asmrmanager.asmrcli.review import review
-from asmrmanager.asmrcli.show import show
-from asmrmanager.asmrcli.sql import sql
-from asmrmanager.asmrcli.view import view
+from asmrmanager.cli.dl import dl
+from asmrmanager.cli.file import file
+from asmrmanager.cli.hold import hold
+from asmrmanager.cli.info import info
+from asmrmanager.cli.play import play
+from asmrmanager.cli.query import query
+from asmrmanager.cli.review import review
+from asmrmanager.cli.show import show
+from asmrmanager.cli.sql import sql
+from asmrmanager.cli.view import view
 from asmrmanager.logger import logger
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])

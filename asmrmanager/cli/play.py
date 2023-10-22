@@ -4,7 +4,7 @@ import click
 from pathlib import Path
 from collections import Counter
 
-from asmrmanager.asmrcli.core import rj_argument, create_database
+from asmrmanager.cli.core import rj_argument, create_database
 from asmrmanager.common.rj_parse import RJID, id2rj
 from asmrmanager.filemanager import fm
 

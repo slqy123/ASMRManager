@@ -2,7 +2,7 @@ from typing import Literal
 
 import click
 
-from asmrmanager.asmrcli.core import rj_argument
+from asmrmanager.cli.core import rj_argument
 from asmrmanager.common.rj_parse import RJID, id2rj
 from asmrmanager.filemanager import fm
 

@@ -2,7 +2,7 @@ from typing import Iterable, Tuple
 
 import click
 
-from asmrmanager.asmrcli.core import (
+from asmrmanager.cli.core import (
     browse_param_options,
     create_database,
     create_spider_and_database,

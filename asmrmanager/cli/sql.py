@@ -49,7 +49,7 @@ def sql(sql_name: str, save: bool):
     #         temp_file_path.read_text(encoding='utf8'),
     #     ]
     # )
-    from asmrmanager.asmrcli.core import create_database
+    from asmrmanager.cli.core import create_database
 
     db = create_database()
     res = db.execute(temp_file_path.read_text(encoding="utf8"))

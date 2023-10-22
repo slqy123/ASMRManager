@@ -1,5 +1,5 @@
 import click
-from asmrmanager.asmrcli.core import rj_argument, create_database, multi_rj_argument
+from asmrmanager.cli.core import rj_argument, create_database, multi_rj_argument
 from asmrmanager.filemanager import fm
 from asmrmanager.filemanager.exceptions import DstItemAlreadyExistsException
 from asmrmanager.common.rj_parse import RJID
@@ -21,7 +21,7 @@ def del_(rj_id: RJID):
     """not implemented"""
     raise NotImplementedError
     from asmrmanager.filemanager.utils import folder_chooser_multiple
-    from asmrmanager.asmrcli.core import create_fm
+    from asmrmanager.cli.core import create_fm
 
     fm = create_fm()
 
@@ -103,7 +103,7 @@ def recover(rj_id: RJID, regex: str, ignore_filter: bool):
 
         url2download.append((recover["url"], recover_file))
 
-    from asmrmanager.asmrcli.core import create_spider_and_database
+    from asmrmanager.cli.core import create_spider_and_database
 
     spider, _ = create_spider_and_database()
     for url, path in url2download:
