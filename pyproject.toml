@@ -3,8 +3,9 @@
 name = "ASMRManager"
 dynamic = ["version"]
 description = "download, manage and play the voices on asmr.one"
+keywords = ["asmr", "downloader", "music", "player", "manager", "cli", "tui", "commandline", "terminal"]
 authors = [
-    {name = "Quy", email = "quyue294@qq.com"},
+    {name = "SLQY", email = "sqiyel@gmail.com"},
 ]
 dependencies = [
     "aiohttp>=3.8.6",
@@ -22,6 +23,7 @@ dependencies = [
 requires-python = ">=3.10"
 readme = "README.md"
 license = {text = "MIT"}
+urls = {'repository' = 'https://github.com/slqy123/ASMRManager'}
 
 [build-system]
 requires = ["pdm-backend"]

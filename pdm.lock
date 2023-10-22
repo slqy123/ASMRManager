@@ -6,7 +6,7 @@ groups = ["default", "aria2"]
 cross_platform = true
 static_urls = false
 lock_version = "4.3"
-content_hash = "sha256:84a0d13c3751fefe7bb5e0b1b57f02d5a509496061b77988f8efdc3b2b30897e"
+content_hash = "sha256:f986e4fa4f0a80e23e73bb6c1a0b6066683c528de2751e970db3137212e7e51d"
 
 [[package]]
 name = "aiohttp"
