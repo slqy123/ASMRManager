@@ -48,7 +48,6 @@ class FileManager:
         logger.info(
             f"First time to run, copy default sqls to {dst_path}"
         )
-        exit(0)
 
     def __init__(
         self,

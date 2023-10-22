@@ -45,6 +45,7 @@ idm = [
 tui = [
   "trogon==0.4.0",
 ]
+all = ['asmrmanager[aria2,idm,tui]']
 
 [tool.black]
 line-length = 79
