@@ -1,0 +1,67 @@
+# 账号
+username = "username"
+
+# 密码
+password = "password"
+
+# 代理
+proxy = "http://localhost:7890"
+
+# 下载文件的临时存放位置
+download_path = "/path/to/some/place"
+
+# 文件最终存储位置
+# 使用review后，如果文件在download_path，将自动移至storage_path
+storage_path = "/path/to/some/place"
+
+# 使用asmr view 的时候会在这个位置创建一个软链接或压缩文件，方便查找。
+# 如不使用 view 方法可以设为空
+view_path = "/path/to/some/place"
+
+# 过滤掉那些你不喜欢的标签
+tag_filter = ["tagname1", "tagname2"]
+
+# 编辑sql用的默认编辑器, 如果需使用powershell脚本例如lvim，
+# 此处可填入 'pwsh -nop -f /path/to/lvim.ps1'
+editor = "code --wait"
+
+# 下载所用的工具，可选则idm或aria2，请注意需安装对应的依赖项
+download_method = "idm"
+
+# 如使用aria2请配置此项，否则请忽略
+# 如果是在本地使用aria2，运行`aria2c --enable-rpc`，以下保持默认即可
+# 如果使用motrix，且没有更改过默认设置，请将端口(port)改为16800
+[aria2_config]
+host = "http://localhost"
+port = 6800
+secret = ""
+
+# 文件和文件夹的过滤规则
+# 可选参数和默认值如下：
+
+# type: Literal["include", "exclude"] = "exclude"  # 必须保留匹配文件还是过滤匹配文件
+# range: Literal["file", "directory", "all"] = "all"  # 该规则针对的文件类型
+# excat_match: bool = False  # 是否应精确匹配(从头到尾严格匹配)
+# ignore_case: bool = True  # 是否忽略大小写
+
+# 注意只有满足所有的include规则且不满足所有的exclude规则的文件才会被下载
+
+# 示例：过滤所有的SE(不完全)
+[[filename_filters]]
+regex = '(効果音|SE|ＳＥ|BGM|音效)([な無无×][し]?|cut|切除|カット)'
+
+[[filename_filters]]
+regex = '([無无×]|不含|NO[ _]?)(効果音|SE|ＳＥ|BGM|音效)'
+
+[[filename_filters]]
+regex = '(声|ボイス|SE)のみ'
+
+# 过滤所有的wav
+[[filename_filters]]
+regex = '.*\.wav$'
+range = "file"
+
+# 过滤包含 "反転" 的wav文件
+[[filename_filters]]
+regex = '反転.*\.wav$'
+range = "file"

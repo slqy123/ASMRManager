@@ -137,8 +137,5 @@ Voice/
 .idea
 /sqls/*
 
-.prev_rj
-config.py
-database/test_interface.py
-logger/logs/*
-.pdm-python
+/.pdm-python
+/.pdm-build

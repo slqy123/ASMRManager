@@ -9,7 +9,7 @@
 支持网站所支持的所有索引方式(关键词，tag，circle，价格，声优，日期等等)，以及排序方式。
 目前仅支持调用 IDM 或 aria2 下载。
 
-```shell
+```
 > asmr dl search -h
 2023-09-30 15:52:08 - INFO - Run program with: dl search -h
 Usage: asmr dl search [OPTIONS] [TEXT]
@@ -67,11 +67,12 @@ Options:
 
 ### 管理
 
-可以对作品进行评分，评论。也支持用关键词进行搜索(但需要一点 sql 基础，仓库提供了一些模板，例如 [search.sql](./sqls.example/search.sql))
+可以对作品进行评分，评论。也支持用关键词进行搜索(但需要一点 sql 基础，仓库提供了一些模板，例如 [search.sql](./asmrmanager/filemanager/resources/sqls.example/search.sql))
 
 ### 播放
 
 非常简陋的终端播放界面，支持歌词显示，按照歌词信息快进，切换歌曲，可以预见的将来应该会完善一下
+![tui-screenshot](./assets/tui-screenshot.png)
 
 ## 使用方法
 
@@ -80,18 +81,26 @@ Options:
 ```shell
 git clone https://github.com/slqy123/ASMRManager.git
 cd ASMRManager
-pip install -e .[依赖]
+pip install .[依赖]
 ```
+
 可选则的依赖项有 `idm`, `aria2`, `tui`，多个依赖使用逗号分隔。例如 `pip install -e .[idm,tui]`
 
 > 此处也可以选择使用 `pipx` 来替代 `pip`，避免污染全局环境。
-> 安装方法：`pip install pipx` 
+> 安装方法：`pip install pipx`
 
 ---
 
-之后按照说明修改 `config.example.py` 文件，再将其重命名为 `config.py` 。
+之后再运行 `asmr` 命令，会生成示例的配置文件和 sql 文件，此处以 windows 举例：
 
-如果需要使用`sql`命令的话，请自行定制 `sqls.example` 目录下的 sql 文件，若有不明白的地方可使用 sqlite 数据库工具查看目录下的 data.db 文件。最后将文件夹重命名为 `sqls` 即可。
+```
+2023-10-22 14:36:21 - INFO - First time to run, copy default sqls to C:\Users\slqy\AppData\Local\asmrmanager\asmrmanager\sqls
+2023-10-22 14:36:21 - INFO - An example config file has been copied to C:\Users\slqy\AppData\Local\asmrmanager\asmrmanager\config.toml, please modify it and run this command again
+```
+
+之后按照说明修改 `config.toml` 文件，如果使用 sql 的话，也可以对 sql 文件夹进行修改。
+
+若有不明白的地方可使用 sqlite 数据库工具查看目录下的 data.db 文件。
 
 完成后使用 `asmr -h` 查看各命令的使用说明，对于子命令不清楚的同样可以查看帮助，例如 `asmr dl -h`。
 
@@ -101,5 +110,3 @@ pip install -e .[依赖]
 
 感谢 <https://asmr.one>丰富了我的夜生活。
 另外网站运营不易，请合理使用本工具。
-
-2023-07-22 用做 download_path 的硬盘正式宣布寿终正寝，好吧这也是我为什么要设 download_path 和 storage_path 的原因，想最大限度地利用一下这快年老色衰的硬盘。
