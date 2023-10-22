@@ -20,6 +20,7 @@ dependencies = [
     "textual==0.26.0",
     "mutagen>=1.46.0",
     "appdirs>=1.4.4",
+    "toml>=0.10.2",
 ]
 requires-python = ">=3.10"
 readme = "README.md"
