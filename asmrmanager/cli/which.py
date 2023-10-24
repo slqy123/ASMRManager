@@ -3,7 +3,7 @@ import os
 import click
 
 from asmrmanager.cli.core import rj_argument
-from asmrmanager.common.rj_parse import RJID, id2rj
+from asmrmanager.common.rj_parse import RJID
 from asmrmanager.logger import logger
 
 

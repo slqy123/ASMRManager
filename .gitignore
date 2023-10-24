@@ -140,3 +140,4 @@ Voice/
 /.pdm-python
 /.pdm-build
 /asmrmanager/_version.py
+/format.ps1

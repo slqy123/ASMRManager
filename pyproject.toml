@@ -58,3 +58,6 @@ preview = true
 [tool.isort]
 profile = "black"
 line_length=79
+
+[tool.autoflake]
+ignore-init-module-imports = true

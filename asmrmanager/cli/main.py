@@ -12,9 +12,9 @@ from asmrmanager.cli.info import info
 from asmrmanager.cli.play import play
 from asmrmanager.cli.query import query
 from asmrmanager.cli.review import review
-from asmrmanager.cli.which import which
 from asmrmanager.cli.sql import sql
 from asmrmanager.cli.view import view
+from asmrmanager.cli.which import which
 from asmrmanager.logger import logger
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
