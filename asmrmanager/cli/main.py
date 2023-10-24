@@ -12,7 +12,7 @@ from asmrmanager.cli.info import info
 from asmrmanager.cli.play import play
 from asmrmanager.cli.query import query
 from asmrmanager.cli.review import review
-from asmrmanager.cli.show import show
+from asmrmanager.cli.which import which
 from asmrmanager.cli.sql import sql
 from asmrmanager.cli.view import view
 from asmrmanager.logger import logger
@@ -56,7 +56,7 @@ main.add_command(sql)
 main.add_command(view)
 main.add_command(hold)
 main.add_command(query)
-main.add_command(show)
+main.add_command(which)
 main.add_command(file)
 
 if __name__ == "__main__":

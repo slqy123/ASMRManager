@@ -249,7 +249,8 @@ class FileManager:
             return "download"
         return None
 
-    def get_path(self, rj_id: RJID):
+    def get_path(self, rj_id: RJID) -> Path | None:
+        """get rj file path"""
         res = self.get_location(rj_id)
 
         match res:

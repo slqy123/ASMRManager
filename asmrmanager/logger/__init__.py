@@ -1,7 +1,7 @@
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from os import makedirs
-from sys import stdout
+from sys import stderr
 
 from colorlog import ColoredFormatter
 
@@ -22,7 +22,7 @@ file_formatter = logging.Formatter(
     "%(asctime)s - %(filename)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-console_handler = logging.StreamHandler(stdout)
+console_handler = logging.StreamHandler(stderr)
 console_handler.setLevel(logging.DEBUG)
 console_handler.setFormatter(console_formatter)
 
