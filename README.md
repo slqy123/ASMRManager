@@ -82,7 +82,7 @@ Options:
 pip install ASMRManager[依赖]
 ```
 
-可选则的依赖项有 `idm`, `aria2`, `tui`，`all`，多个依赖使用逗号分隔，其中`all`为安装所有依赖。例如 `pip install -e .[idm,tui]`
+可选则的依赖项有 `idm`, `aria2`, `tui`，`all`，多个依赖使用逗号分隔，其中`all`为安装所有依赖。例如 `pip install ASMRManager[idm,tui]`
 
 > 此处也可以选择使用 `pipx` 来替代 `pip`，避免污染全局环境。
 > 安装方法：`pip install pipx`
@@ -101,6 +101,13 @@ pip install ASMRManager[依赖]
 若有不明白的地方可使用 sqlite 数据库工具查看目录下的 data.db 文件。
 
 完成后使用 `asmr -h` 查看各命令的使用说明，对于子命令不清楚的同样可以查看帮助，例如 `asmr dl -h`。
+常用的命令有：
+- `dl search` 搜索并下载。
+- `info` 搜索某个 RJID 的具体信息
+- `view` 将选择文件并移动到 VIEW_PATH
+- `review` 为某个作品评分并评论
+
+> 使用命令时，如果不输入 RJID ，将会自动使用上一次命令的RJID。
 
 另外本工具提供基于 `trogon` 的可视化命令行界面，在安装`tui`依赖后使用 `asmr tui` 即可打开。
 
