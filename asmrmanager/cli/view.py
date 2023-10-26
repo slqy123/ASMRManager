@@ -24,6 +24,7 @@ def view():
 def add(rj_id: RJID, mode: Literal["link", "zip", "adb", "copy"]):
     """add an ASMR to view path (use zip by default)"""
     from asmrmanager.cli.core import fm
+    from asmrmanager.filemanager.utils import folder_chooser
 
     src = fm.get_path(rj_id)
     if src is None:
@@ -33,6 +34,8 @@ def add(rj_id: RJID, mode: Literal["link", "zip", "adb", "copy"]):
     dst = fm.view_path / rj_name
     if dst.exists():
         raise DstItemAlreadyExistsException
+
+    src = folder_chooser(src)
 
     match mode:
         case "zip":
