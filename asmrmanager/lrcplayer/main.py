@@ -155,7 +155,7 @@ def main(path: Path):
                 case (True, True) | (True, False):
                     subtitle_path = lrc_path
                 case (False, True):
-                    logger.logger.info(f"convert vtt to lrc: {vtt_path}")
+                    logger.info(f"convert vtt to lrc: {vtt_path}")
                     lrc_content = vtt2lrc(vtt_path)
                     with open(lrc_path, "w", encoding="utf-8") as f:
                         f.write(lrc_content)

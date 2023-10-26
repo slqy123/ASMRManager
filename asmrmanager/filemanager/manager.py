@@ -13,7 +13,7 @@ from asmrmanager.filemanager.appdirs_ import (
 from asmrmanager.filemanager.file_zipper import zip_chosen_folder
 from asmrmanager.logger import logger
 
-from .exceptions import DstItemAlreadyExistsException, SrcNotExistsException
+# from .exceptions import DstItemAlreadyExistsException, SrcNotExistsException
 
 
 class FileManager:
@@ -157,23 +157,19 @@ class FileManager:
             self.storage_path_exists or self.download_path_exists
         )
 
-    def view(self, rj_id: RJID, replace=True):
-        assert self.could_view()
-        rj_name = id2rj(rj_id)
-        if os.path.exists(self.storage_path / rj_name):
-            src = self.storage_path / rj_name
-        elif os.path.exists(self.download_path / rj_name):
-            src = self.download_path / rj_name
+    @staticmethod
+    def link(src: Path, dst: Path, hardlink=False):
+        if hardlink:
+            os.link(src, dst)
         else:
-            logger.error(f"Failed to view {rj_name}, item not exists!")
-            raise SrcNotExistsException
+            os.symlink(src, dst)
 
-        if os.path.exists(self.view_path / rj_name):
-            logger.warning(f"{rj_name} already exists!")
-            if not replace:
-                raise DstItemAlreadyExistsException
-
-        os.symlink(src, self.view_path / rj_name)
+    @staticmethod
+    def _copy(src: Path, dst: Path):
+        if src.is_dir():
+            shutil.copytree(src, dst)
+        else:
+            shutil.copy(src, dst)
 
     def remove_view(self, rj_id: RJID):
         assert self.could_view()
@@ -214,29 +210,7 @@ class FileManager:
                 continue
             yield rj_id
 
-    def zip_file(self, rj_id: RJID, stored: bool | None = None):
-        assert self.could_view()
-        rj_name = id2rj(rj_id)
-        if stored is None:
-            src1 = self.storage_path / rj_name
-            src2 = self.download_path / rj_name
-            if src1.exists():
-                src = src1
-            elif src2.exists():
-                src = src2
-            else:
-                logger.error(f"file {rj_name} not exists, locate file failed")
-                raise SrcNotExistsException
-        else:
-            path = self.storage_path if stored else self.download_path
-            src = path / rj_name
-            assert src.exists()
-
-        dst = self.view_path / rj_name
-        dst = dst.with_suffix(".zip")
-        if dst.exists():
-            logger.error(f"file {dst} already exists please remove first")
-            raise DstItemAlreadyExistsException
+    def zip_file(self, src: Path, dst: Path):
         zip_chosen_folder(src, dst)
 
     def get_location(

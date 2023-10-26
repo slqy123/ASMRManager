@@ -2,8 +2,9 @@ from typing import Literal
 
 import click
 
-from asmrmanager.cli.core import fm, rj_argument
+from asmrmanager.cli.core import fm, rj_argument, id2rj
 from asmrmanager.common.rj_parse import RJID
+from asmrmanager.filemanager.exceptions import SrcNotExistsException, DstItemAlreadyExistsException
 
 
 @click.group(help="some operation about view_path")
@@ -16,19 +17,30 @@ def view():
 @click.option(
     "--mode",
     "-m",
-    type=click.Choice(["link", "zip", "adb"]),
+    type=click.Choice(["link", "zip", "adb", "copy"]),
     default="zip",
     show_default=True,
 )
-def add(rj_id: RJID, mode: Literal["link", "zip", "adb"]):
+def add(rj_id: RJID, mode: Literal["link", "zip", "adb", "copy"]):
     """add an ASMR to view path (use zip by default)"""
     from asmrmanager.cli.core import fm
 
+    src = fm.get_path(rj_id)
+    if src is None:
+        raise SrcNotExistsException
+
+    rj_name = id2rj(rj_id)
+    dst = fm.view_path / rj_name
+    if dst.exists():
+        raise DstItemAlreadyExistsException
+
     match mode:
         case "zip":
-            fm.zip_file(rj_id)
+            fm.zip_file(src, dst)
         case "link":
-            fm.view(rj_id, replace=True)
+            fm.link(src, dst)
+        case "copy":
+            fm._copy(src, dst)
         case "adb":
             raise NotImplementedError
 

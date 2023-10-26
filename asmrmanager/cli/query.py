@@ -5,17 +5,21 @@ from asmrmanager.cli.core import create_database
 
 @click.command()
 @click.argument("keyword", type=str)
-def query(keyword: str):
+@click.option("--limit", "-l", type=int, default=100, show_default=True)
+@click.option("--raw", "-r", is_flag=True, default=False, show_default=True, help='output raw json')
+def query(keyword: str, limit: int, raw: bool):
     """
     simple keyword based query,
     it will match the input with name, circle_name and tag field.
     if you want to use more complex queries, please use `asmr sql` instead.
+
+    set limit to 0 if you want to get all results.
     """
     from asmrmanager.common.output import print_table
     from asmrmanager.database.database import ASMR, ASMRs2Tags, Tag
 
     db = create_database()
-    res = (
+    res_query = (
         db.query(
             ASMR.id,
             ASMR.title,
@@ -33,18 +37,37 @@ def query(keyword: str):
             | Tag.name.contains(keyword)
         )
         .group_by(ASMR.id)
-        .all()
     )
 
-    print_table(
-        titles=[
-            "id",
-            "title",
-            "circle_name",
-            "nsfw",
-            "subtitle",
-            "count",
-            "star",
-        ],
-        rows=res,
-    )
+    assert limit > 0
+    if limit == 0:
+        res = res_query.all()
+    else:
+        res = res_query.limit(limit).all()
+
+    titles = [
+        "id",
+        "title",
+        "circle_name",
+        "nsfw",
+        "subtitle",
+        "count",
+        "star",
+    ]
+
+    if raw:
+        import json
+
+        res_json = json.dumps(
+            [{k: v for k, v in zip(titles, item)} for item in res], ensure_ascii=False
+        )
+
+        click.echo(res_json)
+
+
+        print(res_json)
+    else:
+        print_table(
+            titles=titles,
+            rows=res,
+        )

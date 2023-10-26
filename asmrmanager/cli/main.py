@@ -18,6 +18,8 @@ from asmrmanager.cli.which import which
 from asmrmanager.logger import logger
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
+sys.stderr.reconfigure(encoding="utf-8")  # type: ignore
 
 
 # TODO 可能有的项目更新了汉化会被过滤不会下载，考虑对比has_subtitle
