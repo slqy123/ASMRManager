@@ -2,9 +2,12 @@ from typing import Literal
 
 import click
 
-from asmrmanager.cli.core import fm, rj_argument, id2rj
+from asmrmanager.cli.core import fm, id2rj, rj_argument
 from asmrmanager.common.rj_parse import RJID
-from asmrmanager.filemanager.exceptions import SrcNotExistsException, DstItemAlreadyExistsException
+from asmrmanager.filemanager.exceptions import (
+    DstItemAlreadyExistsException,
+    SrcNotExistsException,
+)
 
 
 @click.group(help="some operation about view_path")

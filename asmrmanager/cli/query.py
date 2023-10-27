@@ -6,7 +6,14 @@ from asmrmanager.cli.core import create_database
 @click.command()
 @click.argument("keyword", type=str)
 @click.option("--limit", "-l", type=int, default=100, show_default=True)
-@click.option("--raw", "-r", is_flag=True, default=False, show_default=True, help='output raw json')
+@click.option(
+    "--raw",
+    "-r",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="output raw json",
+)
 def query(keyword: str, limit: int, raw: bool):
     """
     simple keyword based query,
@@ -59,11 +66,11 @@ def query(keyword: str, limit: int, raw: bool):
         import json
 
         res_json = json.dumps(
-            [{k: v for k, v in zip(titles, item)} for item in res], ensure_ascii=False
+            [{k: v for k, v in zip(titles, item)} for item in res],
+            ensure_ascii=False,
         )
 
         click.echo(res_json)
-
 
         print(res_json)
     else:

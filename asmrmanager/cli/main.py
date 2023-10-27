@@ -22,7 +22,6 @@ sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
 sys.stderr.reconfigure(encoding="utf-8")  # type: ignore
 
 
-# TODO 可能有的项目更新了汉化会被过滤不会下载，考虑对比has_subtitle
 # TODO dry run，clear zip file
 # TODO 全局search过滤条件
 # TODO query web local local 条件可以简单一些
