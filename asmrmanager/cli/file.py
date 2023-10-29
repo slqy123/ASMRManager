@@ -111,8 +111,13 @@ def recover(rj_id: RJID, regex: str, ignore_filter: bool):
     from asmrmanager.cli.core import create_spider_and_database
 
     spider, _ = create_spider_and_database()
+    tasks = []
     for url, path in url2download:
-        spider.spider.process_download(url, path.parent, path.name)
+        tasks.append(
+            spider.spider.process_download(url, path.parent, path.name)
+        )
+
+    spider.run(*tasks)
 
 
 @click.command()

@@ -9,10 +9,10 @@ authors = [
 ]
 dependencies = [
     "aiohttp>=3.8.6",
-    "chardet==5.1.0",
-    "click==8.1.3",
-    "colorlog==6.7.0",
-    "cutie==0.3.2",
+    "chardet>=5.1.0",
+    "click>=8.1.3",
+    "colorlog>=6.7.0",
+    "cutie>=0.3.2",
     "pygame==2.4.0",
     "pylrc==0.1.2",
     "rich==13.4.2",
@@ -41,7 +41,7 @@ asmr = "asmrmanager.cli.main:main"
 
 [project.optional-dependencies]
 aria2 = [
-    "aria2p>=0.11.3",
+    "aioaria2>=1.3.4",
 ]
 idm = [
     "comtypes>=1.2.0",

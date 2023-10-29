@@ -85,24 +85,9 @@ class ASMRSpider:
             else self.download_by_aria2
         )
 
-        self.__aria2_downloader = None
+        self.aria2_downloader = Aria2Downloader(proxy)
         self.aria2_config = aria2_config
         self.download_method = download_method
-
-    @property
-    def aria2_downloader(self):
-        if self.__aria2_downloader is not None:
-            return self.__aria2_downloader
-        if self.download_method == "aria2" and self.aria2_config is not None:
-            self.__aria2_downloader = Aria2Downloader(
-                host=self.aria2_config.host,
-                port=self.aria2_config.port,
-                secret=self.aria2_config.secret,
-                proxy=self.proxy,
-            )
-        else:
-            self.__aria2_downloader = None
-        return self.__aria2_downloader
 
     async def login(self) -> None:
         try:
@@ -170,7 +155,7 @@ class ASMRSpider:
 
         file_list = self.get_file_list(tracks, voice_path)
         self.create_recover_file(file_list, voice_path)
-        self.create_dir_and_download(file_list)
+        await self.create_dir_and_download(file_list)
 
     def create_recover_file(self, file_list: List[FileInfo], voice_path: Path):
         recover = [
@@ -195,7 +180,9 @@ class ASMRSpider:
         return await self.get(f"tracks/{voice_id}")
 
     @staticmethod
-    def download_by_idm(url: str, save_path: Path, file_name: str) -> bool:
+    async def download_by_idm(
+        url: str, save_path: Path, file_name: str
+    ) -> bool:
         """the save path + file should not exist,
         and the filename should be legal"""
         assert IDMHELPER_EXIST
@@ -206,14 +193,13 @@ class ASMRSpider:
             return False
         return True
 
-    def download_by_aria2(
+    async def download_by_aria2(
         self, url: str, save_path: Path, file_name: str
     ) -> bool:
         """the save path + file should not exist,
         and the filename should be legal"""
-        # TODO
-        assert self.aria2_downloader
-        self.aria2_downloader.download(url, save_path, file_name)
+
+        await self.aria2_downloader.download(url, save_path, file_name)
         return True
 
     def check_exists(self, download_file_path: Path):
@@ -225,7 +211,9 @@ class ASMRSpider:
         rel_path = str(download_file_path.relative_to(p))
         return fm.check_exists(rel_path)
 
-    def process_download(self, url: str, save_path: Path, file_name: str):
+    async def process_download(
+        self, url: str, save_path: Path, file_name: str
+    ):
         # file_name = file_name.translate(
         #     str.maketrans(r'/\:*?"<>|', "_________")
         # )
@@ -250,7 +238,7 @@ class ASMRSpider:
             return
 
         logger.info(f"Downloading {file_path}")
-        if not self.download_file(url, save_path, file_name):
+        if not await self.download_file(url, save_path, file_name):
             logger.error(f"Download {file_path} failed")
             return
 
@@ -264,7 +252,7 @@ class ASMRSpider:
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(voice_info, f, ensure_ascii=False, indent=4)
 
-    def create_dir_and_download(self, file_list: List[FileInfo]) -> None:
+    async def create_dir_and_download(self, file_list: List[FileInfo]) -> None:
         for file_info in file_list:
             file_path = file_info.path
             file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -278,7 +266,7 @@ class ASMRSpider:
                 #     f.write(file["mediaDownloadUrl"])
                 continue
             try:
-                self.process_download(
+                await self.process_download(
                     file_info.url, file_path.parent, file_path.name
                 )
             except ModuleNotFoundError as e:
@@ -351,7 +339,15 @@ class ASMRSpider:
     async def __aenter__(self) -> "ASMRSpider":
         self._session = ClientSession(connector=TCPConnector(limit=self.limit))
         await self.login()
+        if self.download_method == "aria2":
+            assert self.aria2_config
+            await self.aria2_downloader.create_client(
+                self.aria2_config.host,
+                self.aria2_config.port,
+                self.aria2_config.secret,
+            )
         return self
 
     async def __aexit__(self, *args) -> None:
         await self._session.close()
+        await self.aria2_downloader.close_client()
