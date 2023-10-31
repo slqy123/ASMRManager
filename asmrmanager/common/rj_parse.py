@@ -6,7 +6,7 @@ RJName = NewType("RJName", str)
 
 def rj2id(rj: str) -> RJID | None:
     try:
-        if rj.startswith("RJ"):
+        if rj.upper().startswith("RJ"):
             return RJID(int(rj[2:]))
         else:
             return RJID(int(rj))
@@ -27,7 +27,11 @@ def rj_names2ids(rjs: Iterable[RJName]) -> Iterable[RJID]:
 
 
 def id2rj(rj_id: RJID) -> RJName:
-    return RJName(f"RJ{str(rj_id).zfill(6)}")
+    rj = str(rj_id).zfill(6)
+    if len(rj) == 7:
+        rj = rj.zfill(8)
+
+    return RJName(f"RJ{rj}")
 
 
 def ids2rjs(ids: Iterable[RJID]) -> List[RJName]:

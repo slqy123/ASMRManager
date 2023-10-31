@@ -123,6 +123,23 @@ class ASMRSpider:
                 await asyncio.sleep(3)
         return resp_json
 
+    async def post(self, route: str, data: dict | None = None) -> Any:
+        resp_json = None
+        while not resp_json:
+            try:
+                async with self._session.post(
+                    self.base_api_url + route,
+                    headers=self.headers,
+                    proxy=self.proxy,
+                    json=data,
+                ) as resp:
+                    resp_json = await resp.json()
+                    return resp_json
+            except Exception as e:
+                logger.warning(f"Request {route} failed: {e}")
+                await asyncio.sleep(3)
+        return resp_json
+
     async def download(
         self,
         voice_id: int,
@@ -320,6 +337,33 @@ class ASMRSpider:
             )
 
         return file_list
+
+    async def get_playlists(
+        self, page, page_size: int = 12, filter_by: str = "all"
+    ) -> Dict[str, Any]:
+        return await self.get(
+            "playlist/get-playlists",
+            params={
+                "page": page,
+                "pageSize": page_size,
+                "filterBy": filter_by,
+            },
+        )
+
+    async def create_playlist(
+        self, name: str, desc: str | None = None, privacy: int = 0
+    ):
+        # Literal['public', 'non-public', 'private']
+        return await self.post(
+            "playlist/create-playlist",
+            data={"name": name, "desc": desc or "", "privacy": privacy},
+        )
+
+    async def add_works_to_playlist(self, rj_ids: List[RJID], pl_id: str):
+        return await self.post(
+            "playlist/add-works-to-playlist",
+            data={"id": pl_id, "works": [id2rj(rj_id) for rj_id in rj_ids]},
+        )
 
     async def get_search_result(
         self, content: str, params: dict
