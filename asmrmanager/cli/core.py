@@ -311,4 +311,7 @@ def pl_preprocess_cb(
 
     if not res:
         ctx.fail("no valid uuid found")
+
+    if param.nargs == 1:
+        return res[0]
     return res

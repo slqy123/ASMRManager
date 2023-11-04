@@ -201,4 +201,13 @@ class ASMRPlayListManager(AsyncManager):
         return asyncio.gather(*map(self.playlist.delete_playlist, pl_ids))
 
     async def add(self, rj_ids: Iterable[RJID], pl_id: uuid.UUID):
-        return await self.playlist.add_works_to_playlist(rj_ids, pl_id)
+        res = await self.playlist.add_works_to_playlist(rj_ids, pl_id)
+        if not isinstance(res, dict):
+            logger.error(
+                f"Unexpected response type when add works to {pl_id}."
+            )
+            return
+        if res.get("error"):
+            logger.error("Error when add works to playlist.", res)
+            return
+        logger.info(f"Sucessfully add works to playlist {pl_id}.")

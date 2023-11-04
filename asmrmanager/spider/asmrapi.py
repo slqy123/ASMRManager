@@ -116,7 +116,7 @@ class ASMRAPI:
     async def add_works_to_playlist(self, rj_ids: List[RJID], pl_id: str):
         return await self.post(
             "playlist/add-works-to-playlist",
-            data={"id": pl_id, "works": [id2rj(rj_id) for rj_id in rj_ids]},
+            data={"id": pl_id, "works": rj_ids},
         )
 
     async def delete_playlist(self, pl_id: str):
