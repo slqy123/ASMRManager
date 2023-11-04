@@ -201,7 +201,21 @@ class ASMRPlayListManager(AsyncManager):
         print(f"({len(playlists)}/{total})")
 
     async def remove(self, pl_ids: Iterable[uuid.UUID]):
-        return asyncio.gather(*map(self.playlist.delete_playlist, pl_ids))
+        res = await asyncio.gather(*map(self.playlist.delete_playlist, pl_ids))
+
+        if not isinstance(res, list):
+            logger.error(f"Unexpected response type when delete playlists.")
+            return
+        for r in res:
+            if not isinstance(r, dict):
+                logger.error(
+                    f"Unexpected response type when delete playlists."
+                )
+                return
+            if r.get("error"):
+                logger.error(f"Error when delete playlists: {r}")
+                return
+            logger.info(f"Sucessfully delete playlist {r['id']}.")
 
     async def create(
         self,
@@ -216,7 +230,7 @@ class ASMRPlayListManager(AsyncManager):
             logger.error(f"Unexpected response type when create playlist.")
             return
         if res.get("error"):
-            logger.error("Error when creating playlist.", res)
+            logger.error(f"Error when creating playlist:{res}")
             return
         logger.info(f"Sucessfully create playlist: {res['id']}.")
 
@@ -228,6 +242,6 @@ class ASMRPlayListManager(AsyncManager):
             )
             return
         if res.get("error"):
-            logger.error("Error when add works to playlist.", res)
+            logger.error(f"Error when add works to playlist:{res}")
             return
         logger.info(f"Sucessfully add works to playlist {pl_id}.")
