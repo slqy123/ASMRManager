@@ -200,6 +200,23 @@ class ASMRPlayListManager(AsyncManager):
     async def remove(self, pl_ids: Iterable[uuid.UUID]):
         return asyncio.gather(*map(self.playlist.delete_playlist, pl_ids))
 
+    async def create(
+        self,
+        name: str,
+        desc: str | None,
+        privacy: Literal["PUBLIC", "NON_PUBLIC", "PRIVATE"],
+    ):
+        from asmrmanager.spider.playlist import PRIVACY
+
+        res = await self.playlist.create_playlist(name, desc, PRIVACY[privacy])
+        if not isinstance(res, dict):
+            logger.error(f"Unexpected response type when create playlist.")
+            return
+        if res.get("error"):
+            logger.error("Error when creating playlist.", res)
+            return
+        logger.info(f"Sucessfully create playlist: {res['id']}.")
+
     async def add(self, rj_ids: Iterable[RJID], pl_id: uuid.UUID):
         res = await self.playlist.add_works_to_playlist(rj_ids, pl_id)
         if not isinstance(res, dict):

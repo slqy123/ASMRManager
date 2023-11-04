@@ -3,6 +3,7 @@ import uuid
 from typing import List
 
 import click
+from typing_extensions import Literal
 
 from asmrmanager.cli.core import (
     create_playlist,
@@ -41,6 +42,26 @@ def remove(pl_ids: List[uuid.UUID]):
     pl.run(pl.remove(pl_ids))
 
 
+@click.command()
+@click.argument("name")
+@click.option("--desc", "-d", default=None, help="playlist description")
+@click.option(
+    "--privacy",
+    "-p",
+    type=click.Choice(["PUBLIC", "NON_PUBLIC", "PRIVATE"]),
+    default="PRIVATE",
+)
+def create(
+    name: str,
+    desc: str | None,
+    privacy: Literal["PUBLIC", "NON_PUBLIC", "PRIVATE"],
+):
+    """create a playlist"""
+    pl = create_playlist()
+    pl.run(pl.create(name, desc, privacy))
+
+
 pl.add_command(list_)
 pl.add_command(add)
 pl.add_command(remove)
+pl.add_command(create)

@@ -110,7 +110,13 @@ class ASMRAPI:
         # Literal['public', 'non-public', 'private']
         return await self.post(
             "playlist/create-playlist",
-            data={"name": name, "desc": desc or "", "privacy": privacy},
+            data={
+                "name": name,
+                "description": desc or "",
+                "privacy": privacy,
+                "locale": "zh-CN",
+                "works": [],
+            },
         )
 
     async def add_works_to_playlist(self, rj_ids: List[RJID], pl_id: str):
