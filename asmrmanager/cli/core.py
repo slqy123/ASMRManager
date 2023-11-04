@@ -1,5 +1,6 @@
 import functools
-from typing import TYPE_CHECKING, Tuple
+import uuid
+from typing import TYPE_CHECKING, List, Tuple
 
 import click
 
@@ -15,7 +16,7 @@ fm = FileManager(config.storage_path, config.download_path, config.view_path)
 
 if TYPE_CHECKING:
     from asmrmanager.database.manage import DataBaseManager
-    from asmrmanager.spider import ASMRSpiderManager
+    from asmrmanager.spider import ASMRDownloadManager
 
 
 def create_database():
@@ -24,10 +25,10 @@ def create_database():
     return DataBaseManager(tag_filter=config.tag_filter or tuple())
 
 
-def create_spider_and_database(
+def create_downloader_and_database(
     download_params: DownloadParams | None = None,
-) -> Tuple["ASMRSpiderManager", "DataBaseManager"]:
-    from asmrmanager.spider import ASMRSpiderManager
+) -> Tuple["ASMRDownloadManager", "DataBaseManager"]:
+    from asmrmanager.spider import ASMRDownloadManager
 
     db = create_database()
 
@@ -35,7 +36,7 @@ def create_spider_and_database(
         download_params = DownloadParams(False, False, False)
 
     return (
-        ASMRSpiderManager(
+        ASMRDownloadManager(
             name=config.username,
             password=config.password,
             proxy=config.proxy,
@@ -58,6 +59,14 @@ def create_spider_and_database(
             aria2_config=config.aria2_config,
         ),
         db,
+    )
+
+
+def create_playlist():
+    from asmrmanager.spider.interface import ASMRPlayListManager
+
+    return ASMRPlayListManager(
+        name=config.username, password=config.password, proxy=config.proxy
     )
 
 
@@ -254,7 +263,7 @@ def multi_rj_argument(f):
 SEPARATOR = ":"
 
 
-def interval_preprocess_cb(ctx: click.Context, opt: click.Option, val: str):
+def interval_preprocess_cb(ctx: click.Context, opt: click.Parameter, val: str):
     """
     input must be numeric or None,
     and it returns a float/int/None value tuple
@@ -278,3 +287,28 @@ def interval_preprocess_cb(ctx: click.Context, opt: click.Option, val: str):
         return xf
 
     return tuple(map(_check, vals))
+
+
+def pl_preprocess_cb(
+    ctx: click.Context, param: click.Option, val: str | Tuple
+) -> List[uuid.UUID]:
+    def is_valid_uuid(v: str):
+        try:
+            uuid.UUID(v)
+            return True
+        except ValueError:
+            return False
+
+    if isinstance(val, str):
+        val = (val,)
+
+    res = []
+    for v in val:
+        if is_valid_uuid(v):
+            res.append(v)
+        else:
+            logger.warning(f"{v} is not a valid uuid")
+
+    if not res:
+        ctx.fail("no valid uuid found")
+    return res

@@ -5,7 +5,7 @@ import click
 from asmrmanager.cli.core import (
     browse_param_options,
     create_database,
-    create_spider_and_database,
+    create_downloader_and_database,
     download_param_options,
     fm,
     interval_preprocess_cb,
@@ -30,7 +30,7 @@ def get(rj_ids: Iterable[RJID], download_params: DownloadParams):
     if not rj_ids:
         logger.error("You must give at least one RJ id!")
         return
-    spider, db = create_spider_and_database(download_params)
+    spider, db = create_downloader_and_database(download_params)
     spider.run(spider.get(rj_ids))
     db.commit()
 
@@ -42,7 +42,9 @@ def update(rj_ids: Iterable[RJID]):
     if not rj_ids:
         logger.error("You must give at least one RJ id!")
         return
-    spider, db = create_spider_and_database(DownloadParams(False, False, True))
+    spider, db = create_downloader_and_database(
+        DownloadParams(False, False, True)
+    )
     spider.run(spider.update(rj_ids))
     db.commit()
 
@@ -172,7 +174,9 @@ def search(
     the interval a:b means a <= x < b, if a or b is not given
     i.e. a: or :b, it means no lower or upper limit
     """
-    spider, db = create_spider_and_database(download_params=download_params)
+    spider, db = create_downloader_and_database(
+        download_params=download_params
+    )
     spider.run(
         spider.search(
             text,

@@ -4,7 +4,7 @@ import click
 
 from asmrmanager.cli.core import (
     create_database,
-    create_spider_and_database,
+    create_downloader_and_database,
     rj_argument,
 )
 from asmrmanager.common.rj_parse import RJID
@@ -21,8 +21,8 @@ def print_asmr_info(asmr: ASMRInstance):
 
 
 def info_from_web(rj_id: int):
-    spider, db = create_spider_and_database()
-    (rj_info,) = spider.run(spider.spider.get_voice_info(rj_id))
+    downloader, db = create_downloader_and_database()
+    (rj_info,) = downloader.run(downloader.downloader.get_voice_info(rj_id))
 
     res = db.parse_info(rj_info)
     print_asmr_info(res)

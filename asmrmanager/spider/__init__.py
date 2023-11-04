@@ -1,2 +1,2 @@
-from .interface import ASMRSpiderManager
-from .spider import ASMRSpider
+from .downloader import ASMRAPI
+from .interface import ASMRDownloadManager

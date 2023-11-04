@@ -9,6 +9,7 @@ from asmrmanager.cli.dl import dl
 from asmrmanager.cli.file import file
 from asmrmanager.cli.hold import hold
 from asmrmanager.cli.info import info
+from asmrmanager.cli.pl import pl
 from asmrmanager.cli.play import play
 from asmrmanager.cli.query import query
 from asmrmanager.cli.review import review
@@ -59,6 +60,7 @@ main.add_command(hold)
 main.add_command(query)
 main.add_command(which)
 main.add_command(file)
+main.add_command(pl)
 
 if __name__ == "__main__":
     main()

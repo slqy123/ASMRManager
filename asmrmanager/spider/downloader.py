@@ -1,14 +1,14 @@
-import asyncio
 import json
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Literal
+from typing import Any, Callable, Dict, List, Literal, TypeVar
 
-from aiohttp import ClientConnectorError, ClientSession
-from aiohttp.connector import TCPConnector
+T = TypeVar("T", bound="ASMRDownloadAPI")
+
 
 from asmrmanager.common.rj_parse import RJID, id2rj
 from asmrmanager.config import Aria2Config
 from asmrmanager.logger import logger
+from asmrmanager.spider.asmrapi import ASMRAPI
 
 try:
     IDMHELPER_EXIST = True
@@ -33,10 +33,7 @@ FileInfo = NamedTuple(
 )
 
 
-class ASMRSpider:
-    # base_api_url = 'https://api.asmr.one/api/'
-    base_api_url = "https://api.asmr-300.com/api/"
-
+class ASMRDownloadAPI(ASMRAPI):
     def __init__(
         self,
         name: str,
@@ -52,19 +49,7 @@ class ASMRSpider:
         aria2_config: Aria2Config | None = None,
     ):
         # self._session: Optional[ClientSession] = None  # for __aenter__
-        self._session: ClientSession
-        self.name = name
-        self.password = password
-        self.headers = {
-            "Referer": "https://www.asmr.one/",
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko)"
-                " Chrome/78.0.3904.108 Safari/537.36"
-            ),
-        }
-        self.proxy = proxy
-        self.limit = limit
+        super().__init__(name, password, proxy, limit)
         self.save_path = fm.download_path
         # self.pop_keys = (
         #             "create_date",
@@ -88,57 +73,6 @@ class ASMRSpider:
         self.aria2_downloader = Aria2Downloader(proxy)
         self.aria2_config = aria2_config
         self.download_method = download_method
-
-    async def login(self) -> None:
-        try:
-            async with self._session.post(
-                self.base_api_url + "auth/me",
-                json={"name": self.name, "password": self.password},
-                headers=self.headers,
-                proxy=self.proxy,
-            ) as resp:
-                token = (await resp.json())["token"]
-                self.headers.update(
-                    {
-                        "Authorization": f"Bearer {token}",
-                    }
-                )
-        except ClientConnectorError as err:
-            logger.error(f"Login failed, {err}")
-
-    async def get(self, route: str, params: dict | None = None) -> Any:
-        resp_json = None
-        while not resp_json:
-            try:
-                async with self._session.get(
-                    self.base_api_url + route,
-                    headers=self.headers,
-                    proxy=self.proxy,
-                    params=params,
-                ) as resp:
-                    resp_json = await resp.json()
-                    return resp_json
-            except Exception as e:
-                logger.warning(f"Request {route} failed: {e}")
-                await asyncio.sleep(3)
-        return resp_json
-
-    async def post(self, route: str, data: dict | None = None) -> Any:
-        resp_json = None
-        while not resp_json:
-            try:
-                async with self._session.post(
-                    self.base_api_url + route,
-                    headers=self.headers,
-                    proxy=self.proxy,
-                    json=data,
-                ) as resp:
-                    resp_json = await resp.json()
-                    return resp_json
-            except Exception as e:
-                logger.warning(f"Request {route} failed: {e}")
-                await asyncio.sleep(3)
-        return resp_json
 
     async def download(
         self,
@@ -338,51 +272,8 @@ class ASMRSpider:
 
         return file_list
 
-    async def get_playlists(
-        self, page, page_size: int = 12, filter_by: str = "all"
-    ) -> Dict[str, Any]:
-        return await self.get(
-            "playlist/get-playlists",
-            params={
-                "page": page,
-                "pageSize": page_size,
-                "filterBy": filter_by,
-            },
-        )
-
-    async def create_playlist(
-        self, name: str, desc: str | None = None, privacy: int = 0
-    ):
-        # Literal['public', 'non-public', 'private']
-        return await self.post(
-            "playlist/create-playlist",
-            data={"name": name, "desc": desc or "", "privacy": privacy},
-        )
-
-    async def add_works_to_playlist(self, rj_ids: List[RJID], pl_id: str):
-        return await self.post(
-            "playlist/add-works-to-playlist",
-            data={"id": pl_id, "works": [id2rj(rj_id) for rj_id in rj_ids]},
-        )
-
-    async def get_search_result(
-        self, content: str, params: dict
-    ) -> Dict[str, Any]:
-        return await self.get(f"search/{content}", params=params)
-
-    async def list(self, params: dict) -> Dict[str, Any]:
-        return await self.get("works", params=params)
-
-    async def tag(self, tag_name: str, params: dict):
-        # return await self.get(f'tags/{tag_id}/works', params=params)
-        return await self.get_search_result(f"$tag:{tag_name}$", params=params)
-
-    async def va(self, va_name: str, params: dict):
-        return await self.get_search_result(f"$va:{va_name}$", params=params)
-
-    async def __aenter__(self) -> "ASMRSpider":
-        self._session = ClientSession(connector=TCPConnector(limit=self.limit))
-        await self.login()
+    async def __aenter__(self: T) -> T:
+        await super().__aenter__()
         if self.download_method == "aria2":
             assert self.aria2_config
             await self.aria2_downloader.create_client(
@@ -393,5 +284,5 @@ class ASMRSpider:
         return self
 
     async def __aexit__(self, *args) -> None:
-        await self._session.close()
+        await super().__aexit__(*args)
         await self.aria2_downloader.close_client()

@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 from typing import Any, Callable, Coroutine, Dict, Iterable, Literal, Tuple
 
 import cutie
@@ -8,11 +9,26 @@ from asmrmanager.common.browse_params import BrowseParams
 from asmrmanager.common.rj_parse import RJID, id2rj
 from asmrmanager.config import Aria2Config
 from asmrmanager.logger import logger
+from asmrmanager.spider.asmrapi import ASMRAPI
+from asmrmanager.spider.playlist import ASMRPlayListAPI
 
-from .spider import ASMRSpider
+from .downloader import ASMRDownloadAPI
 
 
-class ASMRSpiderManager:
+class AsyncManager:
+    def __init__(self, api: ASMRAPI) -> None:
+        self.api = api
+
+    def run(self, *tasks: Coroutine):
+        async def _run():
+            async with self.api:
+                return await asyncio.gather(*tasks)
+
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(_run())
+
+
+class ASMRDownloadManager(AsyncManager):
     def __init__(
         self,
         name: str,
@@ -28,7 +44,7 @@ class ASMRSpiderManager:
         download_method: Literal["aria2", "idm"] = "idm",
         aria2_config: Aria2Config | None = None,
     ):
-        self.spider = ASMRSpider(
+        self.downloader = ASMRDownloadAPI(
             name=name,
             password=password,
             proxy=proxy,
@@ -38,6 +54,7 @@ class ASMRSpiderManager:
             download_method=download_method,
             aria2_config=aria2_config,
         )
+        super().__init__(self.downloader)
         self.id_should_download = id_should_download or (lambda _: True)
 
     async def get(self, ids: Iterable[RJID]):
@@ -46,7 +63,7 @@ class ASMRSpiderManager:
             if not self.id_should_download(arg):
                 logger.info(f"RJ{arg} already exists.")
                 continue
-            tasks.append(self.spider.download(arg))
+            tasks.append(self.downloader.download(arg))
         await asyncio.gather(*tasks)
 
     async def search(
@@ -87,12 +104,12 @@ class ASMRSpiderManager:
 
         if filters:
             logger.info(f"searching with {filters} {params}")
-            search_result = await self.spider.get_search_result(
+            search_result = await self.downloader.get_search_result(
                 " ".join(filters).replace("/", "%2F"), params=params.params
             )
         else:
             logger.info(f"list works with {params}")
-            search_result = await self.spider.list(params=params.params)
+            search_result = await self.downloader.list(params=params.params)
         ids = [work["id"] for work in search_result["works"]]
 
         if all_:
@@ -112,19 +129,19 @@ class ASMRSpiderManager:
 
     async def tag(self, tag_name: str, params: BrowseParams):
         """tag 和 va 一样，都是调用了特殊的search方法"""
-        tag_res = await self.spider.tag(tag_name, params=params.params)
+        tag_res = await self.downloader.tag(tag_name, params=params.params)
         ids = [work["id"] for work in tag_res["works"]]
         await self.get(ids)
 
     async def va(self, va_name: str, params: BrowseParams):
         """tag 和 va 一样，都是调用了特殊的search方法"""
-        va_res = await self.spider.tag(va_name, params=params.params)
+        va_res = await self.downloader.tag(va_name, params=params.params)
         ids = [work["id"] for work in va_res["works"]]
         await self.get(ids)
 
     async def update(self, ids: Iterable[RJID]):
         async def update_one(rj_id_: RJID):
-            voice_info = await self.spider.get_voice_info(rj_id_)
+            voice_info = await self.downloader.get_voice_info(rj_id_)
 
             # should_down = self.spider.json_should_download(voice_info)
             # if not should_down:
@@ -139,9 +156,9 @@ class ASMRSpiderManager:
                 )
 
             voice_path.mkdir(parents=True, exist_ok=True)
-            self.spider.create_info_file(voice_info, voice_path)
+            self.downloader.create_info_file(voice_info, voice_path)
 
-            tracks = await self.spider.get_voice_tracks(rj_id_)
+            tracks = await self.downloader.get_voice_tracks(rj_id_)
             if isinstance(tracks, dict):
                 if error_info := tracks.get("error"):
                     logger.error(f"RJ{rj_id_} not found, {error_info}")
@@ -150,8 +167,8 @@ class ASMRSpiderManager:
                     logger.error("Unexpected track type: dict")
                     return
 
-            file_list = self.spider.get_file_list(tracks, voice_path)
-            self.spider.create_recover_file(file_list, voice_path)
+            file_list = self.downloader.get_file_list(tracks, voice_path)
+            self.downloader.create_recover_file(file_list, voice_path)
 
         tasks = []
         for rj_id in ids:
@@ -159,11 +176,29 @@ class ASMRSpiderManager:
 
         await asyncio.gather(*tasks)
 
-    def run(self, *tasks: Coroutine):
-        async def _run():
-            async with self.spider:
-                return await asyncio.gather(*tasks)
 
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(_run())
-        # return asyncio.run(_run())
+class ASMRPlayListManager(AsyncManager):
+    def __init__(self, name: str, password: str, proxy: str, limit: int = 3):
+        self.playlist = ASMRPlayListAPI(
+            name=name, password=password, proxy=proxy, limit=limit
+        )
+        super().__init__(self.playlist)
+
+    async def list(self):
+        from asmrmanager.common.output import print_table
+
+        playlists, total = await self.playlist.get_playlists()
+        print_table(
+            titles=["id", "name", "amount", "privacy"],
+            rows=[
+                (p.id, p.name, p.works_count, p.privacy.name)
+                for p in playlists
+            ],
+        )
+        print(f"({len(playlists)}/{total})")
+
+    async def remove(self, pl_ids: Iterable[uuid.UUID]):
+        return asyncio.gather(*map(self.playlist.delete_playlist, pl_ids))
+
+    async def add(self, rj_ids: Iterable[RJID], pl_id: uuid.UUID):
+        return await self.playlist.add_works_to_playlist(rj_ids, pl_id)
