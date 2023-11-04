@@ -62,19 +62,4 @@ def query(keyword: str, limit: int, raw: bool):
         "star",
     ]
 
-    if raw:
-        import json
-
-        res_json = json.dumps(
-            [{k: v for k, v in zip(titles, item)} for item in res],
-            ensure_ascii=False,
-        )
-
-        click.echo(res_json)
-
-        print(res_json)
-    else:
-        print_table(
-            titles=titles,
-            rows=res,
-        )
+    print_table(titles=titles, rows=res, raw=raw)

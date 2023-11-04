@@ -19,10 +19,25 @@ def pl():
 
 
 @click.command("list")
-def list_():
+@click.option(
+    "--num",
+    "-n",
+    default=12,
+    show_default=True,
+    help="number of playlists to show",
+)
+@click.option(
+    "--raw",
+    "-r",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="raw output",
+)
+def list_(num: int, raw: bool):
     """list all playlists"""
     pl = create_playlist()
-    pl.run(pl.list())
+    pl.run(pl.list(num, raw))
 
 
 @click.command()

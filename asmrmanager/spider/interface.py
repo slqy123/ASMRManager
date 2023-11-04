@@ -184,16 +184,19 @@ class ASMRPlayListManager(AsyncManager):
         )
         super().__init__(self.playlist)
 
-    async def list(self):
+    async def list(self, num: int = 12, raw: bool = False):
         from asmrmanager.common.output import print_table
 
-        playlists, total = await self.playlist.get_playlists()
+        playlists, total = await self.playlist.get_playlists(
+            page=1, page_size=num
+        )
         print_table(
             titles=["id", "name", "amount", "privacy"],
             rows=[
-                (p.id, p.name, p.works_count, p.privacy.name)
+                (str(p.id), p.name, p.works_count, p.privacy.name)
                 for p in playlists
             ],
+            raw=raw,
         )
         print(f"({len(playlists)}/{total})")
 
