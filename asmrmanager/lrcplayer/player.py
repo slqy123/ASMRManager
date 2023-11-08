@@ -90,6 +90,7 @@ class LyricsParser:
         encoding = detect(content)["encoding"]
         if encoding is None:
             raise EncodingWarning("Unrecognizable encoding")
+        encoding = "gbk" if encoding.upper() == "GB2312" else encoding
         self.lrc = self.parse_lrc(content.decode(encoding))
 
         self.total_time = total_time
