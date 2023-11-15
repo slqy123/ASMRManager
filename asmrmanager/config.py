@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Literal
+from typing import Dict, List, Literal
 
 import toml
 
@@ -19,6 +19,7 @@ class Config:
     filename_filters: List["Filter"]
     download_method: Literal["aria2", "idm"]
     aria2_config: "Aria2Config"
+    playlist_aliases: Dict[str, str]
 
 
 @dataclass
@@ -52,6 +53,7 @@ filename_filters = list(
 _aria2_config: dict = _config.get("aria2_config", {})
 aria2_config = Aria2Config(**_aria2_config)
 
+playlist_aliases: dict = _config.get("playlist_aliases", {})
 
 config = Config(
     username=_config["username"],
@@ -65,4 +67,5 @@ config = Config(
     filename_filters=filename_filters,
     download_method=_config["download_method"],
     aria2_config=aria2_config,
+    playlist_aliases=playlist_aliases,
 )

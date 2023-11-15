@@ -303,14 +303,50 @@ def pl_preprocess_cb(
         val = (val,)
 
     res = []
+
+    # check for valid uuid
+    possible_aliaes = []
     for v in val:
         if is_valid_uuid(v):
             res.append(v)
+            continue
         else:
-            logger.warning(f"{v} is not a valid uuid")
+            possible_aliaes.append(v)
+
+    # make transfromation from alias to uuid or name
+    possible_names = []
+    for alias in possible_aliaes:
+        name_or_uuid = config.playlist_aliases.get(alias, alias)
+        if is_valid_uuid(name_or_uuid):
+            res.append(name_or_uuid)
+        else:
+            possible_names.append(name_or_uuid)
+
+    # check and get cached playlist
+    playlists_cache = fm.get_playlist_cache()
+    if playlists_cache is None:
+        logger.warning("no cached playlist, try getting from server")
+        pl = create_playlist()
+        # TODO use to CONSTANT to replace 100
+        playlists_cache, total = pl.run(
+            pl.playlist.get_playlists(page_size=100)
+        )[0]
+        if total > len(playlists_cache):
+            logger.warning(
+                f"total playlist number {total} is larger than"
+                f" {len(playlists_cache)}"
+            )
+    cached_names = [p.name for p in playlists_cache]
+
+    # check for valid names using playlist cache
+    for name in possible_names:
+        if name in cached_names:
+            res.append(playlists_cache[cached_names.index(name)].id)
+        else:
+            logger.warning(f"invalid playlist name {name}")
 
     if not res:
-        ctx.fail("no valid uuid found")
+        ctx.fail("no valid uuid, alias or names found")
 
     if param.nargs == 1:
         return res[0]

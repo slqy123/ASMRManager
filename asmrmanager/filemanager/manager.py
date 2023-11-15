@@ -1,9 +1,12 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Iterable, Literal, NamedTuple
+from typing import Iterable, List, Literal, NamedTuple
+
+import toml
 
 from asmrmanager.common.rj_parse import RJID, id2rj, rj2id
+from asmrmanager.common.types import PlayListItem
 from asmrmanager.filemanager.appdirs_ import (
     CACHE_PATH,
     CONFIG_PATH,
@@ -51,6 +54,13 @@ class FileManager:
             dst_path,
         )
         logger.info(f"First time to run, copy default sqls to {dst_path}")
+
+    @classmethod
+    def get_playlist_cache(cls) -> List[PlayListItem] | None:
+        cls.CACHE_PATH.mkdir(parents=True, exist_ok=True)
+        dst_path = cls.CACHE_PATH / "playlist.cache"
+        if dst_path.exists():
+            return toml.load(dst_path)["playlists"]
 
     def __init__(
         self,

@@ -1,6 +1,16 @@
 import asyncio
 import uuid
-from typing import Any, Callable, Coroutine, Dict, Iterable, Literal, Tuple
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Literal,
+    Tuple,
+    TypeVar,
+)
 
 import cutie
 
@@ -14,12 +24,14 @@ from asmrmanager.spider.playlist import ASMRPlayListAPI
 
 from .downloader import ASMRDownloadAPI
 
+T = TypeVar("T", bound=Any)
+
 
 class AsyncManager:
     def __init__(self, api: ASMRAPI) -> None:
         self.api = api
 
-    def run(self, *tasks: Coroutine):
+    def run(self, *tasks: Awaitable[T]) -> List[T]:
         async def _run():
             async with self.api:
                 return await asyncio.gather(*tasks)

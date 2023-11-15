@@ -1,7 +1,6 @@
-from typing import Iterable, List, NewType
+from typing import Iterable, List
 
-RJID = NewType("RJID", int)
-RJName = NewType("RJName", str)
+from .types import RJID, RJName
 
 
 def rj2id(rj: str) -> RJID | None:

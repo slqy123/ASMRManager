@@ -1,28 +1,11 @@
 import uuid
 from collections.abc import Iterable
-from dataclasses import dataclass
-from enum import Enum
 from typing import Any, List, Tuple
 
 from asmrmanager.common.rj_parse import RJID
+from asmrmanager.common.types import PRIVACY, PlayListItem
 
 from .asmrapi import ASMRAPI
-
-
-class PRIVACY(Enum):
-    PUBLIC = 2
-    NON_PUBLIC = 1
-    PRIVATE = 0
-
-
-@dataclass
-class PlayListItem:
-    id: uuid.UUID
-    name: str
-    privacy: PRIVACY
-    desc: str
-    works_count: int
-    latest_work_id: RJID
 
 
 class ASMRPlayListAPI(ASMRAPI):
