@@ -60,7 +60,17 @@ class FileManager:
         cls.CACHE_PATH.mkdir(parents=True, exist_ok=True)
         dst_path = cls.CACHE_PATH / "playlist.cache"
         if dst_path.exists():
-            return toml.load(dst_path)["playlists"]
+            playlists = toml.load(dst_path)["playlists"]
+            return [PlayListItem(**p) for p in playlists]
+
+    @classmethod
+    def save_playlist_cache(cls, playlists: List[PlayListItem]):
+        cls.CACHE_PATH.mkdir(parents=True, exist_ok=True)
+        dst_path = cls.CACHE_PATH / "playlist.cache"
+        toml.dump(
+            {"playlists": [p.asdict() for p in playlists]},
+            dst_path.open(mode="w", encoding="utf-8"),
+        )
 
     def __init__(
         self,

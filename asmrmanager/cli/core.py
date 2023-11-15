@@ -336,6 +336,7 @@ def pl_preprocess_cb(
                 f"total playlist number {total} is larger than"
                 f" {len(playlists_cache)}"
             )
+        fm.save_playlist_cache(playlists_cache)
     cached_names = [p.name for p in playlists_cache]
 
     # check for valid names using playlist cache

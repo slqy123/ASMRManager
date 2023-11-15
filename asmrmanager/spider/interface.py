@@ -212,6 +212,8 @@ class ASMRPlayListManager(AsyncManager):
         )
         print(f"({len(playlists)}/{total})")
 
+        fm.save_playlist_cache(playlists)
+
     async def remove(self, pl_ids: Iterable[uuid.UUID]):
         res = await asyncio.gather(*map(self.playlist.delete_playlist, pl_ids))
 
