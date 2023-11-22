@@ -347,6 +347,10 @@ def pl_preprocess_cb(
             logger.warning(f"invalid playlist name {name}")
 
     if not res:
+        logger.warning(
+            "If you just have created a playlist, you may need to use pl list"
+            " to cache the playlists to local"
+        )
         ctx.fail("no valid uuid, alias or names found")
 
     if param.nargs == 1:
