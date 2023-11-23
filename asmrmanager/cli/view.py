@@ -8,6 +8,7 @@ from asmrmanager.filemanager.exceptions import (
     DstItemAlreadyExistsException,
     SrcNotExistsException,
 )
+from asmrmanager.logger import logger
 
 
 @click.group(help="some operation about view_path")
@@ -36,7 +37,14 @@ def add(rj_id: RJID, mode: Literal["link", "zip", "adb", "copy"]):
     rj_name = id2rj(rj_id)
     dst = fm.view_path / rj_name
     if dst.exists():
-        raise DstItemAlreadyExistsException
+        i = 1
+        while True:
+            dst = fm.view_path / f"{rj_name}.{i}"
+            if not dst.exists():
+                break
+            i += 1
+        logger.warning('"%s" already exists, use "%s" instead', rj_name, dst)
+        # raise DstItemAlreadyExistsException
 
     src = folder_chooser(src)
 
