@@ -185,11 +185,18 @@ class FileManager:
             os.symlink(src, dst)
 
     @staticmethod
-    def _copy(src: Path, dst: Path):
-        if src.is_dir():
-            shutil.copytree(src, dst)
-        else:
+    def _copy(src: Path, dst: Path, depth: int = -1):
+        if src.is_file():
             shutil.copy(src, dst)
+            return
+
+        if depth == 0:
+            return
+
+        dst.mkdir(parents=True, exist_ok=True)
+
+        for subfile in src.iterdir():
+            FileManager._copy(subfile, dst / subfile.name, depth - 1)
 
     def remove_view(self, rj_id: RJID):
         assert self.could_view()

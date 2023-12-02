@@ -54,7 +54,7 @@ def add(rj_id: RJID, mode: Literal["link", "zip", "adb", "copy"]):
         case "link":
             fm.link(src, dst)
         case "copy":
-            fm._copy(src, dst)
+            fm._copy(src, dst, depth=1)
         case "adb":
             raise NotImplementedError
 
