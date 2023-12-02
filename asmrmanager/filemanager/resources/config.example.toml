@@ -65,3 +65,14 @@ range = "file"
 [[filename_filters]]
 regex = '反転.*\.wav$'
 range = "file"
+
+[playlist_aliases]
+# 这里可以自定义列表的别名
+# 左侧为别名，右侧为对应uuid或列表的名字，例如
+# 我喜欢的 = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+# 别名1 = 列表名1
+# 在创建列表时，列表名是可以重复的，因此如果右侧填列表名的话，
+# 请确认列表名的唯一性，否则将自动选取第一个符合的列表名。
+liked = '__SYS_PLAYLIST_LIKED'  # 我喜欢的 的列表别名
+marked = '__SYS_PLAYLIST_MARKED'  # 我标记的 的列表别名
+
