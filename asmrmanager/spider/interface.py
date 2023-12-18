@@ -48,10 +48,9 @@ class ASMRDownloadManager(AsyncManager):
         proxy: str,
         id_should_download: Callable[[RJID], bool] | None = None,
         json_should_download: Callable[[Dict[str, Any]], bool] | None = None,
-        name_should_download: Callable[
-            [str, Literal["directory", "file"]], bool
-        ]
-        | None = None,
+        name_should_download: (
+            Callable[[str, Literal["directory", "file"]], bool] | None
+        ) = None,
         replace=False,
         download_method: Literal["aria2", "idm"] = "idm",
         aria2_config: Aria2Config | None = None,

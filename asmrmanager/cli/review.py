@@ -21,7 +21,9 @@ def review(rj_id: RJID, star: int, comment: str):
 
     update_stored = False
     if not fm.could_store():
-        logger.warning("storage path not found skip storing operation")
+        logger.warning(
+            "storage/download path not found skip storing operation"
+        )
     else:
         fm.store(rj_id)
         update_stored = True

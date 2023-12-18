@@ -78,9 +78,9 @@ class FileManager:
         download_path: str,
         view_path: str,
     ):
-        self.storage_path = Path(storage_path)
-        self.download_path = Path(download_path)
-        self.view_path = Path(view_path)
+        self.storage_path = Path(storage_path).expanduser()
+        self.download_path = Path(download_path).expanduser()
+        self.view_path = Path(view_path).expanduser()
 
         self.storage_path_exists = (
             True if os.path.exists(self.storage_path) else False

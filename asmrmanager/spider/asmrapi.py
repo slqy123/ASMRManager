@@ -50,11 +50,9 @@ class ASMRAPI:
                 proxy=self.proxy,
             ) as resp:
                 token = (await resp.json())["token"]
-                self.headers.update(
-                    {
-                        "Authorization": f"Bearer {token}",
-                    }
-                )
+                self.headers.update({
+                    "Authorization": f"Bearer {token}",
+                })
         except ClientConnectorError as err:
             logger.error(f"Login failed, {err}")
 
