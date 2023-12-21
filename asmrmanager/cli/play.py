@@ -30,9 +30,9 @@ def play(ctx: click.Context, rj_id: RJID):
         logger.error(f"ASMR {asmr_rj} file not found!")
         return
     rj_path = (
-        Path(config.download_path) / asmr_rj
+        Path(fm.download_path) / asmr_rj
         if loc == "download"
-        else Path(config.storage_path) / asmr_rj
+        else Path(fm.storage_path) / asmr_rj
     )
 
     choices = []
