@@ -36,7 +36,7 @@ class OrderedGroup(click.Group):
         #: the registered subcommands by their exported names.
         self.commands: Any = commands or collections.OrderedDict()
 
-    def list_commands(self, _):
+    def list_commands(self, ctx):
         return self.commands
 
 

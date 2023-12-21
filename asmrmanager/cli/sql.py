@@ -37,7 +37,7 @@ def sql(sql_name: str, save: bool):
     temp_file_path.write_text(
         sql_path.read_text(encoding="utf8"), encoding="utf8"
     )
-    run(f'{config.editor} "{temp_file_path}"')
+    run(f'{config.editor} "{temp_file_path}"', shell=True)
     # db_path = temp_file_path.with_name('data.db')
     # print(db_path, temp_file_path)
     # run(

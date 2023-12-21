@@ -163,7 +163,7 @@ class ASMRDownloadManager(AsyncManager):
             voice_path = save_path / id2rj(rj_id_)
             if not voice_path.exists():
                 logger.warning(
-                    f"There are such file in your storage path for RJ{rj_id_}"
+                    f"There are such files in your storage path for RJ{rj_id_}"
                 )
 
             voice_path.mkdir(parents=True, exist_ok=True)

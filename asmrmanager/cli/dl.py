@@ -43,7 +43,7 @@ def update(rj_ids: Iterable[RJID]):
         logger.error("You must give at least one RJ id!")
         return
     spider, db = create_downloader_and_database(
-        DownloadParams(False, False, True)
+        DownloadParams(False, False, False, True)
     )
     spider.run(spider.update(rj_ids))
     db.commit()

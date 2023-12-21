@@ -38,7 +38,7 @@ class Tag(Base):
     en_name = Column(Text)
 
     def __repr__(self):
-        return self.name
+        return str(self.name)
 
 
 class ASMRs2Tags(Base):
@@ -72,7 +72,7 @@ class VoiceActor(Base):
     name = Column(Text)
 
     def __repr__(self):
-        return self.name
+        return str(self.name)
 
 
 def bind_engine(engine):

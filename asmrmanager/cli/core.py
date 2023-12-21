@@ -33,7 +33,7 @@ def create_downloader_and_database(
     db = create_database()
 
     if download_params is None:
-        download_params = DownloadParams(False, False, False)
+        download_params = DownloadParams(False, False, True, True)
 
     return (
         ASMRDownloadManager(
@@ -48,10 +48,12 @@ def create_downloader_and_database(
                     or (fm.get_location(rj_id) is None)
                 )
             ),  # 如果数据库中不存在或者文件不存在，都执行下载
-            json_should_download=db.add_info,
+            json_should_download=lambda info: db.add_info(
+                info, check=download_params.check_tag
+            ),
             name_should_download=(
                 name_should_download
-                if download_params.filter
+                if download_params.check_name
                 else (lambda *_: True)
             ),
             replace=download_params.replace,
@@ -155,15 +157,25 @@ def download_param_options(f):
         help="replace the file if it exists",
     )
     @click.option(
-        "--filter/--no-filter",
+        "--check-name/--ignore-name",
         is_flag=True,
         default=True,
         show_default=True,
-        help="filter out the files to download, rules are in the config file",
+        help=(
+            "check and filter out asmr by filenames, rules are in the config"
+            " file"
+        ),
+    )
+    @click.option(
+        "--check-tag/--ignore-tag",
+        is_flag=True,
+        default=True,
+        show_default=True,
+        help="check and filter out asmr by tags, rules are in the config file",
     )
     @functools.wraps(f)
     def wrap(*args, **kwargs):
-        keys = ["force", "replace", "filter"]
+        keys = ["force", "replace", "check_name", "check_tag"]
         download_params = DownloadParams(**{k: kwargs.pop(k) for k in keys})
         return f(*args, **kwargs, download_params=download_params)
 

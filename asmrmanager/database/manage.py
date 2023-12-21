@@ -76,7 +76,7 @@ class DataBaseManager:
             asmr.tags.append(tag)
         return asmr
 
-    def add_info(self, info: Dict[str, Any]) -> bool:
+    def add_info(self, info: Dict[str, Any], check: bool = True) -> bool:
         """
         add/update info to database and check
         if it has tag in the filter or not,
@@ -89,7 +89,14 @@ class DataBaseManager:
 
         # check for tag filter
         tags = [t["name"] for t in info["tags"]]
+
         if self.tag_filter.intersection(tags):
+            if not check:
+                logger.warning(
+                    f"Continue to download {asmr.id} though it has tags:"
+                    f" {tags}"
+                )
+                return True
             logger.info(f"ignore {asmr.id} since it has tags: {tags}")
             return False
         return True
