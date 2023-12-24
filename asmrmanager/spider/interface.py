@@ -12,11 +12,10 @@ from typing import (
     TypeVar,
 )
 
-import cutie
-
 from asmrmanager.cli.core import fm
 from asmrmanager.common.browse_params import BrowseParams
 from asmrmanager.common.rj_parse import RJID, id2rj
+from asmrmanager.common.select import select, select_multiple
 from asmrmanager.config import Aria2Config
 from asmrmanager.logger import logger
 from asmrmanager.spider.asmrapi import ASMRAPI
@@ -129,7 +128,7 @@ class ASMRDownloadManager(AsyncManager):
 
         # select RJs
         titles = [work["title"] for work in search_result["works"]]
-        indexes = cutie.select_multiple(
+        indexes = select_multiple(
             [f"{id2rj(id_)} | {title}" for id_, title in zip(ids, titles)],
         )
         if not indexes:

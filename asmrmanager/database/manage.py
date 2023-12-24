@@ -72,7 +72,8 @@ class DataBaseManager:
                 tag.jp_name = tag_info["i18n"]["ja-jp"]["name"]
                 tag.en_name = tag_info["i18n"]["en-us"]["name"]
             else:
-                assert tag.id == 10000
+                # assert tag.id == 10000
+                assert getattr(tag, "id") == 10000
             asmr.tags.append(tag)
         return asmr
 

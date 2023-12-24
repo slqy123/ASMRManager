@@ -18,7 +18,7 @@ class ASMRPlayListAPI(ASMRAPI):
         self, page: int = 1, page_size: int = 12, filter_by: str = "all"
     ) -> Tuple[List[PlayListItem], int]:
         """return a list of playlists and the total"""
-        resp = await super().get_playlists(page, page_size, filter_by)
+        resp = await self._get_playlists(page, page_size, filter_by)
         return (
             self.process_playlists(resp["playlists"]),
             resp["pagination"]["totalCount"],
@@ -30,15 +30,15 @@ class ASMRPlayListAPI(ASMRAPI):
         desc: str | None = None,
         privacy: PRIVACY = PRIVACY.PRIVATE,
     ):
-        return await super().create_playlist(name, desc, privacy.value)
+        return await self._create_playlist(name, desc, privacy.value)
 
     async def add_works_to_playlist(
         self, rj_ids: Iterable[RJID], pl_id: uuid.UUID
     ):
-        return await super().add_works_to_playlist(list(rj_ids), str(pl_id))
+        return await self._add_works_to_playlist(list(rj_ids), str(pl_id))
 
     async def delete_playlist(self, pl_id: uuid.UUID):
-        return await super().delete_playlist(str(pl_id))
+        return await self._delete_playlist(str(pl_id))
 
     def process_playlists(self, playlists: List[Any]) -> List[PlayListItem]:
         res = []

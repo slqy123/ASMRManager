@@ -90,7 +90,7 @@ class ASMRAPI:
                 await asyncio.sleep(3)
         return resp_json
 
-    async def get_playlists(
+    async def _get_playlists(
         self, page, page_size: int = 12, filter_by: str = "all"
     ) -> Dict[str, Any]:
         return await self.get(
@@ -102,7 +102,7 @@ class ASMRAPI:
             },
         )
 
-    async def create_playlist(
+    async def _create_playlist(
         self, name: str, desc: str | None = None, privacy: int = 0
     ):
         # Literal['public', 'non-public', 'private']
@@ -117,13 +117,13 @@ class ASMRAPI:
             },
         )
 
-    async def add_works_to_playlist(self, rj_ids: List[RJID], pl_id: str):
+    async def _add_works_to_playlist(self, rj_ids: List[RJID], pl_id: str):
         return await self.post(
             "playlist/add-works-to-playlist",
             data={"id": pl_id, "works": rj_ids},
         )
 
-    async def delete_playlist(self, pl_id: str):
+    async def _delete_playlist(self, pl_id: str):
         return await self.post("playlist/delete-playlist", data={"id": pl_id})
 
     async def get_search_result(

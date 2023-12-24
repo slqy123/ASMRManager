@@ -13,6 +13,8 @@ from .player import MusicPlayer, MusicPlayerWithLyrics
 
 # from textual.reactive import reactive
 
+MUSIC_SUFFIXES = (".mp3", ".wav", ".m4a", ".flac")
+
 
 class LRCPlayer(App):
     CSS_PATH = "main.css"
@@ -132,37 +134,30 @@ class LRCPlayer(App):
     "path", type=click.Path(exists=True, dir_okay=True, path_type=Path)
 )
 def main(path: Path):
-    import os
-
     # 每个元素是一个元组，包含了文件名和歌词文件名，如果没有歌词则为None
     episodes: List[Tuple[Path, Path | None]] = []
-    if path.is_dir():
-        for file in os.listdir(path):
-            file_path = path / file
-            if file_path.suffix in (".mp3", ".wav", ".m4a", ".flac"):
-                lrc_path = file_path.with_suffix(".lrc")
-                if not lrc_path.exists():
-                    lrc_path = None
-                episodes.append((file_path, lrc_path))
-    else:
-        if path.suffix in (".mp3", ".wav", ".m4a", ".flac"):
-            lrc_path = path.with_suffix(".lrc")
-            vtt_path = path.with_suffix(path.suffix + ".vtt")
-            if (not lrc_path.exists()) and (not vtt_path.exists()):
-                subtitle_path = None
+    assert path.is_dir()
 
-            match (lrc_path.exists(), vtt_path.exists()):
-                case (True, True) | (True, False):
-                    subtitle_path = lrc_path
-                case (False, True):
-                    logger.info(f"convert vtt to lrc: {vtt_path}")
-                    lrc_content = vtt2lrc(vtt_path)
-                    with open(lrc_path, "w", encoding="utf-8") as f:
-                        f.write(lrc_content)
-                    subtitle_path = lrc_path
-                case _:
-                    subtitle_path = None
-            episodes.append((path, subtitle_path))
+    for file in path.iterdir():
+        if file.is_dir():
+            continue
+
+        if file.suffix not in MUSIC_SUFFIXES:
+            continue
+
+        if (lrc := file.with_suffix(".lrc")).exists():
+            episodes.append((file, lrc))
+            continue
+
+        if (vtt := file.with_suffix(".vtt")).exists():
+            logger.info(f"convert vtt to lrc: {vtt}")
+            lrc_content = vtt2lrc(vtt)
+            with open(lrc, "w", encoding="utf-8") as f:
+                f.write(lrc_content)
+            episodes.append((path, lrc))
+            continue
+
+        episodes.append((file, None))
 
     if not episodes:
         print("error input")
