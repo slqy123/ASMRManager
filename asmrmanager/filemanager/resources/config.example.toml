@@ -28,9 +28,13 @@ editor = "code --wait"
 # 下载所用的工具，可选则idm或aria2，请注意需安装对应的依赖项
 download_method = "idm"
 
+# 使用的播放器，可选则pygame或mpd
+# 若使用mpd请确保已安装mpd依赖并配置好mpd_config
+player = 'pygame'
+
 # 如使用aria2请配置此项，否则请忽略
 # 如果是在本地使用aria2，运行`aria2c --enable-rpc`，以下保持默认即可
-# 如果使用motrix，且没有更改过默认设置，请将端口(port)改为16800
+# 如果使用motrix，且没有更改过默认端口，请将端口(port)改为16800
 [aria2_config]
 host = "http://localhost"
 port = 6800
@@ -76,3 +80,11 @@ range = "file"
 liked = '__SYS_PLAYLIST_LIKED'  # 我喜欢的 的列表别名
 marked = '__SYS_PLAYLIST_MARKED'  # 我标记的 的列表别名
 
+[mpd_config]
+# 这里的配置是客户端的配置
+# mpd的配置文件在第一次启动后自动生成后可在对应位置自行修改
+# 修改mpd的配置时请保证与此处的配置匹配
+bin = "/path/to/mpd"
+host = "localhost"
+port = 6600
+# music_directory = ''  # 默认为生成数据目录下的 mpd/music

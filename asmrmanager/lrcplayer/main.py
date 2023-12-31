@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 
 import click
 from textual.app import App, ComposeResult
@@ -7,9 +7,11 @@ from textual.containers import Center
 from textual.widgets import Footer, Label, ProgressBar
 
 from asmrmanager.common.vtt2lrc import vtt2lrc
+from asmrmanager.config import config
+from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
 
-from .player import MusicPlayer, MusicPlayerWithLyrics
+from .player.base import Music
 
 # from textual.reactive import reactive
 
@@ -25,50 +27,41 @@ class LRCPlayer(App):
         ("l", "next_voice", "下一首"),
         ("h", "prev_voice", "上一首"),
     ]
+    LRC_PREV = 1
+    LRC_NEXT = 1
 
-    def __init__(self, episodes: List[Tuple], *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, episodes: List[Music], *args, **kwargs):
         self.episodes = episodes
-        self.players: List[MusicPlayer | None] = [None] * len(self.episodes)
-        self.voice_index = 0
+        match config.player:
+            case "pygame":
+                from .player.pygameplayer import PyGamePlayer
 
-    @property
-    def player(self) -> MusicPlayer | MusicPlayerWithLyrics:
-        if self.players[self.voice_index] is None:
-            if self.episodes[self.voice_index][1] is None:
-                self.players[self.voice_index] = MusicPlayer(
-                    self.episodes[self.voice_index][0]
-                )  # pyright: ignore
-            else:
-                self.players[self.voice_index] = MusicPlayerWithLyrics(
-                    *self.episodes[self.voice_index]
-                )
+                self.player = PyGamePlayer(episodes)
+            case "mpd":
+                from .player.mpdplayer import MPDPlayer
 
-        return self.players[self.voice_index]  # pyright: ignore
+                self.player = MPDPlayer(episodes)
+            case _:
+                logger.error(f"player {config.player} not supported")
+                assert False
+
+        super().__init__(*args, **kwargs)
 
     def on_mount(self):
         self.player.play()
         self.progress_timer = self.set_interval(0.05, self.progress)
 
     def progress(self):
-        if not self.player.is_playing():
+        if not self.player.is_playing:
             self.action_next_voice()
             return
 
-        if isinstance(self.player, MusicPlayerWithLyrics):
-            lrc_data = self.player.get_lyrics()
-            self.query_one(ProgressBar).update(progress=lrc_data.progress)
-            for i, l in enumerate(self.query(".lyrics")):
-                assert isinstance(l, Label)
-                l.update(lrc_data.lyrics[i])
+        lrc_data = self.player.get_lrc(self.LRC_PREV, self.LRC_NEXT)
 
-        else:
-            self.query_one(ProgressBar).update(
-                progress=self.player.get_total_percent()
-            )
-            for i, l in enumerate(self.query(".lyrics")):
-                assert isinstance(l, Label)
-                l.update(("", "no lyrics", "")[i])
+        self.query_one(ProgressBar).update(progress=lrc_data.progress)
+        for i, l in enumerate(self.query(".lyrics")):
+            assert isinstance(l, Label)
+            l.update(lrc_data.lyrics[i])
 
         # 更新播放时间
         # 格式化成 x:xx / x:xx
@@ -76,7 +69,7 @@ class LRCPlayer(App):
             return f"{seconds // 60_000}:{seconds % 60_000 // 1000:02d}"
 
         self.query_one("#time", expect_type=Label).update(
-            f"[{format_time(self.player.get_pos())}"
+            f"[{format_time(self.player.pos)}"
             " / "
             f"{format_time(self.player.total_time)}]"
         )
@@ -84,9 +77,19 @@ class LRCPlayer(App):
     def compose(self) -> ComposeResult:
         yield Label(self.player.title, id="title")
 
-        for i in range(3):
+        for i in range(self.LRC_PREV):
             label = Label("", classes="lyrics")
-            label.styles.text_opacity = str(100 - abs(1 - i) * 50) + "%"
+            label.styles.text_opacity = (
+                str(int((i + 1) / (self.LRC_PREV + 1) * 100)) + "%"
+            )
+            yield label
+        yield Label("", classes="lyrics")
+
+        for i in range(self.LRC_PREV):
+            label = Label("", classes="lyrics")
+            label.styles.text_opacity = (
+                str(int((1 - (i + 1) / (self.LRC_PREV + 1)) * 100)) + "%"
+            )
             yield label
 
         with Center():
@@ -96,37 +99,30 @@ class LRCPlayer(App):
         yield Footer()
 
     def action_pause(self):
-        if self.player.is_playing():
+        if not self.player.is_paused:
             self.player.pause()
             self.progress_timer.pause()
         else:
             self.player.unpause()
             self.progress_timer.resume()
 
-    def action_forward(self, t: float | None = None):
-        if isinstance(self.player, MusicPlayerWithLyrics):
-            self.player.forward_lrc()
-        else:
-            self.player.forward(t)
+    def action_forward(self):
+        self.player.forward()
 
-    def action_backward(self, t: float | None = None):
-        if isinstance(self.player, MusicPlayerWithLyrics):
-            self.player.backward_lrc()
-        else:
-            self.player.backward(t)
+    def action_backward(self):
+        self.player.backward()
 
     def switch_voice(self, idx: int):
-        self.voice_index = idx
-        self.player.play()
+        self.player.switch_music(idx)
         self.query_one("#title", expect_type=Label).update(self.player.title)
 
     def action_next_voice(self):
-        if self.voice_index + 1 < len(self.episodes):
-            self.switch_voice(self.voice_index + 1)
+        self.player.next()
+        self.query_one("#title", expect_type=Label).update(self.player.title)
 
     def action_prev_voice(self):
-        if self.voice_index - 1 >= 0:
-            self.switch_voice(self.voice_index - 1)
+        self.player.prev()
+        self.query_one("#title", expect_type=Label).update(self.player.title)
 
 
 @click.command()
@@ -134,8 +130,12 @@ class LRCPlayer(App):
     "path", type=click.Path(exists=True, dir_okay=True, path_type=Path)
 )
 def main(path: Path):
+
+    if not (FileManager.CONFIG_PATH / "mpd.conf").exists():
+        FileManager.init_mpd()
+
     # 每个元素是一个元组，包含了文件名和歌词文件名，如果没有歌词则为None
-    episodes: List[Tuple[Path, Path | None]] = []
+    episodes: List[Music] = []
     assert path.is_dir()
 
     for file in path.iterdir():
@@ -146,7 +146,7 @@ def main(path: Path):
             continue
 
         if (lrc := file.with_suffix(".lrc")).exists():
-            episodes.append((file, lrc))
+            episodes.append(Music(file, lrc))
             continue
 
         if (vtt := file.with_suffix(".vtt")).exists():
@@ -154,10 +154,10 @@ def main(path: Path):
             lrc_content = vtt2lrc(vtt)
             with open(lrc, "w", encoding="utf-8") as f:
                 f.write(lrc_content)
-            episodes.append((path, lrc))
+            episodes.append(Music(path, lrc))
             continue
 
-        episodes.append((file, None))
+        episodes.append(Music(file, None))
 
     if not episodes:
         print("error input")

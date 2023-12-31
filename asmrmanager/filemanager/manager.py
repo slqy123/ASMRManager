@@ -56,6 +56,30 @@ class FileManager:
         logger.info(f"First time to run, copy default sqls to {dst_path}")
 
     @classmethod
+    def init_mpd(cls):
+        cls.DATA_PATH.mkdir(parents=True, exist_ok=True)
+        cls.CONFIG_PATH.mkdir(parents=True, exist_ok=True)
+        mpd_data_path = cls.DATA_PATH / "mpd"
+        conf = {
+            "music_directory": mpd_data_path / "music",
+            "pid_file": mpd_data_path / "mpd.pid",
+            "db_file": mpd_data_path / "mpd.db",
+            "bind_to_address": "localhost",
+            "port": 6600,
+        }
+
+        conf["music_directory"].mkdir(parents=True, exist_ok=True)
+
+        with open(cls.CONFIG_PATH / "mpd.conf", "w") as f:
+            for k, v in conf.items():
+                f.write(f'{k} "{v}"\n')
+
+        logger.info(
+            "First time to run, genertate default mpd config to"
+            f" {cls.CONFIG_PATH}"
+        )
+
+    @classmethod
     def get_playlist_cache(cls) -> List[PlayListItem] | None:
         cls.CACHE_PATH.mkdir(parents=True, exist_ok=True)
         dst_path = cls.CACHE_PATH / "playlist.cache"
