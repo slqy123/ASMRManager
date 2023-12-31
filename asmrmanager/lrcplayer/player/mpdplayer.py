@@ -5,13 +5,19 @@ from pathlib import Path
 from subprocess import run
 from typing import Any, List, Literal, NamedTuple
 
-import mpd
-
 from asmrmanager.config import config
 from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
 
 from .base import BasePlayer, Music
+
+try:
+    import mpd
+except ImportError:
+    raise ImportError(
+        "python-mpd2 is not installed, please install asmrmanager with mpd"
+        " dpendency."
+    )
 
 MPDStatus = NamedTuple(
     "MPDSatus",

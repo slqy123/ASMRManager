@@ -3,8 +3,14 @@ from typing import List
 
 from .base import BasePlayer, Music
 
-with contextlib.redirect_stdout(None):
-    from pygame import mixer
+try:
+    with contextlib.redirect_stdout(None):
+        from pygame import mixer
+except ImportError:
+    raise ImportError(
+        "pygame is not installed, please install asmrmanager with pygame"
+        " dpendency."
+    )
 
 
 class PyGamePlayer(BasePlayer):
