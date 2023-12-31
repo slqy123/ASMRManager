@@ -147,9 +147,9 @@ def store(rj_ids: List[RJID], replace: bool, all_: bool):
     db = create_database()
     try:
         if all_:
-            import cutie
+            from asmrmanager.common.select import confirm
 
-            res = cutie.prompt_yes_or_no(
+            res = confirm(
                 "Are you sure to store all files in the download_path?",
             )
             if res is None or res is False:

@@ -71,7 +71,7 @@ Options:
 
 ### 播放
 
-非常简陋的终端播放界面，支持歌词显示，按照歌词信息快进，切换歌曲，可以预见的将来应该会完善一下
+非常简陋的终端播放界面，支持歌词显示，按照歌词信息快进，切换歌曲，支持以pygame(sdl)或mpd做为后端，可以预见的将来应该会完善一下(但感觉够用了应该不会再加啥功能了)。
 ![tui-screenshot](./assets/tui-screenshot.png)
 
 ## 使用方法
@@ -82,7 +82,11 @@ Options:
 pip install ASMRManager[依赖]
 ```
 
-可选则的依赖项有 `idm`, `aria2`, `tui`，`all`，多个依赖使用逗号分隔，其中`all`为安装所有依赖。例如 `pip install ASMRManager[idm,tui]`
+可选则的依赖项有 `idm`, `aria2`, `tui`，`pygame`,`mpd`, `all`，多个依赖使用逗号分隔，其中`all`为安装所有依赖。例如 `pip install ASMRManager[idm,tui]`
+
+- 下载：`idm` 或 `aria2` 二选一，`idm` 为 windows 平台专用，`aria2` 为跨平台。
+- 播放：`pygame` 或 `mpd` 二选一。
+- 其他：`tui` 为可视化命令行界面。
 
 > 此处也可以选择使用 `pipx` 来替代 `pip`，避免污染全局环境。
 > 安装方法：`pip install pipx`
@@ -116,7 +120,7 @@ pip install ASMRManager[依赖]
 命令执行过程中会进行如下的检查与过滤操作：
 1. 开始下载前：检查RJ号是否应该下载，如果本地文件不存在或者数据库无记录都会执行下载操作。可以通过 `--force` 强制执行下载。
 1. 获取音声信息后：检查音声的tags，如果包含tag_filters里指定的tag，则跳过下载。可以通过 `--ignore-tag` 来强制下载。
-1. 获取下载文件后：检查文件的名称和路径，如果不符合name_filters里指定的规则，则跳过下载。可以通过`ignore-name`来强制下载。
+1. 获取下载文件后：检查文件的名称和路径，如果不符合filename_filters里指定的规则，则跳过下载。可以通过`ignore-name`来强制下载。
 1. 添加下载任务时：如果检测到本地有同名文件，则跳过该文件的下载。可以通过`--replace`来强制覆盖存在的文件。
 
 ## 其他

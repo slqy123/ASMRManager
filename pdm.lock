@@ -5,7 +5,7 @@
 groups = ["default", "aria2"]
 strategy = ["cross_platform"]
 lock_version = "4.4"
-content_hash = "sha256:f4a78b4158c05428e0053303d5382340096b8bbb3bedd0c61c711ff72e62678f"
+content_hash = "sha256:9e5036872c06faabf0c95c18549f5cec03dcdd6b88aefc7a6a8128f0b951c22f"
 
 [[package]]
 name = "aioaria2"
@@ -123,6 +123,22 @@ files = [
 ]
 
 [[package]]
+name = "beaupy"
+version = "3.7.2"
+requires_python = ">=3.7.8,<3.12"
+summary = "A library of elements for interactive TUIs in Python"
+dependencies = [
+    "emoji<3.0.0,>=2.0.0",
+    "python-yakh==0.3.2",
+    "questo<0.3.0,>=0.2.2",
+    "rich>=12.2.0",
+]
+files = [
+    {file = "beaupy-3.7.2-py3-none-any.whl", hash = "sha256:f3d863ed1a9a9909d6c5fe0ab3c2f0f2459694cb8efdbb31a36da9cddabf082d"},
+    {file = "beaupy-3.7.2.tar.gz", hash = "sha256:c642bdf0b1f5b225c65aa8e24c597da8e2cf164bd575d2a8bdd83af60cfe5ac2"},
+]
+
+[[package]]
 name = "chardet"
 version = "5.1.0"
 requires_python = ">=3.7"
@@ -224,17 +240,13 @@ files = [
 ]
 
 [[package]]
-name = "cutie"
-version = "0.3.2"
-requires_python = ">=3.6"
-summary = "Commandline User Tools for Input Easification"
-dependencies = [
-    "colorama",
-    "readchar!=3.0.5",
-]
+name = "emoji"
+version = "2.9.0"
+requires_python = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+summary = "Emoji for Python"
 files = [
-    {file = "cutie-0.3.2-py3-none-any.whl", hash = "sha256:5fce81fb1dc8af907bf15dee390dc2d2b0405eb325aeb54368405a0a401605f9"},
-    {file = "cutie-0.3.2.tar.gz", hash = "sha256:0798dee98e71d84ebc01a125155c8d94c96cc9d04cf69294d8b9a68edd93696d"},
+    {file = "emoji-2.9.0-py2.py3-none-any.whl", hash = "sha256:17b0d53e1d9f787307a4c65aa19badb0a1ffdbc89b3a3cd851fc77821cdaced2"},
+    {file = "emoji-2.9.0.tar.gz", hash = "sha256:5f4a15b7caa9c67fc11be9d90a822e3fa26aeb4e5b7bd2ded754b394d9c47869"},
 ]
 
 [[package]]
@@ -504,16 +516,37 @@ files = [
 ]
 
 [[package]]
-name = "readchar"
-version = "4.0.5"
-requires_python = ">=3.7"
-summary = "Library to easily read single chars and key strokes"
+name = "python-mpd2"
+version = "3.1.0"
+requires_python = ">=3.6"
+summary = "A Python MPD client library"
+files = [
+    {file = "python-mpd2-3.1.0.tar.gz", hash = "sha256:f33c2cdb0d6baa74a36724f38c1c4a099a7ce2c8ec4a2bb7192150a5855df476"},
+    {file = "python_mpd2-3.1.0-py2.py3-none-any.whl", hash = "sha256:c4d44a54e88a675f7301fdb11a1bd31165a6f51a664dd41e8137e92f7b02ebfb"},
+]
+
+[[package]]
+name = "python-yakh"
+version = "0.3.2"
+requires_python = ">=3.7.8,<4.0.0"
+summary = "Yet Another Keypress Handler"
+files = [
+    {file = "python_yakh-0.3.2-py3-none-any.whl", hash = "sha256:18e526e11fbd185a0da98581b8b08d3848bef97b070590fcd5ec49de0893371e"},
+    {file = "python_yakh-0.3.2.tar.gz", hash = "sha256:f2833a4c00d9823b1e3b517b71bfcb672f81d4e9719f4326389cef38f5b1bfe3"},
+]
+
+[[package]]
+name = "questo"
+version = "0.2.2"
+requires_python = ">=3.7.8,<3.12"
+summary = "A library of extensible and modular CLI prompt elements"
 dependencies = [
-    "setuptools>=41.0",
+    "python-yakh<0.4.0,>=0.3.2",
+    "rich>=12.2.0",
 ]
 files = [
-    {file = "readchar-4.0.5-py3-none-any.whl", hash = "sha256:76ec784a5dd2afac3b7da8003329834cdd9824294c260027f8c8d2e4d0a78f43"},
-    {file = "readchar-4.0.5.tar.gz", hash = "sha256:08a456c2d7c1888cde3f4688b542621b676eb38cd6cfed7eb6cb2e2905ddc826"},
+    {file = "questo-0.2.2-py3-none-any.whl", hash = "sha256:f858d11759c7fc23bccffe6887d8c3fe7290aeab62a22ae3952b689f5de8071b"},
+    {file = "questo-0.2.2.tar.gz", hash = "sha256:3a4ce0c36ef7dc454706f1ec7be23922fefbf5904d83610222dc0c9d068f0917"},
 ]
 
 [[package]]
@@ -528,16 +561,6 @@ dependencies = [
 files = [
     {file = "rich-13.4.2-py3-none-any.whl", hash = "sha256:8f87bc7ee54675732fa66a05ebfe489e27264caeeff3728c945d25971b6485ec"},
     {file = "rich-13.4.2.tar.gz", hash = "sha256:d653d6bccede5844304c605d5aac802c7cf9621efd700b46c7ec2b51ea914898"},
-]
-
-[[package]]
-name = "setuptools"
-version = "68.2.2"
-requires_python = ">=3.8"
-summary = "Easily download, build, install, upgrade, and uninstall Python packages"
-files = [
-    {file = "setuptools-68.2.2-py3-none-any.whl", hash = "sha256:b454a35605876da60632df1a60f736524eb73cc47bbc9f3f1ef1b644de74fd2a"},
-    {file = "setuptools-68.2.2.tar.gz", hash = "sha256:4ac1475276d2f1c48684874089fefcd83bd7162ddaafb81fac866ba0db282a87"},
 ]
 
 [[package]]

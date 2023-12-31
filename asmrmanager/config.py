@@ -20,6 +20,8 @@ class Config:
     download_method: Literal["aria2", "idm"]
     aria2_config: "Aria2Config"
     playlist_aliases: Dict[str, str]
+    player: Literal["mpd", "pygame"]
+    mpd_config: "MPDConfig"
 
 
 @dataclass
@@ -41,6 +43,14 @@ class Aria2Config:
     secret: str = ""
 
 
+@dataclass
+class MPDConfig:
+    bin: str = "mpd"
+    host: str = "localhost"
+    port: int = 6600
+    music_directory: str | None = None
+
+
 _config = toml.load(CONFIG_PATH / "config.toml")
 
 _filename_filters: list = _config.get("filename_filters", [])
@@ -50,10 +60,16 @@ filename_filters = list(
         _filename_filters,
     )
 )
-_aria2_config: dict = _config.get("aria2_config", {})
-aria2_config = Aria2Config(**_aria2_config)
+# _aria2_config: dict = _config.get("aria2_config", {})
+# aria2_config = Aria2Config(**_aria2_config)
 
-playlist_aliases: dict = _config.get("playlist_aliases", {})
+# playlist_aliases: dict = _config.get("playlist_aliases", {})
+
+# _mpd_config: dict = _config.get("mpd_config", {})
+# mpd_config = MPDConfig(**_mpd_config)
+# mpd_config.bin = os.path.expanduser(mpd_config.bin)
+# if isinstance(mpd_config.conf_path, str):
+#     mpd_config.conf_path = os.path.expanduser(mpd_config.conf_path)
 
 config = Config(
     username=_config["username"],
@@ -66,6 +82,8 @@ config = Config(
     editor=_config["editor"],
     filename_filters=filename_filters,
     download_method=_config["download_method"],
-    aria2_config=aria2_config,
-    playlist_aliases=playlist_aliases,
+    aria2_config=Aria2Config(**_config.get("aria2_config", {})),
+    playlist_aliases=_config.get("playlist_aliases", {}),
+    player=_config.get("player", "pygame"),
+    mpd_config=MPDConfig(**_config.get("mpd_config", {})),
 )

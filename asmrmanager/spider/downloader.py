@@ -70,7 +70,9 @@ class ASMRDownloadAPI(ASMRAPI):
             else self.download_by_aria2
         )
 
-        self.aria2_downloader = Aria2Downloader(proxy)
+        if ARIA2_EXIST:
+            assert Aria2Downloader
+            self.aria2_downloader = Aria2Downloader(proxy)
         self.aria2_config = aria2_config
         self.download_method = download_method
 
@@ -136,7 +138,7 @@ class ASMRDownloadAPI(ASMRAPI):
     ) -> bool:
         """the save path + file should not exist,
         and the filename should be legal"""
-        assert IDMHELPER_EXIST
+        assert IDMHELPER_EXIST and IDMHelper
         m = IDMHelper(url, str(save_path.absolute()), file_name, 3)
         res = m.send_link_to_idm()
         if res != 0:

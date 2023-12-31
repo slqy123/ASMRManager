@@ -3,34 +3,34 @@ from collections import Counter
 from pathlib import Path
 from typing import Callable, List, Tuple
 
-import cutie
+from asmrmanager.common.select import select, select_multiple
 
 
 def folder_chooser(
-    folder: Path, path_filter: Callable[[Path], bool] = lambda _: True
+    folder: Path, path_filter: Callable[[Path, dict], bool] = lambda *_: True
 ) -> Path:
     assert folder.is_dir()
     choices: List[Tuple[Path, str]] = []
     for root, _, files in os.walk(folder):
         res = dict(Counter([Path(f).suffix for f in files]))
         desc = " , ".join([f"{k}: {v}" for k, v in res.items()])
-        if path_filter(Path(root)):
+        if path_filter(Path(root), res):
             choices.append((Path(root), desc))
-    index = cutie.select([f"{p} ({d})" for p, d in choices])
+    index = select([f"{p} ({d})" for p, d in choices])
     return choices[index][0]
 
 
 def folder_chooser_multiple(
-    folder: Path, path_filter: Callable[[Path], bool] = lambda _: True
+    folder: Path, path_filter: Callable[[Path, dict], bool] = lambda *_: True
 ) -> List[Path]:
     assert folder.is_dir()
     choices: List[Tuple[Path, str]] = []
     for root, _, files in os.walk(folder):
         res = dict(Counter([Path(f).suffix for f in files]))
         desc = " , ".join([f"{k}: {v}" for k, v in res.items()])
-        if path_filter(Path(root)):
+        if path_filter(Path(root), res):
             choices.append((Path(root), desc))
-    indexes = cutie.select_multiple([f"{p} ({d})" for p, d in choices])
+    indexes = select_multiple([f"{p} ({d})" for p, d in choices])
     return [choices[i][0] for i in indexes]
 
 
