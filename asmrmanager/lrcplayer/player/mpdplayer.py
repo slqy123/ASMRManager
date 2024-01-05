@@ -104,7 +104,7 @@ class MPDPlayer(BasePlayer):
         self.client.play()
 
     def switch_music(self, index: int) -> None:
-        self.client.stop()
+        # self.client.stop()
         self.client.play(index)
 
     @property
@@ -118,8 +118,8 @@ class MPDPlayer(BasePlayer):
     @pos.setter
     def pos(self, pos: int) -> None:
         self.client.seekcur(int(pos / 1000))
-        self.client.pause()
-        self.client.pause()
+        # self.client.pause()
+        # self.client.pause()
 
     @property
     def is_paused(self) -> bool:
