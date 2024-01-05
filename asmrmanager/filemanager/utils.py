@@ -12,6 +12,8 @@ def folder_chooser(
     assert folder.is_dir()
     choices: List[Tuple[Path, str]] = []
     for root, _, files in os.walk(folder):
+        if len(files) == 0:
+            continue
         res = dict(Counter([Path(f).suffix for f in files]))
         desc = " , ".join([f"{k}: {v}" for k, v in res.items()])
         if path_filter(Path(root), res):
@@ -26,6 +28,8 @@ def folder_chooser_multiple(
     assert folder.is_dir()
     choices: List[Tuple[Path, str]] = []
     for root, _, files in os.walk(folder):
+        if len(files) == 0:
+            continue
         res = dict(Counter([Path(f).suffix for f in files]))
         desc = " , ".join([f"{k}: {v}" for k, v in res.items()])
         if path_filter(Path(root), res):
