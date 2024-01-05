@@ -5,6 +5,7 @@ from typing import Any
 
 import click
 
+from asmrmanager._version import __version__
 from asmrmanager.cli.dl import dl
 from asmrmanager.cli.file import file
 from asmrmanager.cli.hold import hold
@@ -41,6 +42,7 @@ class OrderedGroup(click.Group):
 
 
 @click.group(context_settings=CONTEXT_SETTINGS, cls=OrderedGroup)
+@click.version_option(__version__, prog_name="ASMRManager")
 def main():
     logger.info(f'Run program with: {" ".join(sys.argv[1:])}')
 
