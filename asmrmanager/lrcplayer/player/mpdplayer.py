@@ -52,12 +52,15 @@ class MPDPlayer(BasePlayer):
     @property
     def _status(self):
         status = self.client.status()
+        if status.get("song"):
+            self._index = int(status["song"])
+
         return MPDStatus(
             playlistlength=int(status["playlistlength"]),
             state=status["state"],
-            song=int(status["song"]),
-            pos=int(float(status["elapsed"]) * 1000),
-            total_time=int(float(status["duration"]) * 1000),
+            song=int(status.get("song", 0)),
+            pos=int(float(status.get("elapsed", 0)) * 1000),
+            total_time=int(float(status.get("duration", 0)) * 1000),
         )
 
     def __init__(self, music_list: List[Music]) -> None:
@@ -102,6 +105,7 @@ class MPDPlayer(BasePlayer):
             time.sleep(0.01)
         logger.info(f"mpd add finished {self.client.playlist()}")
         self.client.play()
+        self.client.single(0)
 
     def switch_music(self, index: int) -> None:
         # self.client.stop()
@@ -117,6 +121,8 @@ class MPDPlayer(BasePlayer):
 
     @pos.setter
     def pos(self, pos: int) -> None:
+        if self._status.state == "stop":
+            return
         self.client.seekcur(int(pos / 1000))
         # self.client.pause()
         # self.client.pause()

@@ -74,6 +74,8 @@ class LRCPlayer(App):
             f"{format_time(self.player.total_time)}]"
         )
 
+        self.query_one("#title", expect_type=Label).update(self.player.title)
+
     def compose(self) -> ComposeResult:
         yield Label(self.player.title, id="title")
 
