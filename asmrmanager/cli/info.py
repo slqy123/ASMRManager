@@ -1,6 +1,6 @@
-from pprint import pprint
-
 import click
+from rich.console import Console
+from rich.markdown import Markdown
 
 from asmrmanager.cli.core import (
     create_database,
@@ -13,11 +13,34 @@ from asmrmanager.logger import logger
 
 
 def print_asmr_info(asmr: ASMRInstance):
+    template = """
+**{title}**
+- id: {id}
+- circle: {circle_name}
+- nsfw: {nsfw}
+- subtitle: {has_subtitle}
+- price: {price}
+- release date: {release_date}
+- downloads: {dl_count}
+- tags
+{tags}
+- CV
+{cvs}
+
+**comment**
+- star: {star}
+- review count: {count}
+- held: {held}
+- stored: {stored}
+
+{comment}
+    """
     res: dict = asmr.__dict__.copy()
-    res.pop("_sa_instance_state")
-    pprint(res)
-    print(" tags:", asmr.tags)
-    print(" CVs:", asmr.vas)
+    tags = "\n".join([f"  - {t}" for t in asmr.tags])
+    cvs = "\n".join([f"  - {c}" for c in asmr.vas])
+    s = template.format(tags=tags, cvs=cvs, **res)
+    console = Console()
+    console.print(Markdown(s))
 
 
 def info_from_web(rj_id: int):
