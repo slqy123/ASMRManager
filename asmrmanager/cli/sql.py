@@ -2,6 +2,7 @@ import os
 from subprocess import run
 
 import click
+from click.shell_completion import CompletionItem
 
 from asmrmanager.cli.core import fm
 from asmrmanager.common.output import print_table
@@ -9,8 +10,21 @@ from asmrmanager.config import config
 from asmrmanager.logger import logger
 
 
+class SQLName(click.ParamType):
+    name = "sql_name"
+
+    def shell_complete(
+        self, ctx: click.Context, param: click.Parameter, incomplete: str
+    ):
+        return [
+            CompletionItem(name)
+            for name in os.listdir(fm.DATA_PATH / "sqls")
+            if name.upper().startswith(incomplete.upper())
+        ]
+
+
 @click.command()
-@click.argument("sql_name", type=str)
+@click.argument("sql_name", type=SQLName())
 @click.option(
     "--save/--no-save",
     "-s/-ns",

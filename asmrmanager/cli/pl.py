@@ -3,14 +3,35 @@ import uuid
 from typing import List
 
 import click
+import toml
+from click.shell_completion import CompletionItem
 from typing_extensions import Literal
 
 from asmrmanager.cli.core import (
     create_playlist,
+    fm,
     multi_rj_argument,
     pl_preprocess_cb,
 )
 from asmrmanager.common.rj_parse import RJID
+from asmrmanager.common.types import PlayListItem
+
+
+class PLID(click.ParamType):
+    name = "pl_id"
+
+    def shell_complete(
+        self, ctx: "click.Context", param: "click.Parameter", incomplete: str
+    ) -> List["CompletionItem"]:
+        playlists: List[PlayListItem] = [
+            PlayListItem(**i)
+            for i in toml.load(fm.CACHE_PATH / "playlist.cache")["playlists"]
+        ]
+        return [
+            CompletionItem(str(pl.name), help=pl.desc)
+            for pl in playlists
+            if incomplete.upper() in (str(pl.name) + str(pl.desc)).upper()
+        ]
 
 
 @click.group()
@@ -41,8 +62,8 @@ def list_(num: int, raw: bool):
 
 
 @click.command()
+@click.argument("pl_id", type=PLID(), callback=pl_preprocess_cb)
 @multi_rj_argument
-@click.argument("pl_id", callback=pl_preprocess_cb)
 def add(rj_ids: List[RJID], pl_id: uuid.UUID):
     """add a playlist"""
     pl = create_playlist()
@@ -50,7 +71,7 @@ def add(rj_ids: List[RJID], pl_id: uuid.UUID):
 
 
 @click.command("rm")
-@click.argument("pl_ids", nargs=-1, callback=pl_preprocess_cb)
+@click.argument("pl_ids", type=PLID(), nargs=-1, callback=pl_preprocess_cb)
 def remove(pl_ids: List[uuid.UUID]):
     """remove a playlist"""
     pl = create_playlist()
