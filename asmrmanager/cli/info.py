@@ -1,6 +1,4 @@
 import click
-from rich.console import Console
-from rich.markdown import Markdown
 
 from asmrmanager.cli.core import (
     create_database,
@@ -13,6 +11,9 @@ from asmrmanager.logger import logger
 
 
 def print_asmr_info(asmr: ASMRInstance):
+    from rich.console import Console
+    from rich.markdown import Markdown
+
     template = """
 **{title}**
 - id: {id}

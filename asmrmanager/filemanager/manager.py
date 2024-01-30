@@ -13,7 +13,6 @@ from asmrmanager.filemanager.appdirs_ import (
     DATA_PATH,
     LOG_PATH,
 )
-from asmrmanager.filemanager.file_zipper import zip_chosen_folder
 from asmrmanager.logger import logger
 
 # from .exceptions import DstItemAlreadyExistsException, SrcNotExistsException
@@ -262,6 +261,8 @@ class FileManager:
             yield rj_id
 
     def zip_file(self, src: Path, dst: Path):
+        from asmrmanager.filemanager.file_zipper import zip_chosen_folder
+
         zip_chosen_folder(src, dst)
 
     def get_location(

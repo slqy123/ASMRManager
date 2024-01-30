@@ -3,7 +3,6 @@ import click
 from asmrmanager.cli.core import create_database, fm, rj_argument
 from asmrmanager.common.rj_parse import RJID, id2rj
 from asmrmanager.config import config
-from asmrmanager.filemanager.utils import folder_chooser
 from asmrmanager.logger import logger
 
 
@@ -11,6 +10,8 @@ from asmrmanager.logger import logger
 @click.pass_context
 @rj_argument
 def play(ctx: click.Context, rj_id: RJID):
+    from asmrmanager.filemanager.utils import folder_chooser
+
     """play an asmr in the terminal"""
     from asmrmanager.lrcplayer import MUSIC_SUFFIXES, lrc_play
 
