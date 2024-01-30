@@ -23,9 +23,11 @@ def which(rj_id: RJID, show: bool):
 
         if sys.platform == "win32":
             os.system(f'explorer.exe "{path}"')
+        elif sys.platform.startswith("linux"):
+            os.system(f'xdg-open "{path}"')
         else:
             logger.error(
-                "option --show is for windows only, if you are using *nix, use"
-                " `cd $(asmr which <RJID>)`"
+                "option --show is for windows and linux only, if you are using other platform, using"
+                " `cd $(asmr which <RJID>)` instead."
             )
             return
