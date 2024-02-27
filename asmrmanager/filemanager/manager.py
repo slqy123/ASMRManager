@@ -210,7 +210,7 @@ class FileManager:
     @staticmethod
     def _copy(src: Path, dst: Path, depth: int = -1):
         if src.is_file():
-            shutil.copy(src, dst)
+            shutil.copyfile(src, dst / src.name)
             return
 
         if depth == 0:

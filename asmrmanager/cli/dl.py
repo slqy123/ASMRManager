@@ -126,6 +126,20 @@ def check(rj_ids: Iterable[RJID]):
     help="circle(社团) to exclude[multiple]",
 )
 @click.option(
+    "--age",
+    "-a",
+    help="age limitation to include[multiple]",
+    default=None,
+    type=click.Choice(["general", "r15", "adult"]),
+)
+@click.option(
+    "--no-age",
+    "-na",
+    help="age limitation to exclude[multiple]",
+    multiple=True,
+    type=click.Choice(["general", "r15", "adult"]),
+)
+@click.option(
     "--rate", "-r", help="rating interval", callback=interval_preprocess_cb
 )
 @click.option(
@@ -150,9 +164,11 @@ def search(
     tags: Tuple[str],
     vas: Tuple[str],
     circle: str | None,
+    age: str | None,
     no_tags: Tuple[str],
     no_vas: Tuple[str],
     no_circle: Tuple[str],
+    no_age: Tuple[str],
     rate: Tuple[float | None, float | None],
     sell: Tuple[int | None, int | None],
     price: Tuple[int | None, int | None],
@@ -183,9 +199,11 @@ def search(
             tags=tags,
             vas=vas,
             circle=circle,
+            age=age,
             no_tags=no_tags,
             no_vas=no_vas,
             no_circle=no_circle,
+            no_age=no_age,
             rate=rate,
             sell=sell,
             price=price,
