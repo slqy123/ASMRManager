@@ -6,12 +6,12 @@
 
 ### 下载
 
-支持网站所支持的所有索引方式(关键词，tag，circle，价格，声优，日期等等)，以及排序方式。
+支持网站所支持的所有索引方式(关键词，标签，会社，价格，声优，日期，年龄分级等等)，以及排序方式。
 目前仅支持调用 IDM 或 aria2 下载。
 
 ```
-> asmr dl search -h
-2023-09-30 15:52:08 - INFO - Run program with: dl search -h
+> asmr dl search --help
+2024-02-27 16:54:42 - INFO - Run program with: dl search --help
 Usage: asmr dl search [OPTIONS] [TEXT]
 
   search and download ASMR
@@ -44,6 +44,9 @@ Options:
   -nv, --no-vas TEXT              voice actor(cv) to exclude[multiple]
   -c, --circle TEXT               circle(社团) to include
   -nc, --no-circle TEXT           circle(社团) to exclude[multiple]
+  -a, --age [general|r15|adult]   age limitation to include[multiple]
+  -na, --no-age [general|r15|adult]
+                                  age limitation to exclude[multiple]
   -r, --rate TEXT                 rating interval
   -s, --sell TEXT                 selling interval
   -pr, --price TEXT               pirce interval
@@ -60,8 +63,11 @@ Options:
                                   database will be skipped
   --replace / --no-replace        replace the file if it exists  [default: no-
                                   replace]
-  --filter / --no-filter          filter out the files to download, rules are
-                                  in the config file  [default: filter]
+  --check-name / --ignore-name    check and filter out asmr by filenames,
+                                  rules are in the config file  [default:
+                                  check-name]
+  --check-tag / --ignore-tag      check and filter out asmr by tags, rules are
+                                  in the config file  [default: check-tag]
   -h, --help                      Show this message and exit.
 ```
 
