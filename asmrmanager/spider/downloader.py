@@ -208,7 +208,6 @@ class ASMRDownloadAPI(ASMRAPI):
     async def create_dir_and_download(self, file_list: List[FileInfo]) -> None:
         for file_info in file_list:
             file_path = file_info.path
-            file_path.parent.mkdir(parents=True, exist_ok=True)
             if not file_info.should_download:
                 logger.info(f"filter file {file_path}")
                 # with open(
@@ -218,6 +217,7 @@ class ASMRDownloadAPI(ASMRAPI):
                 # ) as f:
                 #     f.write(file["mediaDownloadUrl"])
                 continue
+            file_path.parent.mkdir(parents=True, exist_ok=True)
             try:
                 await self.process_download(
                     file_info.url, file_path.parent, file_path.name
