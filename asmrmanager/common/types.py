@@ -1,7 +1,7 @@
 import uuid
 from dataclasses import dataclass
 from enum import Enum
-from typing import NewType
+from typing import NewType, TypedDict
 
 RJID = NewType("RJID", int)
 RJName = NewType("RJName", str)
@@ -31,3 +31,9 @@ class PlayListItem:
             "works_count": self.works_count,
             "latest_work_id": self.latest_work_id,
         }
+
+
+class RecoverRecord(TypedDict):
+    path: str
+    url: str
+    should_download: bool

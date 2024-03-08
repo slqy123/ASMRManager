@@ -1,12 +1,12 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Iterable, List, Literal, NamedTuple
+from typing import Iterable, List, Literal, NamedTuple, Tuple
 
 import toml
 
 from asmrmanager.common.rj_parse import RJID, id2rj, rj2id
-from asmrmanager.common.types import PlayListItem
+from asmrmanager.common.types import PlayListItem, RecoverRecord
 from asmrmanager.filemanager.appdirs_ import (
     CACHE_PATH,
     CONFIG_PATH,
@@ -330,3 +330,27 @@ class FileManager:
                 pass
 
         return False
+
+    def load_recover(
+        self, rj_id: RJID
+    ) -> Tuple[Path, List[RecoverRecord]] | None:
+
+        rj_path = self.get_path(rj_id)
+        if rj_path is None:
+            logger.error(f"item {rj_id} does not exist")
+            return
+
+        recover_path = rj_path / ".recover"
+        if not recover_path.exists():
+            logger.error(
+                f"item {rj_id} does not have recover file, please update this"
+                " rj id first"
+            )
+            return
+
+        import json
+
+        recovers: List[RecoverRecord] = json.loads(
+            recover_path.read_text(encoding="utf8")
+        )
+        return rj_path, recovers

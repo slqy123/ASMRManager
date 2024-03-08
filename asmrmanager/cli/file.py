@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import List, Tuple
 
 import click
 
@@ -63,26 +63,13 @@ def del_(rj_id: RJID):
 )
 def recover(rj_id: RJID, regex: str, ignore_filter: bool):
     """recover a file from recover file"""
-    rj_path = fm.get_path(rj_id)
-    if rj_path is None:
-        logger.error(f"item {rj_id} does not exist")
-        return
-
-    recover_path = rj_path / ".recover"
-    if not recover_path.exists():
-        logger.error(
-            f"item {rj_id} does not have recover file, please update this"
-            " rj id first"
-        )
-        return
-
-    import json
-
-    recovers: List[Dict[str, Any]] = json.loads(
-        recover_path.read_text(encoding="utf8")
-    )
 
     url2download: List[Tuple[str, Path]] = []
+
+    res = fm.load_recover(rj_id)
+    if res is None:
+        return
+    rj_path, recovers = res
 
     for recover in recovers:
         rel_path = recover["path"]
@@ -176,6 +163,68 @@ def store(rj_ids: List[RJID], replace: bool, all_: bool):
         logger.error("storing terminated for %s", e)
 
 
+@click.command()
+@rj_argument
+def diff(rj_id: RJID):
+    """
+    Diff local files and the remote files,
+    display files filtered, missing and added
+    """
+    if res := fm.load_recover(rj_id):
+        rj_path, recovers = res
+    else:
+        return
+
+    local_files = set(
+        [i.relative_to(rj_path) for i in rj_path.rglob("*") if not i.is_dir()]
+    )
+    remote_files_should_down = set(
+        [Path(i["path"]) for i in recovers if i["should_download"]]
+    )
+    remote_files_filterd = set(
+        [Path(i["path"]) for i in recovers if not i["should_download"]]
+    )
+    filtered_but_downloaded = remote_files_filterd & local_files
+    should_download_but_missing = remote_files_should_down - local_files
+    added_new_files = (
+        local_files - remote_files_should_down - remote_files_filterd
+    )
+
+    all_files = local_files | remote_files_should_down | remote_files_filterd
+
+    color_map = {}
+    for file in all_files:
+        if file in filtered_but_downloaded:
+            color_map[file] = "yellow"
+        elif file in should_download_but_missing:
+            color_map[file] = "red"
+        elif file in added_new_files:
+            color_map[file] = "green"
+        elif file in (remote_files_filterd - filtered_but_downloaded):
+            color_map[file] = "dim"
+        else:
+            color_map[file] = "tree"
+
+    from rich import print
+    from rich.tree import Tree
+
+    tree = Tree(str(rj_path))
+    p2tree = {Path("."): tree}
+    for file in sorted(all_files, key=lambda x: x.parts):
+        # if p2tree.get(file.parent) is None:
+        #     p2tree[file.parent] = Tree(file.parent.name)
+        # p2tree[file.parent].add(file.name, style=color_map[file])
+        for path in reversed(file.parents):  # from . → ./a → ./a/b
+            if p2tree.get(path) is None:
+                p2tree[path] = Tree(path.name)
+                p2tree[path.parent].add(p2tree[path])
+
+        p2tree[file.parent].add(file.name, style=color_map[file])
+
+    print(tree)
+
+
 file.add_command(del_)
 file.add_command(recover)
 file.add_command(store)
+file.add_command(diff)
