@@ -43,7 +43,7 @@ def add(rj_id: RJID, mode: Literal["link", "zip", "adb", "copy"]):
             if not dst.exists():
                 break
             i += 1
-        logger.warning('"%s" already exists, use "%s" instead', rj_name, dst)
+        logger.warning(f"{rj_name} already exists, use {dst} instead")
         # raise DstItemAlreadyExistsException
 
     src = folder_chooser(src)

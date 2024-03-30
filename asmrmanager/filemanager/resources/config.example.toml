@@ -7,6 +7,10 @@ password = "password"
 # 代理
 proxy = "http://localhost:7890"
 
+# api地址
+# api.asmr-100.com, api.asmr-300.com，api.asmr.one均可，请视网络情况修改
+api_channel = 'api.asmr-200.com'
+
 # 下载文件的临时存放位置
 download_path = "/path/to/some/place"
 

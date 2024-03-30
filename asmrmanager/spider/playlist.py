@@ -10,7 +10,7 @@ from .asmrapi import ASMRAPI
 
 class ASMRPlayListAPI(ASMRAPI):
     def __init__(
-        self, name: str, password: str, proxy: str, limit: int = 3
+        self, name: str, password: str, proxy: str | None, limit: int = 3
     ) -> None:
         super().__init__(name, password, proxy, limit)
 

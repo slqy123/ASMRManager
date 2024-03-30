@@ -9,10 +9,12 @@ from asmrmanager.common.download_params import DownloadParams
 from asmrmanager.common.parse_filter import name_should_download
 from asmrmanager.common.rj_parse import id2rj, rj2id
 from asmrmanager.config import config
-from asmrmanager.filemanager.manager import FileManager
+from asmrmanager.filemanager.manager import fm
 from asmrmanager.logger import logger
+from asmrmanager.spider.asmrapi import ASMRAPI
 
-fm = FileManager(config.storage_path, config.download_path, config.view_path)
+if config.api_channel:
+    ASMRAPI.set_api_channel(config.api_channel)
 
 if TYPE_CHECKING:
     from asmrmanager.database.manage import DataBaseManager

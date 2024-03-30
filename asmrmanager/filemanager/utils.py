@@ -18,6 +18,8 @@ def folder_chooser(
         desc = " , ".join([f"{k}: {v}" for k, v in res.items()])
         if path_filter(Path(root), res):
             choices.append((Path(root), desc))
+    if len(choices) == 0:
+        raise ValueError("No valid path found!")
     index = select([f"{p} ({d})" for p, d in choices])
     return choices[index][0]
 
@@ -34,6 +36,8 @@ def folder_chooser_multiple(
         desc = " , ".join([f"{k}: {v}" for k, v in res.items()])
         if path_filter(Path(root), res):
             choices.append((Path(root), desc))
+    if len(choices) == 0:
+        raise ValueError("No valid path found!")
     indexes = select_multiple([f"{p} ({d})" for p, d in choices])
     return [choices[i][0] for i in indexes]
 

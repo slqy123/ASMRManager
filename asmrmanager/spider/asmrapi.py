@@ -32,8 +32,13 @@ class ASMRAPI:
         ),
     }
 
+    @classmethod
+    def set_api_channel(cls, api_channel: str):
+        cls.base_api_url = f"https://{api_channel}/api/"
+        cls.headers["host"] = api_channel
+
     def __init__(
-        self, name: str, password: str, proxy: str, limit: int
+        self, name: str, password: str, proxy: str | None, limit: int
     ) -> None:
         self._session: ClientSession
         self.name = name

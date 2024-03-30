@@ -24,7 +24,7 @@ except (ImportError, ModuleNotFoundError):
 
 from typing import NamedTuple
 
-from asmrmanager.cli.core import fm
+from asmrmanager.filemanager.manager import fm
 
 # TODO 统一管理固定的参数
 
@@ -38,7 +38,7 @@ class ASMRDownloadAPI(ASMRAPI):
         self,
         name: str,
         password: str,
-        proxy: str,
+        proxy: str | None,
         json_should_download: Callable[[Dict[str, Any]], bool],
         name_should_download: Callable[
             [str, Literal["directory", "file"]], bool

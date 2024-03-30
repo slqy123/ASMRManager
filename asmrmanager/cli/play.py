@@ -20,9 +20,17 @@ def play(ctx: click.Context, rj_id: RJID):
         logger.error(f"RJ id {rj_id} not found!")
         return
 
-    path = folder_chooser(
-        rj_path,
-        lambda _, count: bool(set(count.keys()).intersection(MUSIC_SUFFIXES)),
-    )
+    try:
+        path = folder_chooser(
+            rj_path,
+            lambda _, count: bool(
+                set(count.keys()).intersection(MUSIC_SUFFIXES)
+            ),
+        )
+    except ValueError:
+        logger.error(
+            f"No music files{MUSIC_SUFFIXES} found, please check your local file."
+        )
+        exit(-1)
 
     ctx.invoke(lrc_play, path=path)

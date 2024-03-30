@@ -44,7 +44,7 @@ class ASMRDownloadManager(AsyncManager):
         self,
         name: str,
         password: str,
-        proxy: str,
+        proxy: str | None,
         id_should_download: Callable[[RJID], bool] | None = None,
         json_should_download: Callable[[Dict[str, Any]], bool] | None = None,
         name_should_download: (
@@ -194,7 +194,9 @@ class ASMRDownloadManager(AsyncManager):
 
 
 class ASMRPlayListManager(AsyncManager):
-    def __init__(self, name: str, password: str, proxy: str, limit: int = 3):
+    def __init__(
+        self, name: str, password: str, proxy: str | None, limit: int = 3
+    ):
         self.playlist = ASMRPlayListAPI(
             name=name, password=password, proxy=proxy, limit=limit
         )

@@ -122,6 +122,21 @@ pip install ASMRManager[依赖]
 
 另外本工具提供基于 `trogon` 的可视化命令行界面，在安装`tui`依赖后使用 `asmr tui` 即可打开。
 
+## 命令行补全
+仅适用于Linux，详情可参考[官方文档](https://click.palletsprojects.com/en/8.1.x/shell-completion)。
+```shell
+# fish
+_ASMR_COMPLETE=fish_source asmr > ~/.config/fish/completions/asmr.fish
+
+# bash
+_ASMR_COMPLETE=bash_source asmr > ~/.asmr-complete.bash
+echo '. ~/.asmr-complete.bash' >> ~/.bashrc
+
+# zsh
+_ASMR_COMPLETE=zsh_source asmr > ~/.asmr-complete.zsh
+echo '. ~/.asmr-complete.zsh' >> ~/.zshrc
+```
+
 ## 关于`dl search/get`的使用
 命令执行过程中会进行如下的检查与过滤操作：
 1. 开始下载前：检查RJ号是否应该下载，如果本地文件不存在或者数据库无记录都会执行下载操作。可以通过 `--force` 强制执行下载。

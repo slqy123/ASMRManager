@@ -7,6 +7,7 @@ import toml
 
 from asmrmanager.common.rj_parse import RJID, id2rj, rj2id
 from asmrmanager.common.types import PlayListItem, RecoverRecord
+from asmrmanager.config import config
 from asmrmanager.filemanager.appdirs_ import (
     CACHE_PATH,
     CONFIG_PATH,
@@ -354,3 +355,6 @@ class FileManager:
             recover_path.read_text(encoding="utf8")
         )
         return rj_path, recovers
+
+
+fm = FileManager(config.storage_path, config.download_path, config.view_path)

@@ -10,7 +10,8 @@ from asmrmanager import CONFIG_PATH
 class Config:
     username: str
     password: str
-    proxy: str
+    proxy: str | None
+    api_channel: str | None
     download_path: str
     storage_path: str
     view_path: str
@@ -74,7 +75,8 @@ filename_filters = list(
 config = Config(
     username=_config["username"],
     password=_config["password"],
-    proxy=_config["proxy"],
+    proxy=_config.get("proxy", None),
+    api_channel=_config.get("api_channel", None),
     download_path=_config["download_path"],
     storage_path=_config["storage_path"],
     view_path=_config["view_path"],
