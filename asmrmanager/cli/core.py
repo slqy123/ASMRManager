@@ -21,10 +21,19 @@ if TYPE_CHECKING:
     from asmrmanager.spider import ASMRDownloadManager
 
 
-def create_database():
+def create_database(
+    skip_check: bool = False,
+):  # skip_check is only used for migration
     from asmrmanager.database.manage import DataBaseManager
 
-    return DataBaseManager(tag_filter=config.tag_filter or tuple())
+    db = DataBaseManager(tag_filter=config.tag_filter or tuple())
+    if not skip_check and not db.check_db_updated():
+        logger.error(
+            "Your database is out dated, Please update your database schema"
+            " with asmr utils migrate!"
+        )
+        exit(-1)
+    return db
 
 
 def create_downloader_and_database(

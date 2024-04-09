@@ -43,6 +43,14 @@ class DataBaseManager:
         self.session: Session = sessionmaker(self.engine)()
         self.func = QFunc(self.session)
 
+    def check_db_updated(self):
+        from sqlalchemy import inspect
+
+        inspector = inspect(self.engine)
+        columns = inspector.get_columns("asmr")
+        names = [c["name"] for c in columns]
+        return "remote_id" in names
+
     def check_exists(self, rj_id: int) -> Union[ASMRInstance, None]:
         return self.session.query(ASMR).get(rj_id)
 

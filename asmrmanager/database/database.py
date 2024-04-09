@@ -10,8 +10,9 @@ Base = declarative_base()
 class ASMR(Base):
     __tablename__ = "asmr"
     id = Column(Integer, primary_key=True)
-    title = Column(Text)
+    remote_id = Column(Integer, unique=True)
 
+    title = Column(Text)
     circle_name = Column(Text)  # 对应name字段
     tags = relationship("Tag", secondary="asmrs2tags", backref="asmrs")
     vas = relationship("VoiceActor", secondary="asmrs2vas", backref="asmrs")
