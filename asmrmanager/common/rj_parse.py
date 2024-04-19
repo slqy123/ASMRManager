@@ -1,42 +1,60 @@
 from typing import Iterable, List
 
-from .types import RJID, RJName
+from .types import LocalSourceID, SourceID, SourceName
 
 
-def rj2id(rj: str) -> RJID | None:
+def source2id(source: str) -> LocalSourceID | None:
     try:
-        if rj.upper().startswith("RJ"):
-            return RJID(int(rj[2:]))
-        else:
-            return RJID(int(rj))
+        match source[:2]:
+            case "RJ":
+                return LocalSourceID(SourceID(int(source[2:])))
+            case "VJ":
+                return LocalSourceID(SourceID(int(source[2:]) + 3 * 10**8))
+            case "BJ":
+                return LocalSourceID(SourceID(int(source[2:]) + 4 * 10**8))
+            case _:
+                return LocalSourceID(SourceID(int(source)))
     except ValueError:
         return None
 
 
-def rjs2ids(rjs: Iterable[str]) -> Iterable[RJID | None]:
-    return [rj2id(rj) for rj in rjs]
+def is_local_source_id(source_id: SourceID) -> bool:
+    return source_id < 10**8 or source_id >= 3 * 10**8
 
 
-def rj_name2id(rj_name: RJName) -> RJID:
-    return RJID(int(rj_name[2:]))
+def is_remote_source_id(source_id: SourceID) -> bool:
+    return source_id < 3 * 10**8
 
 
-def rj_names2ids(rjs: Iterable[RJName]) -> Iterable[RJID]:
-    return [rj_name2id(rj) for rj in rjs]
+def sources2ids(sources: Iterable[str]) -> Iterable[SourceID | None]:
+    return [source2id(source) for source in sources]
 
 
-def id2rj(rj_id: RJID) -> RJName:
-    rj = str(rj_id).zfill(6)
-    if len(rj) == 7:
-        rj = rj.zfill(8)
-
-    return RJName(f"RJ{rj}")
+def source_name2id(source_name: SourceName) -> LocalSourceID:
+    source_id = source2id(source_name)
+    assert source_id is not None
+    return source_id
 
 
-def ids2rjs(ids: Iterable[RJID]) -> List[RJName]:
-    return [id2rj(id_) for id_ in ids]
+def source_names2ids(source_ids: Iterable[SourceName]) -> Iterable[SourceID]:
+    return [source_name2id(source_id) for source_id in source_ids]
+
+
+def id2source_name(source_id: LocalSourceID) -> SourceName:
+    prefix = ("RJ", None, None, "VJ", "BJ")[source_id // 10**8]
+    assert prefix is not None
+    suffix_id = source_id % (10**8)
+    source = str(suffix_id).zfill(6)
+    if len(source) == 7:
+        source = source.zfill(8)
+
+    return SourceName(f"{prefix}{source}")
+
+
+def ids2source_names(source_ids: Iterable[LocalSourceID]) -> List[SourceName]:
+    return [id2source_name(id_) for id_ in source_ids]
 
 
 if __name__ == "__main__":
-    rj = RJName("RJ123456")
-    print(rj2id(rj))
+    rj = SourceName("RJ123456")
+    print(source2id(rj))

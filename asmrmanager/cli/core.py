@@ -1,13 +1,21 @@
 import functools
 import uuid
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING, Any, List, Literal, Tuple
 
+import asyncstdlib
 import click
 
 from asmrmanager.common.browse_params import BrowseParams
 from asmrmanager.common.download_params import DownloadParams
 from asmrmanager.common.parse_filter import name_should_download
-from asmrmanager.common.rj_parse import id2rj, rj2id
+from asmrmanager.common.rj_parse import (
+    id2source_name,
+    is_local_source_id,
+    is_remote_source_id,
+    source2id,
+    source_name2id,
+)
+from asmrmanager.common.types import LocalSourceID, RemoteSourceID, SourceID
 from asmrmanager.config import config
 from asmrmanager.filemanager.manager import fm
 from asmrmanager.logger import logger
@@ -46,6 +54,15 @@ def create_downloader_and_database(
     if download_params is None:
         download_params = DownloadParams(False, False, True, True)
 
+    def id_should_download(source_id: RemoteSourceID):
+        # TODO update this function with LocalSourceID
+        return not db.check_exists(source_id)
+        # return False
+        # local_source_id = convert2local_id(source_id)
+        # if local_source_id is None:
+        #     return False
+        # return fm.get_location(local_source_id) is None
+
     return (
         ASMRDownloadManager(
             name=config.username,
@@ -54,10 +71,7 @@ def create_downloader_and_database(
             id_should_download=(
                 (lambda _: True)
                 if download_params.force
-                else (
-                    lambda rj_id: (not db.check_exists(rj_id))
-                    or (fm.get_location(rj_id) is None)
-                )
+                else id_should_download
             ),  # 如果数据库中不存在或者文件不存在，都执行下载
             json_should_download=lambda info: db.add_info(
                 info, check=download_params.check_tag
@@ -205,7 +219,7 @@ def download_param_options(f):
 PREVIOUS_RJ_PATH = fm.DATA_PATH / ".prev_rj"
 
 
-def get_prev_rj():
+def get_prev_source():
     if not PREVIOUS_RJ_PATH.exists():
         return ""
     rj = PREVIOUS_RJ_PATH.read_text(encoding="utf8")
@@ -213,74 +227,161 @@ def get_prev_rj():
     return rj
 
 
-def save_rj(rj: str):
+def save_source(rj: str):
     PREVIOUS_RJ_PATH.write_text(rj, encoding="utf8")
 
 
-def rj_argument(f):
-    """parse the rj_id: int, if not given it will use the previous rj_id"""
+def convert2local_ids(
+    source_ids: List[SourceID],
+) -> List[LocalSourceID | None]:
+    downloader, db = create_downloader_and_database()
 
-    @click.argument("rj_id", type=str, default="__default__")
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        rj: str = kwargs["rj_id"]
-        if kwargs["rj_id"] == "__default__":
-            rj = get_prev_rj()
-        if rj == "":
-            logger.error(
-                "No previous RJ id available,"
-                " please first run a command with Rj id"
+    @asyncstdlib.lru_cache(None)
+    async def convert2local_id(source_id: SourceID):
+        if is_local_source_id(source_id):
+            return LocalSourceID(source_id)
+        source_id = RemoteSourceID(source_id)
+        res = db.func.get_local_id(source_id)
+        if res is not None:
+            return LocalSourceID(SourceID(res))
+        info = await downloader.downloader.get_voice_info(source_id)
+        return LocalSourceID(source_name2id(info["source_id"]))
+
+    return downloader.run(
+        *[convert2local_id(remote_id) for remote_id in source_ids]
+    )
+
+
+convert2local_id = lambda x: convert2local_ids([x])[0]
+
+
+def convert2remote_ids(
+    source_ids: List[SourceID],
+) -> List[RemoteSourceID | None]:
+    downloader, db = create_downloader_and_database()
+
+    @asyncstdlib.lru_cache(None)
+    async def convert2remote_id(source_id: SourceID):
+        if is_remote_source_id(source_id):
+            return RemoteSourceID(source_id)
+        source_id = LocalSourceID(source_id)
+        res = db.func.get_remote_id(source_id)
+        if res is not None:
+            return RemoteSourceID(SourceID(res))
+        source_name = id2source_name(source_id)
+        res = await downloader.downloader.get_search_result(source_name, {})
+        works = res["works"]
+        if len(works) == 0:
+            logger.warning(f"no remote resources for {source_name}")
+            return None
+        if len(works) > 1:
+            logger.warning(
+                f"multiple remote resources for {source_name}, choose the"
+                " first one by default"
             )
-            exit(-1)
+        return works[0]["id"]
 
-        rj_id = rj2id(rj)
-        if rj_id is None:
-            logger.error(f"Invalid input RJ ID{rj}")
-            exit(-1)
-        save_rj(rj)
-        kwargs["rj_id"] = rj_id
-
-        f(*args, **kwargs)
-
-    return wrapper
+    return downloader.run(
+        *[convert2remote_id(local_id) for local_id in source_ids]
+    )
 
 
-def multi_rj_argument(f):
-    """parse multiple rj input to rj_id"""
+convert2remote_id = lambda x: convert2remote_ids([x])[0]
 
-    @click.argument("rjs", nargs=-1)
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        rjs: Tuple[str] = kwargs["rjs"]
-        del kwargs["rjs"]
-        kwargs["rj_ids"] = []
-        for rj in rjs:
-            rj_id = rj2id(rj)
-            if rj_id is None:
-                logger.error(f"Invalid input RJ ID{rj}")
-                continue
-            kwargs["rj_ids"].append(rj_id)
 
-        if len(kwargs["rj_ids"]) == 0:
-            rj = get_prev_rj()
-            if rj == "":
+def rj_argument(convert: Literal[False, "local", "remote"] = False):
+    """parse the source_id: int, if not given it will use the previous source_id"""
+
+    def _(f):
+        @click.argument("source_id", type=str, default="__default__")
+        @functools.wraps(f)
+        def __(*args, **kwargs):
+            source: str = kwargs["source_id"]
+            if kwargs["source_id"] == "__default__":
+                source = get_prev_source()
+            if source == "":
                 logger.error(
-                    "No previous RJ id available,"
-                    " please first run a command with Rj id"
+                    "No previous source id available,"
+                    " please first run a command with source id"
                 )
                 exit(-1)
 
-            rj_id = rj2id(rj)
-            if rj_id is None:
-                logger.error(f"Invalid input RJ ID{rj}")
+            source_id = source2id(source)
+            if source_id is None:
+                logger.error(f"Invalid input source id: {source}")
                 exit(-1)
-            kwargs["rj_ids"].append(rj_id)
-        elif len(kwargs["rj_ids"]) == 1:
-            save_rj(id2rj(kwargs["rj_ids"][0]))
+            if convert == "local":
+                source_id = convert2local_id(source_id)
+            elif convert == "remote":
+                source_id = convert2remote_id(source_id)
 
-        f(*args, **kwargs)
+            if source_id is None:
+                logger.error(f"failed to convert to {convert} source id")
+                exit(-1)
 
-    return wrapper
+            save_source(source)
+            kwargs["source_id"] = source_id
+
+            f(*args, **kwargs)
+
+        return __
+
+    return _
+
+
+def multi_rj_argument(convert: Literal[False, "local", "remote"] = False):
+    """parse multiple rj input to rj_id"""
+
+    def _(f):
+        @click.argument("source_ids", nargs=-1)
+        @functools.wraps(f)
+        def __(*args, **kwargs):
+            sources: Tuple[str] = kwargs["source_ids"]
+            del kwargs["source_ids"]
+            source_ids: List[Any] = []
+            for source in sources:
+                source_id = source2id(source)
+                if source_id is None:
+                    logger.error(f"Invalid input source id: {source}")
+                    continue
+                source_ids.append(source_id)
+            if convert == "local":
+                source_ids = convert2local_ids(source_ids)
+            elif convert == "remote":
+                source_ids = convert2remote_ids(source_ids)
+            source_ids = [x for x in source_ids if x is not None]
+
+            if len(source_ids) == 0:
+                source = get_prev_source()
+                if source == "":
+                    logger.error(
+                        "No previous source id available,"
+                        " please first run a command with source id"
+                    )
+                    exit(-1)
+
+                source_id = source2id(source)
+                if source_id is None:
+                    logger.error(f"Invalid input source id: {source}")
+                    exit(-1)
+
+                if convert == "local":
+                    source_id = convert2local_id(source_id)
+                elif convert == "remote":
+                    source_id = convert2remote_id(source_id)
+
+                if source_id is None:
+                    logger.error(f"failed to convert to {convert} source id")
+                    exit(-1)
+                source_ids.append(source_id)
+            elif len(source_ids) == 1:
+                save_source(str(source_ids[0]))
+
+            f(*args, source_ids=source_ids, **kwargs)
+
+        return __
+
+    return _
 
 
 SEPARATOR = ":"

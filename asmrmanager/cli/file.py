@@ -10,7 +10,8 @@ from asmrmanager.cli.core import (
     multi_rj_argument,
     rj_argument,
 )
-from asmrmanager.common.rj_parse import RJID
+from asmrmanager.common.rj_parse import SourceID
+from asmrmanager.common.types import LocalSourceID
 from asmrmanager.filemanager.exceptions import DstItemAlreadyExistsException
 from asmrmanager.logger import logger
 
@@ -21,8 +22,8 @@ def file():
 
 
 @click.command("del")
-@rj_argument
-def del_(rj_id: RJID):
+@rj_argument("local")
+def del_(source_id: LocalSourceID):
     """not implemented"""
     raise NotImplementedError
     from asmrmanager.cli.core import create_fm
@@ -30,10 +31,10 @@ def del_(rj_id: RJID):
 
     fm = create_fm()
 
-    rj_path = fm.get_path(rj_id)
+    rj_path = fm.get_path(source_id)
 
     if rj_path is None:
-        logger.error(f"item {rj_id} does not exists")
+        logger.error(f"item {source_id} does not exists")
         return
 
     folders = folder_chooser_multiple(
@@ -48,7 +49,7 @@ def del_(rj_id: RJID):
 
 
 @click.command()
-@rj_argument
+@rj_argument("local")
 @click.option(
     "--regex", "-r", type=str, default=".*", help="use regex to match"
 )
@@ -61,12 +62,12 @@ def del_(rj_id: RJID):
     show_default=True,
     help="recover files that have been filtered out",
 )
-def recover(rj_id: RJID, regex: str, ignore_filter: bool):
+def recover(source_id: LocalSourceID, regex: str, ignore_filter: bool):
     """recover a file from recover file"""
 
     url2download: List[Tuple[str, Path]] = []
 
-    res = fm.load_recover(rj_id)
+    res = fm.load_recover(source_id)
     if res is None:
         return
     rj_path, recovers = res
@@ -108,7 +109,7 @@ def recover(rj_id: RJID, regex: str, ignore_filter: bool):
 
 
 @click.command()
-@multi_rj_argument
+@multi_rj_argument("local")
 @click.option(
     "--replace/--no-replace",
     "-r/-nr",
@@ -126,7 +127,7 @@ def recover(rj_id: RJID, regex: str, ignore_filter: bool):
     show_default=True,
     help="store all files",
 )
-def store(rj_ids: List[RJID], replace: bool, all_: bool):
+def store(source_ids: List[LocalSourceID], replace: bool, all_: bool):
     """
     store the downloaded files to the storage
     """
@@ -145,9 +146,9 @@ def store(rj_ids: List[RJID], replace: bool, all_: bool):
             id_to_store = fm.list_("download")
 
         else:
-            for rj_id in rj_ids:
+            for rj_id in source_ids:
                 fm.store(rj_id, replace=replace)
-            id_to_store = rj_ids
+            id_to_store = source_ids
 
         for id_ in id_to_store:
             res = db.check_exists(id_)
@@ -164,19 +165,23 @@ def store(rj_ids: List[RJID], replace: bool, all_: bool):
 
 
 @click.command()
-@rj_argument
-def diff(rj_id: RJID):
+@rj_argument("local")
+def diff(source_id: LocalSourceID):
     """
     Diff local files and the remote files,
     display files filtered, missing and added
     """
-    if res := fm.load_recover(rj_id):
-        rj_path, recovers = res
+    if res := fm.load_recover(source_id):
+        source_path, recovers = res
     else:
         return
 
     local_files = set(
-        [i.relative_to(rj_path) for i in rj_path.rglob("*") if not i.is_dir()]
+        [
+            i.relative_to(source_path)
+            for i in source_path.rglob("*")
+            if not i.is_dir()
+        ]
     )
     remote_files_should_down = set(
         [Path(i["path"]) for i in recovers if i["should_download"]]
@@ -208,7 +213,7 @@ def diff(rj_id: RJID):
     from rich import print
     from rich.tree import Tree
 
-    tree = Tree(str(rj_path))
+    tree = Tree(str(source_path))
     p2tree = {Path("."): tree}
     for file in sorted(all_files, key=lambda x: x.parts):
         # if p2tree.get(file.parent) is None:

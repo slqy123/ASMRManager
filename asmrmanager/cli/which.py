@@ -3,18 +3,19 @@ import os
 import click
 
 from asmrmanager.cli.core import rj_argument
-from asmrmanager.common.rj_parse import RJID
+from asmrmanager.common.rj_parse import SourceID
+from asmrmanager.common.types import LocalSourceID
 from asmrmanager.logger import logger
 
 
 @click.command()
-@rj_argument
+@rj_argument("local")
 @click.option("--show", is_flag=True, default=False, show_default=True)
-def which(rj_id: RJID, show: bool):
+def which(source_id: LocalSourceID, show: bool):
     """Get the path from the given rj_id"""
     from asmrmanager.cli.core import fm
 
-    path = str(fm.get_path(rj_id))
+    path = str(fm.get_path(source_id))
 
     if not show:
         click.echo(path)

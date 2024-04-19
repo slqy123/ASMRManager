@@ -1,9 +1,8 @@
 import uuid
-from collections.abc import Iterable
 from typing import Any, List, Tuple
 
-from asmrmanager.common.rj_parse import RJID
-from asmrmanager.common.types import PRIVACY, PlayListItem
+from asmrmanager.common.rj_parse import SourceID
+from asmrmanager.common.types import PRIVACY, PlayListItem, RemoteSourceID
 
 from .asmrapi import ASMRAPI
 
@@ -33,9 +32,9 @@ class ASMRPlayListAPI(ASMRAPI):
         return await self._create_playlist(name, desc, privacy.value)
 
     async def add_works_to_playlist(
-        self, rj_ids: Iterable[RJID], pl_id: uuid.UUID
+        self, source_ids: List[RemoteSourceID], pl_id: uuid.UUID
     ):
-        return await self._add_works_to_playlist(list(rj_ids), str(pl_id))
+        return await self._add_works_to_playlist(source_ids, str(pl_id))
 
     async def delete_playlist(self, pl_id: uuid.UUID):
         return await self._delete_playlist(str(pl_id))
@@ -50,7 +49,7 @@ class ASMRPlayListAPI(ASMRAPI):
                     privacy=PRIVACY(item["privacy"]),
                     desc=item["description"],
                     works_count=item["works_count"],
-                    latest_work_id=RJID(item["latestWorkID"]),
+                    latest_work_id=SourceID(item["latestWorkID"]),
                 )
             )
         return res

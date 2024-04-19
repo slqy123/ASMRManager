@@ -16,18 +16,19 @@ keywords = [
 ]
 authors = [{ name = "SLQY", email = "sqiyel@gmail.com" }]
 dependencies = [
-  "aiohttp>=3.8.6",
-  "chardet>=5.1.0",
-  "click>=8.1.3",
-  "colorlog>=6.7.0",
-  "pylrc==0.1.2",
-  "rich>=13.0.0",
-  "SQLAlchemy==2.0.10",
-  "textual==0.26.0",
-  "mutagen>=1.46.0",
-  "appdirs>=1.4.4",
-  "toml>=0.10.2",
-  "beaupy>=3.7.2",
+    "aiohttp>=3.8.6",
+    "chardet>=5.1.0",
+    "click>=8.1.3",
+    "colorlog>=6.7.0",
+    "pylrc==0.1.2",
+    "rich>=13.0.0",
+    "SQLAlchemy==2.0.10",
+    "textual==0.26.0",
+    "mutagen>=1.46.0",
+    "appdirs>=1.4.4",
+    "toml>=0.10.2",
+    "beaupy>=3.7.2",
+    "asyncstdlib>=3.12.2",
 ]
 requires-python = ">=3.10,<3.12"
 readme = "README.md"

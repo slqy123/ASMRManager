@@ -5,8 +5,18 @@ from typing import Iterable, List, Literal, NamedTuple, Tuple
 
 import toml
 
-from asmrmanager.common.rj_parse import RJID, id2rj, rj2id
-from asmrmanager.common.types import PlayListItem, RecoverRecord
+from asmrmanager.common.rj_parse import (
+    SourceID,
+    id2source_name,
+    source2id,
+    source_name2id,
+)
+from asmrmanager.common.types import (
+    LocalSourceID,
+    PlayListItem,
+    RecoverRecord,
+    SourceName,
+)
 from asmrmanager.config import config
 from asmrmanager.filemanager.appdirs_ import (
     CACHE_PATH,
@@ -119,11 +129,11 @@ class FileManager:
     def could_store(self):
         return self.storage_path_exists and self.download_path_exists
 
-    def store(self, rj_id: RJID, replace=True):
+    def store(self, source_id: LocalSourceID, replace=True):
         """sync download path and storage path"""
         # TODO 换用fcp实现？
         assert self.could_store()
-        rj_name = id2rj(rj_id)
+        rj_name = id2source_name(source_id)
         if not os.path.exists(self.download_path / rj_name):
             logger.warning(f"item {rj_name} does not exists, skip it")
             return
@@ -186,11 +196,11 @@ class FileManager:
 
     def store_all(self, replace=True):
         for file in os.listdir(self.download_path):
-            rj_id = rj2id(file)
-            if rj_id is None:
+            source_id = source_name2id(SourceName(file))
+            if source_id is None:
                 logger.warning(f"Ignore invalid file {file} in download path")
                 continue
-            self.store(rj_id, replace=replace)
+            self.store(source_id, replace=replace)
 
     def could_view(self):
         """
@@ -222,9 +232,9 @@ class FileManager:
         for subfile in src.iterdir():
             FileManager._copy(subfile, dst / subfile.name, depth - 1)
 
-    def remove_view(self, rj_id: RJID):
+    def remove_view(self, source_id: LocalSourceID):
         assert self.could_view()
-        rj_name = id2rj(rj_id)
+        rj_name = id2source_name(source_id)
 
         for path in self.view_path.iterdir():
             if path.stem != rj_name:
@@ -244,7 +254,7 @@ class FileManager:
 
     def list_(
         self, path: Literal["download", "view", "storage"]
-    ) -> Iterable[RJID]:
+    ) -> Iterable[LocalSourceID]:
         if path == "download":
             p = self.download_path
         elif path == "view":
@@ -256,7 +266,7 @@ class FileManager:
             return []
 
         for name in p.iterdir():
-            rj_id = rj2id(name.name)
+            rj_id = source_name2id(SourceName(name.name))
             if rj_id is None:
                 continue
             yield rj_id
@@ -267,24 +277,24 @@ class FileManager:
         zip_chosen_folder(src, dst)
 
     def get_location(
-        self, rj_id: RJID
+        self, source_id: LocalSourceID
     ) -> Literal["download", "storage", None]:
-        rj_name = id2rj(rj_id)
-        if (self.storage_path / rj_name).exists():
+        source_name = id2source_name(source_id)
+        if (self.storage_path / source_name).exists():
             return "storage"
-        if (self.download_path / rj_name).exists():
+        if (self.download_path / source_name).exists():
             return "download"
         return None
 
-    def get_path(self, rj_id: RJID) -> Path | None:
+    def get_path(self, source_id: LocalSourceID) -> Path | None:
         """get rj file path"""
-        res = self.get_location(rj_id)
+        res = self.get_location(source_id)
 
         match res:
             case "download":
-                return self.download_path / id2rj(rj_id)
+                return self.download_path / id2source_name(source_id)
             case "storage":
-                return self.storage_path / id2rj(rj_id)
+                return self.storage_path / id2source_name(source_id)
             case _:
                 return None
 
@@ -333,18 +343,18 @@ class FileManager:
         return False
 
     def load_recover(
-        self, rj_id: RJID
+        self, source_id: LocalSourceID
     ) -> Tuple[Path, List[RecoverRecord]] | None:
 
-        rj_path = self.get_path(rj_id)
+        rj_path = self.get_path(source_id)
         if rj_path is None:
-            logger.error(f"item {rj_id} does not exist")
+            logger.error(f"item {source_id} does not exist")
             return
 
         recover_path = rj_path / ".recover"
         if not recover_path.exists():
             logger.error(
-                f"item {rj_id} does not have recover file, please update this"
+                f"item {source_id} does not have recover file, please update this"
                 " rj id first"
             )
             return

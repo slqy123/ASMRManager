@@ -1,4 +1,4 @@
-from typing import Iterable, Tuple
+from typing import List, Tuple
 
 import click
 
@@ -13,7 +13,8 @@ from asmrmanager.cli.core import (
 )
 from asmrmanager.common.browse_params import BrowseParams
 from asmrmanager.common.download_params import DownloadParams
-from asmrmanager.common.rj_parse import RJID, id2rj
+from asmrmanager.common.rj_parse import SourceID, id2source_name
+from asmrmanager.common.types import LocalSourceID, RemoteSourceID
 from asmrmanager.logger import logger
 
 
@@ -23,65 +24,65 @@ def dl():
 
 
 @click.command()
-@multi_rj_argument
+@multi_rj_argument("remote")
 @download_param_options
-def get(rj_ids: Iterable[RJID], download_params: DownloadParams):
+def get(source_ids: List[RemoteSourceID], download_params: DownloadParams):
     """get ASMR by RJ ids"""
-    if not rj_ids:
-        logger.error("You must give at least one RJ id!")
+    if not source_ids:
+        logger.error("You must give at least one source id!")
         return
     spider, db = create_downloader_and_database(download_params)
-    spider.run(spider.get(rj_ids))
+    spider.run(spider.get(source_ids))
     db.commit()
 
 
 @click.command()
-@multi_rj_argument
-def update(rj_ids: Iterable[RJID]):
+@multi_rj_argument("remote")
+def update(source_ids: List[RemoteSourceID]):
     """update metadata, including recover file and description file"""
-    if not rj_ids:
-        logger.error("You must give at least one RJ id!")
+    if not source_ids:
+        logger.error("You must give at least one source id!")
         return
     spider, db = create_downloader_and_database(
         DownloadParams(False, False, False, True)
     )
-    spider.run(spider.update(rj_ids))
+    spider.run(spider.update(source_ids))
     db.commit()
 
 
 @click.command()
-@multi_rj_argument
-def check(rj_ids: Iterable[RJID]):
+@multi_rj_argument("local")
+def check(source_ids: List[LocalSourceID]):
     """check for existence of the file and its store field"""
     db = create_database()
     dl_queue = []
-    for rj_id in rj_ids:
-        rj = id2rj(rj_id)
+    for source_id in source_ids:
+        source_name = id2source_name(source_id)
 
-        asmr = db.check_exists(rj_id)
+        asmr = db.check_exists(source_id)
         if asmr is None:
             logger.warning(
-                f"Not found In Database: {rj}, please manually download it"
+                f"Not found In Database: {source_name}, please manually download it"
             )
             continue
 
-        src = fm.get_location(rj_id)
+        src = fm.get_location(source_id)
         if src is None:
-            logger.warning(f"Not found: {rj}, add to download")
-            dl_queue.append(rj)
+            logger.warning(f"Not found: {source_name}, add to download")
+            dl_queue.append(source_name)
             continue
 
         if src == "download" and asmr.stored:
-            logger.info(f"Already stored: {rj}, move to storage path")
-            fm.store(rj_id)
+            logger.info(f"Already stored: {source_name}, move to storage path")
+            fm.store(source_id)
             continue
 
         if src == "storage" and not asmr.stored:
-            logger.info(f"Already in storage: {rj}, update database")
+            logger.info(f"Already in storage: {source_name}, update database")
             asmr.stored = True
             continue
 
-        logger.info(f"No need to update {rj}")
+        logger.info(f"No need to update {source_name}")
     db.commit()
     print("Update succesfully.")
     if dl_queue:
