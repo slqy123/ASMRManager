@@ -3,8 +3,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import NewType, TypedDict
 
-RJID = NewType("RJID", int)
-RJName = NewType("RJName", str)
+SourceID = NewType("SourceID", int)
+SourceName = NewType("SourceName", str)
+LocalSourceID = NewType("LocalSourceID", SourceID)
+RemoteSourceID = NewType("RemoteSourceID", SourceID)
 
 
 class PRIVACY(Enum):
@@ -20,7 +22,7 @@ class PlayListItem:
     privacy: PRIVACY
     desc: str
     works_count: int
-    latest_work_id: RJID | None = None
+    latest_work_id: SourceID | None = None
 
     def asdict(self):
         return {

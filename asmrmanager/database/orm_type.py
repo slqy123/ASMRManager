@@ -2,11 +2,12 @@ from datetime import date
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from asmrmanager.common.rj_parse import RJID
+    from asmrmanager.common.rj_parse import SourceID
 
 
 class ASMRInstance:
-    id: "RJID"
+    id: "SourceID"
+    remote_id: int
     title: str
     circle_name: str
     tags: list["TagInstance"]

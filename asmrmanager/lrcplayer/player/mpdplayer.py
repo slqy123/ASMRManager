@@ -30,6 +30,19 @@ MPDStatus = NamedTuple(
     ],
 )
 
+import threading
+
+
+def do_every(interval, worker_func, iterations=0):
+    if iterations != 1:
+        threading.Timer(
+            interval,
+            do_every,
+            [interval, worker_func, 0 if iterations == 0 else iterations - 1],
+        ).start()
+
+    worker_func()
+
 
 class MPDPlayer(BasePlayer):
     bin = os.path.expanduser(config.mpd_config.bin)
@@ -49,18 +62,17 @@ class MPDPlayer(BasePlayer):
             check=check,
         ).stdout
 
-    @property
-    def _status(self):
-        status = self.client.status()
-        if status.get("song"):
-            self._index = int(status["song"])
+    def __update_status(self):
+        self.__status = self.client.status()
+        if self.__status.get("song"):
+            self._index = int(self.__status["song"])
 
-        return MPDStatus(
-            playlistlength=int(status["playlistlength"]),
-            state=status["state"],
-            song=int(status.get("song", 0)),
-            pos=int(float(status.get("elapsed", 0)) * 1000),
-            total_time=int(float(status.get("duration", 0)) * 1000),
+        self._status = MPDStatus(
+            playlistlength=int(self.__status["playlistlength"]),
+            state=self.__status["state"],
+            song=int(self.__status.get("song", 0)),
+            pos=int(float(self.__status.get("elapsed", 0)) * 1000),
+            total_time=int(float(self.__status.get("duration", 0)) * 1000),
         )
 
     def __init__(self, music_list: List[Music]) -> None:
@@ -107,6 +119,8 @@ class MPDPlayer(BasePlayer):
         self.client.play()
         self.client.single(0)
 
+        do_every(0.1, self.__update_status)
+
     def switch_music(self, index: int) -> None:
         # self.client.stop()
         self.client.play(index)
@@ -123,7 +137,8 @@ class MPDPlayer(BasePlayer):
     def pos(self, pos: int) -> None:
         if self._status.state == "stop":
             return
-        self.client.seekcur(int(pos / 1000))
+        self.client.seekcur((pos / 1000))
+        # self.__update_status()
         # self.client.pause()
         # self.client.pause()
 
@@ -134,10 +149,12 @@ class MPDPlayer(BasePlayer):
     def pause(self) -> None:
         if not self.is_paused:
             self.client.pause()
+        self.__update_status()
 
     def unpause(self) -> None:
         if self.is_paused:
             self.client.pause()
+        self.__update_status()
 
     def play(self) -> None:
         self.client.stop()

@@ -1,4 +1,6 @@
+import time
 from pathlib import Path
+from time import monotonic
 from typing import List
 
 import click
@@ -29,6 +31,7 @@ class LRCPlayer(App):
     ]
     LRC_PREV = 1
     LRC_NEXT = 1
+    OPERATION_FREQ = 0.05
 
     def __init__(self, episodes: List[Music], *args, **kwargs):
         self.episodes = episodes
@@ -46,6 +49,13 @@ class LRCPlayer(App):
                 assert False
 
         super().__init__(*args, **kwargs)
+        self.last_operation_time = monotonic()
+
+    def check_freq(self):
+        if (
+            delta := monotonic() - self.last_operation_time
+        ) < self.OPERATION_FREQ:
+            time.sleep(delta)
 
     def on_mount(self):
         self.player.play()
@@ -109,9 +119,11 @@ class LRCPlayer(App):
             self.progress_timer.resume()
 
     def action_forward(self):
+        self.check_freq()
         self.player.forward()
 
     def action_backward(self):
+        self.check_freq()
         self.player.backward()
 
     def switch_voice(self, idx: int):

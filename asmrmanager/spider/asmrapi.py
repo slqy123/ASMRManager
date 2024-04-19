@@ -4,7 +4,8 @@ from typing import Any, Dict, List, TypeVar
 from aiohttp import ClientConnectorError, ClientSession
 from aiohttp.connector import TCPConnector
 
-from asmrmanager.common.rj_parse import RJID, id2rj
+from asmrmanager.common.rj_parse import SourceID, id2source_name
+from asmrmanager.common.types import RemoteSourceID
 from asmrmanager.logger import logger
 
 T = TypeVar("T", bound="ASMRAPI")
@@ -55,9 +56,11 @@ class ASMRAPI:
                 proxy=self.proxy,
             ) as resp:
                 token = (await resp.json())["token"]
-                self.headers.update({
-                    "Authorization": f"Bearer {token}",
-                })
+                self.headers.update(
+                    {
+                        "Authorization": f"Bearer {token}",
+                    }
+                )
         except ClientConnectorError as err:
             logger.error(f"Login failed, {err}")
 
@@ -122,10 +125,12 @@ class ASMRAPI:
             },
         )
 
-    async def _add_works_to_playlist(self, rj_ids: List[RJID], pl_id: str):
+    async def _add_works_to_playlist(
+        self, source_ids: List[RemoteSourceID], pl_id: str
+    ):
         return await self.post(
             "playlist/add-works-to-playlist",
-            data={"id": pl_id, "works": rj_ids},
+            data={"id": pl_id, "works": source_ids},
         )
 
     async def _delete_playlist(self, pl_id: str):

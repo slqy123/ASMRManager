@@ -1,23 +1,24 @@
 import click
 
 from asmrmanager.cli.core import create_database, fm, rj_argument
-from asmrmanager.common.rj_parse import RJID, id2rj
+from asmrmanager.common.rj_parse import SourceID, id2source_name
+from asmrmanager.common.types import LocalSourceID
 from asmrmanager.config import config
 from asmrmanager.logger import logger
 
 
 @click.command()
 @click.pass_context
-@rj_argument
-def play(ctx: click.Context, rj_id: RJID):
+@rj_argument("local")
+def play(ctx: click.Context, source_id: LocalSourceID):
     from asmrmanager.filemanager.utils import folder_chooser
 
     """play an asmr in the terminal"""
     from asmrmanager.lrcplayer import MUSIC_SUFFIXES, lrc_play
 
-    rj_path = fm.get_path(rj_id)
+    rj_path = fm.get_path(source_id)
     if rj_path is None:
-        logger.error(f"RJ id {rj_id} not found!")
+        logger.error(f"RJ id {source_id} not found!")
         return
 
     try:
@@ -29,7 +30,8 @@ def play(ctx: click.Context, rj_id: RJID):
         )
     except ValueError:
         logger.error(
-            f"No music files{MUSIC_SUFFIXES} found, please check your local file."
+            f"No music files{MUSIC_SUFFIXES} found, please check your local"
+            " file."
         )
         exit(-1)
 

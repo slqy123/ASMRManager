@@ -13,8 +13,7 @@ from asmrmanager.cli.core import (
     multi_rj_argument,
     pl_preprocess_cb,
 )
-from asmrmanager.common.rj_parse import RJID
-from asmrmanager.common.types import PlayListItem
+from asmrmanager.common.types import PlayListItem, RemoteSourceID
 
 
 class PLID(click.ParamType):
@@ -63,11 +62,11 @@ def list_(num: int, raw: bool):
 
 @click.command()
 @click.argument("pl_id", type=PLID(), callback=pl_preprocess_cb)
-@multi_rj_argument
-def add(rj_ids: List[RJID], pl_id: uuid.UUID):
+@multi_rj_argument("remote")
+def add(source_ids: List[RemoteSourceID], pl_id: uuid.UUID):
     """add a playlist"""
     pl = create_playlist()
-    pl.run(pl.add(rj_ids, pl_id))
+    pl.run(pl.add(source_ids, pl_id))
 
 
 @click.command("rm")

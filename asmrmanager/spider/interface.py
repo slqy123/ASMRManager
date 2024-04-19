@@ -5,18 +5,22 @@ from typing import (
     Awaitable,
     Callable,
     Dict,
-    Iterable,
     List,
     Literal,
     Tuple,
     TypeVar,
 )
 
-from asmrmanager.cli.core import fm
 from asmrmanager.common.browse_params import BrowseParams
-from asmrmanager.common.rj_parse import RJID, id2rj
+from asmrmanager.common.rj_parse import (
+    SourceID,
+    id2source_name,
+    source_name2id,
+)
 from asmrmanager.common.select import select, select_multiple
+from asmrmanager.common.types import LocalSourceID, RemoteSourceID
 from asmrmanager.config import Aria2Config
+from asmrmanager.filemanager.manager import fm
 from asmrmanager.logger import logger
 from asmrmanager.spider.asmrapi import ASMRAPI
 from asmrmanager.spider.playlist import ASMRPlayListAPI
@@ -45,7 +49,7 @@ class ASMRDownloadManager(AsyncManager):
         name: str,
         password: str,
         proxy: str | None,
-        id_should_download: Callable[[RJID], bool] | None = None,
+        id_should_download: Callable[[RemoteSourceID], bool] | None = None,
         json_should_download: Callable[[Dict[str, Any]], bool] | None = None,
         name_should_download: (
             Callable[[str, Literal["directory", "file"]], bool] | None
@@ -67,13 +71,13 @@ class ASMRDownloadManager(AsyncManager):
         super().__init__(self.downloader)
         self.id_should_download = id_should_download or (lambda _: True)
 
-    async def get(self, ids: Iterable[RJID]):
+    async def get(self, ids: List[RemoteSourceID]):
         tasks = []
-        for arg in ids:
-            if not self.id_should_download(arg):
-                logger.info(f"RJ{arg} already exists.")
+        for id_ in ids:
+            if not self.id_should_download(id_):
+                logger.info(f"RJ{id_} already exists.")
                 continue
-            tasks.append(self.downloader.download(arg))
+            tasks.append(self.downloader.download(id_))
         await asyncio.gather(*tasks)
 
     async def search(
@@ -134,7 +138,10 @@ class ASMRDownloadManager(AsyncManager):
         # select RJs
         titles = [work["title"] for work in search_result["works"]]
         indexes = select_multiple(
-            [f"{id2rj(id_)} | {title}" for id_, title in zip(ids, titles)],
+            [
+                f"{id2source_name(id_)} | {title}"
+                for id_, title in zip(ids, titles)
+            ],
         )
         if not indexes:
             logger.error("Nothing was selected.")
@@ -154,9 +161,9 @@ class ASMRDownloadManager(AsyncManager):
         ids = [work["id"] for work in va_res["works"]]
         await self.get(ids)
 
-    async def update(self, ids: Iterable[RJID]):
-        async def update_one(rj_id_: RJID):
-            voice_info = await self.downloader.get_voice_info(rj_id_)
+    async def update(self, ids: List[RemoteSourceID]):
+        async def update_one(source_id_: RemoteSourceID):
+            voice_info = await self.downloader.get_voice_info(source_id_)
 
             # should_down = self.spider.json_should_download(voice_info)
             # if not should_down:
@@ -164,20 +171,25 @@ class ASMRDownloadManager(AsyncManager):
             #     return
             save_path = fm.storage_path
 
-            voice_path = save_path / id2rj(rj_id_)
+            local_source_id = source_name2id(voice_info["source_id"])
+            if local_source_id is None:
+                logger.error(f"Failded to convert {source_id_} to local id.")
+                return
+            voice_path = save_path / id2source_name(local_source_id)
+            assert voice_path.name == voice_info["source_id"]
             if not voice_path.exists():
                 logger.warning(
                     "There are no such files in your storage path for"
-                    f" RJ{rj_id_}"
+                    f" RJ{source_id_}"
                 )
 
             voice_path.mkdir(parents=True, exist_ok=True)
             self.downloader.create_info_file(voice_info, voice_path)
 
-            tracks = await self.downloader.get_voice_tracks(rj_id_)
+            tracks = await self.downloader.get_voice_tracks(source_id_)
             if isinstance(tracks, dict):
                 if error_info := tracks.get("error"):
-                    logger.error(f"RJ{rj_id_} not found, {error_info}")
+                    logger.error(f"RJ{source_id_} not found, {error_info}")
                     return
                 else:
                     logger.error("Unexpected track type: dict")
@@ -220,7 +232,7 @@ class ASMRPlayListManager(AsyncManager):
 
         fm.save_playlist_cache(playlists)
 
-    async def remove(self, pl_ids: Iterable[uuid.UUID]):
+    async def remove(self, pl_ids: List[uuid.UUID]):
         res = await asyncio.gather(*map(self.playlist.delete_playlist, pl_ids))
 
         if not isinstance(res, list):
@@ -254,8 +266,8 @@ class ASMRPlayListManager(AsyncManager):
             return
         logger.info(f"Sucessfully create playlist: {res['id']}.")
 
-    async def add(self, rj_ids: Iterable[RJID], pl_id: uuid.UUID):
-        res = await self.playlist.add_works_to_playlist(rj_ids, pl_id)
+    async def add(self, source_ids: List[RemoteSourceID], pl_id: uuid.UUID):
+        res = await self.playlist.add_works_to_playlist(source_ids, pl_id)
         if not isinstance(res, dict):
             logger.error(
                 f"Unexpected response type when add works to {pl_id}."

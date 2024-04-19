@@ -46,7 +46,7 @@ def query(keyword: str, limit: int, raw: bool):
         .group_by(ASMR.id)
     )
 
-    assert limit > 0
+    assert limit >= 0
     if limit == 0:
         res = res_query.all()
     else:

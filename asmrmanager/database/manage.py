@@ -8,6 +8,8 @@ from sqlalchemy.engine import Engine, ResultProxy
 from sqlalchemy.engine.result import Result
 from sqlalchemy.orm import Session, sessionmaker
 
+from asmrmanager.common.rj_parse import source2id, source_name2id
+from asmrmanager.common.types import LocalSourceID, RemoteSourceID, SourceID
 from asmrmanager.database.orm_type import ASMRInstance
 from asmrmanager.logger import logger
 
@@ -43,13 +45,33 @@ class DataBaseManager:
         self.session: Session = sessionmaker(self.engine)()
         self.func = QFunc(self.session)
 
-    def check_exists(self, rj_id: int) -> Union[ASMRInstance, None]:
-        return self.session.query(ASMR).get(rj_id)
+    def check_db_updated(self):
+        from sqlalchemy import inspect
+
+        inspector = inspect(self.engine)
+        columns = inspector.get_columns("asmr")
+        names = [c["name"] for c in columns]
+        return "remote_id" in names
+
+    def check_exists(
+        self, source_id: LocalSourceID | RemoteSourceID
+    ) -> Union[ASMRInstance, None]:
+        return (
+            self.session.query(ASMR).get(source_id)
+            or self.session.query(ASMR)
+            .filter_by(remote_id=source_id)
+            .one_or_none()
+        )
 
     @classmethod
     def parse_info(cls, info: Dict[str, Any]) -> ASMRInstance:
+        source = info.get("source_id")
+        assert isinstance(source, str)
+        source_id = source2id(source)
+        assert source_id is not None
         asmr = ASMR(
-            id=info["id"],
+            id=source_id,
+            remote_id=info["id"],
             title=info["title"],
             circle_name=info["name"],
             nsfw=info["nsfw"],
@@ -103,9 +125,13 @@ class DataBaseManager:
         return True
 
     def update_review(
-        self, rj_id: int, star: int, comment: str, update_stored: bool = False
+        self,
+        source_id: LocalSourceID,
+        star: int,
+        comment: str,
+        update_stored: bool = False,
     ):
-        if not (asmr := self.check_exists(rj_id)):
+        if not (asmr := self.check_exists(source_id)):
             logger.error("Incorrect RJ ID, no item in database!")
             exit(-1)
 
@@ -124,13 +150,13 @@ class DataBaseManager:
         if update_stored:
             asmr.stored = True
 
-    def hold_item(self, rj_id: int, comment: str | None):
-        if not (asmr := self.check_exists(rj_id)):
+    def hold_item(self, source_id: LocalSourceID, comment: str | None):
+        if not (asmr := self.check_exists(source_id)):
             logger.error("Incorrect RJ ID, no item in database!")
             return
 
         if asmr.held:
-            logger.warning(f"ASMR id={rj_id} has already been held!")
+            logger.warning(f"ASMR id={source_id} has already been held!")
 
         asmr.held = True
         if comment is not None:

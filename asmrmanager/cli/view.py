@@ -2,8 +2,9 @@ from typing import Literal
 
 import click
 
-from asmrmanager.cli.core import fm, id2rj, rj_argument
-from asmrmanager.common.rj_parse import RJID
+from asmrmanager.cli.core import fm, id2source_name, rj_argument
+from asmrmanager.common.rj_parse import SourceID
+from asmrmanager.common.types import LocalSourceID
 from asmrmanager.filemanager.exceptions import (
     DstItemAlreadyExistsException,
     SrcNotExistsException,
@@ -17,7 +18,7 @@ def view():
 
 
 @click.command()
-@rj_argument
+@rj_argument("local")
 @click.option(
     "--mode",
     "-m",
@@ -25,16 +26,16 @@ def view():
     default="zip",
     show_default=True,
 )
-def add(rj_id: RJID, mode: Literal["link", "zip", "adb", "copy"]):
+def add(source_id: LocalSourceID, mode: Literal["link", "zip", "adb", "copy"]):
     """add an ASMR to view path (use zip by default)"""
     from asmrmanager.cli.core import fm
     from asmrmanager.filemanager.utils import folder_chooser
 
-    src = fm.get_path(rj_id)
+    src = fm.get_path(source_id)
     if src is None:
         raise SrcNotExistsException
 
-    rj_name = id2rj(rj_id)
+    rj_name = id2source_name(source_id)
     dst = fm.view_path / rj_name
     if dst.exists():
         i = 1
@@ -67,10 +68,10 @@ def list_():
 
 
 @click.command()
-@rj_argument
-def remove(rj_id: RJID):
+@rj_argument("local")
+def remove(source_id: LocalSourceID):
     """remove a file link in view path"""
-    fm.remove_view(rj_id)
+    fm.remove_view(source_id)
 
 
 view.add_command(add)

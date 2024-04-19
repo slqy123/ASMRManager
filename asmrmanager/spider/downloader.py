@@ -2,10 +2,18 @@ import json
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Literal, TypeVar
 
+import asyncstdlib
+
+from asmrmanager.common.types import RemoteSourceID
+
 T = TypeVar("T", bound="ASMRDownloadAPI")
 
 
-from asmrmanager.common.rj_parse import RJID, id2rj
+from asmrmanager.common.rj_parse import (
+    SourceID,
+    id2source_name,
+    source_name2id,
+)
 from asmrmanager.config import Aria2Config
 from asmrmanager.logger import logger
 from asmrmanager.spider.asmrapi import ASMRAPI
@@ -51,16 +59,6 @@ class ASMRDownloadAPI(ASMRAPI):
         # self._session: Optional[ClientSession] = None  # for __aenter__
         super().__init__(name, password, proxy, limit)
         self.save_path = fm.download_path
-        # self.pop_keys = (
-        #             "create_date",
-        #             "userRating",
-        #             "review_text",
-        #             "progress",
-        #             "updated_at",
-        #             "user_name",
-        #             "rate_count_detail",
-        #             "rank"
-        #     )
         self.json_should_download = json_should_download
         self.name_should_download = name_should_download
         self.replace = replace
@@ -78,7 +76,7 @@ class ASMRDownloadAPI(ASMRAPI):
 
     async def download(
         self,
-        voice_id: int,
+        voice_id: RemoteSourceID,
         save_path: Path | None = None,
     ) -> None:
         voice_info = await self.get_voice_info(voice_id)
@@ -90,7 +88,11 @@ class ASMRDownloadAPI(ASMRAPI):
         if save_path is None:
             save_path = self.save_path
 
-        voice_path = save_path / id2rj(RJID(voice_id))
+        assert (
+            id2source_name(source_name2id(voice_info["source_id"]))
+            == voice_info["source_id"]
+        )
+        voice_path = save_path / voice_info["source_id"]
         if voice_path.exists():
             logger.warning(f"path {voice_path} already exists.")
 
@@ -124,12 +126,13 @@ class ASMRDownloadAPI(ASMRAPI):
         with open(voice_path / ".recover", "w", encoding="utf-8") as f:
             json.dump(recover, f, ensure_ascii=False, indent=4)
 
-    async def get_voice_info(self, voice_id: int) -> Dict[str, Any]:
+    @asyncstdlib.lru_cache(None)
+    async def get_voice_info(self, voice_id: RemoteSourceID) -> Dict[str, Any]:
         voice_info = await self.get(f"work/{voice_id}")
         assert isinstance(voice_info, dict)
         return voice_info
 
-    async def get_voice_tracks(self, voice_id: int):
+    async def get_voice_tracks(self, voice_id: RemoteSourceID):
         return await self.get(f"tracks/{voice_id}")
 
     @staticmethod
@@ -196,10 +199,10 @@ class ASMRDownloadAPI(ASMRAPI):
             return
 
     def create_info_file(self, voice_info: Dict[str, Any], voice_path: Path):
-        rj_name = id2rj(voice_info["id"])
+        source_name = voice_info["source_id"]
         # info中有名字信息，理论上应该是一样的，但有可能为空，所以不考虑使用
         # recv_rj_name = voice_info['original_workno']
-        json_path = voice_path / f"{rj_name}.json"
+        json_path = voice_path / f"{source_name}.json"
         if json_path.exists():
             logger.info(f"Path {json_path} already exists, update it...")
         with open(json_path, "w", encoding="utf-8") as f:
