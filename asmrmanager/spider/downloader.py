@@ -277,6 +277,7 @@ class ASMRDownloadAPI(ASMRAPI):
 
     async def __aenter__(self: T) -> T:
         await super().__aenter__()
+
         if self.download_method == "aria2":
             assert self.aria2_config
             await self.aria2_downloader.create_client(
@@ -288,4 +289,6 @@ class ASMRDownloadAPI(ASMRAPI):
 
     async def __aexit__(self, *args) -> None:
         await super().__aexit__(*args)
-        await self.aria2_downloader.close_client()
+
+        if self.download_method == "aria2":
+            await self.aria2_downloader.close_client()
