@@ -34,8 +34,8 @@ class QFunc:
             return res.name
         return None
 
-    def get_stored(self, rj_id: int):
-        res = self.ss.query(ASMR).get(rj_id)
+    def get_stored(self, source_id: LocalSourceID):
+        res = self.ss.query(ASMR).get(source_id)
         return res.stored if res is not None else None
 
     def get_local_id(self, remote_id: int) -> int | None:

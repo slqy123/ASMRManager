@@ -75,7 +75,7 @@ class ASMRDownloadManager(AsyncManager):
         tasks = []
         for id_ in ids:
             if not self.id_should_download(id_):
-                logger.info(f"RJ{id_} already exists.")
+                logger.info(f"Remote ID: {id_} already exists.")
                 continue
             tasks.append(self.downloader.download(id_))
         await asyncio.gather(*tasks)

@@ -12,7 +12,7 @@ from asmrmanager.logger import logger
 @rj_argument("local")
 @click.option("--show", is_flag=True, default=False, show_default=True)
 def which(source_id: LocalSourceID, show: bool):
-    """Get the path from the given rj_id"""
+    """Get the path from the given source_id"""
     from asmrmanager.cli.core import fm
 
     path = str(fm.get_path(source_id))
