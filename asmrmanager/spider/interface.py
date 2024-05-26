@@ -12,15 +12,11 @@ from typing import (
 )
 
 from asmrmanager.common.browse_params import BrowseParams
-from asmrmanager.common.rj_parse import (
-    SourceID,
-    id2source_name,
-    source_name2id,
-)
-from asmrmanager.common.select import select, select_multiple
-from asmrmanager.common.types import LocalSourceID, RemoteSourceID
+from asmrmanager.common.rj_parse import id2source_name, source_name2id
+from asmrmanager.common.select import select_multiple
+from asmrmanager.common.types import RemoteSourceID
 from asmrmanager.config import Aria2Config
-from asmrmanager.filemanager.manager import fm
+from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
 from asmrmanager.spider.asmrapi import ASMRAPI
 from asmrmanager.spider.playlist import ASMRPlayListAPI
@@ -28,6 +24,7 @@ from asmrmanager.spider.playlist import ASMRPlayListAPI
 from .downloader import ASMRDownloadAPI
 
 T = TypeVar("T", bound=Any)
+fm = FileManager.get_fm()
 
 
 class AsyncManager:

@@ -9,11 +9,7 @@ from asmrmanager.common.types import RemoteSourceID
 T = TypeVar("T", bound="ASMRDownloadAPI")
 
 
-from asmrmanager.common.rj_parse import (
-    SourceID,
-    id2source_name,
-    source_name2id,
-)
+from asmrmanager.common.rj_parse import id2source_name, source_name2id
 from asmrmanager.config import Aria2Config
 from asmrmanager.logger import logger
 from asmrmanager.spider.asmrapi import ASMRAPI
@@ -32,7 +28,9 @@ except (ImportError, ModuleNotFoundError):
 
 from typing import NamedTuple
 
-from asmrmanager.filemanager.manager import fm
+from asmrmanager.filemanager.manager import FileManager
+
+fm = FileManager.get_fm()
 
 # TODO 统一管理固定的参数
 

@@ -5,19 +5,13 @@ from typing import Iterable, List, Literal, NamedTuple, Tuple
 
 import toml
 
-from asmrmanager.common.rj_parse import (
-    SourceID,
-    id2source_name,
-    source2id,
-    source_name2id,
-)
+from asmrmanager.common.rj_parse import id2source_name, source_name2id
 from asmrmanager.common.types import (
     LocalSourceID,
     PlayListItem,
     RecoverRecord,
     SourceName,
 )
-from asmrmanager.config import config
 from asmrmanager.filemanager.appdirs_ import (
     CACHE_PATH,
     CONFIG_PATH,
@@ -34,6 +28,7 @@ class FileManager:
     DATA_PATH = DATA_PATH
     LOG_PATH = LOG_PATH
     CACHE_PATH = CACHE_PATH
+    __instance = None
 
     @classmethod
     def init_config(cls):
@@ -366,5 +361,12 @@ class FileManager:
         )
         return rj_path, recovers
 
+    @classmethod
+    def get_fm(cls):
+        from asmrmanager.config import config
 
-fm = FileManager(config.storage_path, config.download_path, config.view_path)
+        if cls.__instance is None:
+            cls.__instance = cls(
+                config.storage_path, config.download_path, config.view_path
+            )
+        return cls.__instance

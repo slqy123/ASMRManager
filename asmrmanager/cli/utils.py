@@ -37,7 +37,9 @@ def migrate():
 @rj_argument("local")
 def convert(source_id: LocalSourceID, mode: Literal["lrc", "mp3", "flac"]):
     """convert file format and replace the existing file"""
-    from asmrmanager.filemanager.manager import fm
+    from asmrmanager.filemanager.manager import FileManager
+
+    fm = FileManager.get_fm()
 
     path = fm.get_path(source_id)
     if path is None:

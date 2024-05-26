@@ -17,9 +17,11 @@ from asmrmanager.common.rj_parse import (
 )
 from asmrmanager.common.types import LocalSourceID, RemoteSourceID, SourceID
 from asmrmanager.config import config
-from asmrmanager.filemanager.manager import fm
+from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
 from asmrmanager.spider.asmrapi import ASMRAPI
+
+fm = FileManager.get_fm()
 
 if config.api_channel:
     ASMRAPI.set_api_channel(config.api_channel)
