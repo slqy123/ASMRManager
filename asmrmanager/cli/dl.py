@@ -13,7 +13,7 @@ from asmrmanager.cli.core import (
 )
 from asmrmanager.common.browse_params import BrowseParams
 from asmrmanager.common.download_params import DownloadParams
-from asmrmanager.common.rj_parse import SourceID, id2source_name
+from asmrmanager.common.rj_parse import id2source_name
 from asmrmanager.common.types import LocalSourceID, RemoteSourceID
 from asmrmanager.logger import logger
 

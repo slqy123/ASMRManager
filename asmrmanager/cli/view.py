@@ -3,12 +3,8 @@ from typing import Literal
 import click
 
 from asmrmanager.cli.core import fm, id2source_name, rj_argument
-from asmrmanager.common.rj_parse import SourceID
 from asmrmanager.common.types import LocalSourceID
-from asmrmanager.filemanager.exceptions import (
-    DstItemAlreadyExistsException,
-    SrcNotExistsException,
-)
+from asmrmanager.filemanager.exceptions import SrcNotExistsException
 from asmrmanager.logger import logger
 
 

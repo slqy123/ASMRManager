@@ -4,7 +4,6 @@ from typing import Any, Dict, List, TypeVar
 from aiohttp import ClientConnectorError, ClientSession
 from aiohttp.connector import TCPConnector
 
-from asmrmanager.common.rj_parse import SourceID, id2source_name
 from asmrmanager.common.types import RemoteSourceID
 from asmrmanager.logger import logger
 

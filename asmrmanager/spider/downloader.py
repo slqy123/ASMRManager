@@ -68,7 +68,8 @@ class ASMRDownloadAPI(ASMRAPI):
 
         if ARIA2_EXIST:
             assert Aria2Downloader
-            self.aria2_downloader = Aria2Downloader(proxy)
+            # 不默认使用配置文件中的proxy，可以在aria2.conf中自行添加all-proxy配置
+            self.aria2_downloader = Aria2Downloader(None)
         self.aria2_config = aria2_config
         self.download_method = download_method
 

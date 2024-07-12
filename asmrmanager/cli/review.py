@@ -1,7 +1,6 @@
 import click
 
 from asmrmanager.cli.core import rj_argument
-from asmrmanager.common.rj_parse import SourceID
 from asmrmanager.common.types import LocalSourceID
 from asmrmanager.logger import logger
 

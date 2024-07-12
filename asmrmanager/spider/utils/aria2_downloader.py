@@ -4,8 +4,6 @@ from typing import Any
 
 import aioaria2
 
-from asmrmanager.logger import logger
-
 
 class Aria2Downloader:
     def __init__(

@@ -5,7 +5,7 @@
 groups = ["default", "aria2", "dev"]
 strategy = ["cross_platform"]
 lock_version = "4.4.1"
-content_hash = "sha256:ba7184d0c9d75783e3907cc7fb2575182f88c6eb2843db7ffb076f9222f3bec7"
+content_hash = "sha256:b8af18e59c7dfc4c651d3d80cb5a90867c80c036ba02a5b74dbcf86a4db298a5"
 
 [[package]]
 name = "aioaria2"

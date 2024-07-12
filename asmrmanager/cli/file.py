@@ -10,7 +10,6 @@ from asmrmanager.cli.core import (
     multi_rj_argument,
     rj_argument,
 )
-from asmrmanager.common.rj_parse import SourceID
 from asmrmanager.common.types import LocalSourceID
 from asmrmanager.filemanager.exceptions import DstItemAlreadyExistsException
 from asmrmanager.logger import logger

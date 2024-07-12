@@ -6,7 +6,6 @@ from asmrmanager.cli.core import (
     create_downloader_and_database,
     rj_argument,
 )
-from asmrmanager.common.rj_parse import SourceID
 from asmrmanager.common.types import LocalSourceID, RemoteSourceID
 from asmrmanager.database.orm_type import ASMRInstance
 from asmrmanager.logger import logger

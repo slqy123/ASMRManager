@@ -233,13 +233,11 @@ class ASMRPlayListManager(AsyncManager):
         res = await asyncio.gather(*map(self.playlist.delete_playlist, pl_ids))
 
         if not isinstance(res, list):
-            logger.error(f"Unexpected response type when delete playlists.")
+            logger.error("Unexpected response type when delete playlists.")
             return
         for r in res:
             if not isinstance(r, dict):
-                logger.error(
-                    f"Unexpected response type when delete playlists."
-                )
+                logger.error("Unexpected response type when delete playlists.")
                 return
             if r.get("error"):
                 logger.error(f"Error when delete playlists: {r}")
@@ -256,7 +254,7 @@ class ASMRPlayListManager(AsyncManager):
 
         res = await self.playlist.create_playlist(name, desc, PRIVACY[privacy])
         if not isinstance(res, dict):
-            logger.error(f"Unexpected response type when create playlist.")
+            logger.error("Unexpected response type when create playlist.")
             return
         if res.get("error"):
             logger.error(f"Error when creating playlist:{res}")

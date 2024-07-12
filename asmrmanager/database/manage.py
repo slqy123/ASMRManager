@@ -8,8 +8,8 @@ from sqlalchemy.engine import Engine, ResultProxy
 from sqlalchemy.engine.result import Result
 from sqlalchemy.orm import Session, sessionmaker
 
-from asmrmanager.common.rj_parse import source2id, source_name2id
-from asmrmanager.common.types import LocalSourceID, RemoteSourceID, SourceID
+from asmrmanager.common.rj_parse import source2id
+from asmrmanager.common.types import LocalSourceID, RemoteSourceID
 from asmrmanager.database.orm_type import ASMRInstance
 from asmrmanager.logger import logger
 

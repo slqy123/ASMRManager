@@ -43,7 +43,7 @@ class BasePlayer:
         return self.current.path.stem
 
     def switch_music(self, index: int) -> None:
-        raise NotImplemented
+        raise NotImplementedError
 
     def next(self) -> None:
         if self._index + 1 < self.music_list_len:
@@ -61,31 +61,31 @@ class BasePlayer:
 
     @property
     def is_playing(self) -> bool:
-        raise NotImplemented
+        raise NotImplementedError
 
     @property
     def pos(self) -> int:
-        raise NotImplemented
+        raise NotImplementedError
 
     @pos.setter
     def pos(self, pos: int) -> None:
-        raise NotImplemented
+        raise NotImplementedError
 
     @property
     def is_paused(self) -> bool:
-        raise NotImplemented
+        raise NotImplementedError
 
     def pause(self) -> None:
-        raise NotImplemented
+        raise NotImplementedError
 
     def unpause(self) -> None:
-        raise NotImplemented
+        raise NotImplementedError
 
     def play(self) -> None:
-        raise NotImplemented
+        raise NotImplementedError
 
     def stop(self) -> None:
-        raise NotImplemented
+        raise NotImplementedError
 
     def forward(self) -> None:
         if self.lrc is None:
