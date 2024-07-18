@@ -14,7 +14,7 @@ from typing import (
 from asmrmanager.common.browse_params import BrowseParams
 from asmrmanager.common.rj_parse import id2source_name, source_name2id
 from asmrmanager.common.select import select_multiple
-from asmrmanager.common.types import RemoteSourceID
+from asmrmanager.common.types import RemoteSourceID, SourceName
 from asmrmanager.config import Aria2Config
 from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
@@ -126,18 +126,23 @@ class ASMRDownloadManager(AsyncManager):
         else:
             logger.info(f"list works with {params}")
             search_result = await self.downloader.list(params=params.params)
-        ids = [work["id"] for work in search_result["works"]]
+        ids: List[RemoteSourceID] = [
+            work["id"] for work in search_result["works"]
+        ]
 
         if all_:
             await self.get(ids)
             return
 
         # select RJs
+        source_names: List[SourceName] = [
+            work["source_id"] for work in search_result["works"]
+        ]
         titles = [work["title"] for work in search_result["works"]]
         indexes = select_multiple(
             [
-                f"{id2source_name(id_)} | {title}"
-                for id_, title in zip(ids, titles)
+                f"{source_name} | {title}"
+                for source_name, title in zip(source_names, titles)
             ],
         )
         if not indexes:
