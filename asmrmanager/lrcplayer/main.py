@@ -69,9 +69,9 @@ class LRCPlayer(App):
         lrc_data = self.player.get_lrc(self.LRC_PREV, self.LRC_NEXT)
 
         self.query_one(ProgressBar).update(progress=lrc_data.progress)
-        for i, l in enumerate(self.query(".lyrics")):
-            assert isinstance(l, Label)
-            l.update(lrc_data.lyrics[i])
+        for i, lrc in enumerate(self.query(".lyrics")):
+            assert isinstance(lrc, Label)
+            lrc.update(lrc_data.lyrics[i])
 
         # 更新播放时间
         # 格式化成 x:xx / x:xx
@@ -144,7 +144,6 @@ class LRCPlayer(App):
     "path", type=click.Path(exists=True, dir_okay=True, path_type=Path)
 )
 def main(path: Path):
-
     if not (FileManager.CONFIG_PATH / "mpd.conf").exists():
         FileManager.init_mpd()
 

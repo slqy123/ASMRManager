@@ -8,7 +8,7 @@ from sqlalchemy.engine import Engine, ResultProxy
 from sqlalchemy.engine.result import Result
 from sqlalchemy.orm import Session, sessionmaker
 
-from asmrmanager.common.rj_parse import source2id
+from asmrmanager.common.rj_parse import is_local_source_id, source2id
 from asmrmanager.common.types import LocalSourceID, RemoteSourceID
 from asmrmanager.database.orm_type import ASMRInstance
 from asmrmanager.logger import logger
@@ -69,6 +69,7 @@ class DataBaseManager:
         assert isinstance(source, str)
         source_id = source2id(source)
         assert source_id is not None
+        assert is_local_source_id(source_id)
         asmr = ASMR(
             id=source_id,
             remote_id=info["id"],

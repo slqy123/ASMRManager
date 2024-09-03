@@ -340,7 +340,6 @@ class FileManager:
     def load_recover(
         self, source_id: LocalSourceID
     ) -> Tuple[Path, List[RecoverRecord]] | None:
-
         rj_path = self.get_path(source_id)
         if rj_path is None:
             logger.error(f"item {source_id} does not exist")

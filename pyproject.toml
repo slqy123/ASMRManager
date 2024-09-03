@@ -74,5 +74,8 @@ line_length = 79
 [tool.autoflake]
 ignore-init-module-imports = true
 
+[tool.ruff]
+line-length = 79
+
 [tool.ruff.lint]
 ignore = ['E402']

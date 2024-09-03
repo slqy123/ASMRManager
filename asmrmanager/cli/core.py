@@ -254,7 +254,8 @@ def convert2local_ids(
     )
 
 
-convert2local_id = lambda x: convert2local_ids([x])[0]
+def convert2local_id(x):
+    return convert2local_ids([x])[0]
 
 
 def convert2remote_ids(
@@ -288,7 +289,8 @@ def convert2remote_ids(
     )
 
 
-convert2remote_id = lambda x: convert2remote_ids([x])[0]
+def convert2remote_id(x):
+    return convert2remote_ids([x])[0]
 
 
 def rj_argument(convert: Literal[False, "local", "remote"] = False):
@@ -312,9 +314,9 @@ def rj_argument(convert: Literal[False, "local", "remote"] = False):
             if source_id is None:
                 logger.error(f"Invalid input source id: {source}")
                 exit(-1)
-            if convert == "local":
+            if convert == "local" and not is_local_source_id(source_id):
                 source_id = convert2local_id(source_id)
-            elif convert == "remote":
+            elif convert == "remote" and not is_remote_source_id(source_id):
                 source_id = convert2remote_id(source_id)
 
             if source_id is None:

@@ -1,19 +1,19 @@
 from typing import Iterable, List
 
-from .types import LocalSourceID, SourceID, SourceName
+from .types import LocalSourceID, RemoteSourceID, SourceID, SourceName
 
 
-def source2id(source: str) -> LocalSourceID | None:
+def source2id(source: str) -> SourceID | None:
     try:
         match source[:2]:
             case "RJ":
-                return LocalSourceID(SourceID(int(source[2:])))
+                return SourceID(int(source[2:]))
             case "VJ":
-                return LocalSourceID(SourceID(int(source[2:]) + 3 * 10**8))
+                return SourceID(int(source[2:]) + 3 * 10**8)
             case "BJ":
-                return LocalSourceID(SourceID(int(source[2:]) + 4 * 10**8))
+                return SourceID(int(source[2:]) + 4 * 10**8)
             case _:
-                return LocalSourceID(SourceID(int(source)))
+                return SourceID(int(source))
     except ValueError:
         return None
 
@@ -30,7 +30,7 @@ def sources2ids(sources: Iterable[str]) -> Iterable[SourceID | None]:
     return [source2id(source) for source in sources]
 
 
-def source_name2id(source_name: SourceName) -> LocalSourceID:
+def source_name2id(source_name: SourceName) -> SourceID:
     source_id = source2id(source_name)
     assert source_id is not None
     return source_id
