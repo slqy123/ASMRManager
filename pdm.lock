@@ -4,8 +4,11 @@
 [metadata]
 groups = ["default", "aria2", "dev"]
 strategy = ["cross_platform"]
-lock_version = "4.4.1"
-content_hash = "sha256:b8af18e59c7dfc4c651d3d80cb5a90867c80c036ba02a5b74dbcf86a4db298a5"
+lock_version = "4.5.0"
+content_hash = "sha256:405ca052e57e275c9182a79437713512ffa42a47a644109e5bb4cd65e25278c5"
+
+[[metadata.targets]]
+requires_python = ">=3.10"
 
 [[package]]
 name = "aioaria2"
@@ -121,6 +124,9 @@ name = "async-timeout"
 version = "4.0.3"
 requires_python = ">=3.7"
 summary = "Timeout context manager for asyncio programs"
+dependencies = [
+    "typing-extensions>=3.6.5; python_version < \"3.8\"",
+]
 files = [
     {file = "async-timeout-4.0.3.tar.gz", hash = "sha256:4640d96be84d82d02ed59ea2b7105a0f7b33abe8703703cd0ab0bf87c427522f"},
     {file = "async_timeout-4.0.3-py3-none-any.whl", hash = "sha256:7405140ff1230c310e51dc27b3145b9092d659ce68ff733fb0cefe3ee42be028"},
@@ -141,6 +147,9 @@ name = "attrs"
 version = "23.1.0"
 requires_python = ">=3.7"
 summary = "Classes Without Boilerplate"
+dependencies = [
+    "importlib-metadata; python_version < \"3.8\"",
+]
 files = [
     {file = "attrs-23.1.0-py3-none-any.whl", hash = "sha256:1f28b4522cdc2fb4256ac1a020c78acf9cba2c6b461ccd2c126f3aa8e8335d04"},
     {file = "attrs-23.1.0.tar.gz", hash = "sha256:6279836d581513a26f1bf235f9acd333bc9115683f14f7e8fae46c98fc50e015"},
@@ -224,6 +233,7 @@ requires_python = ">=3.7"
 summary = "Composable command line interface toolkit"
 dependencies = [
     "colorama; platform_system == \"Windows\"",
+    "importlib-metadata; python_version < \"3.8\"",
 ]
 files = [
     {file = "click-8.1.7-py3-none-any.whl", hash = "sha256:ae74fb96c20a0277a1d615f1e4d73c8414f5a98db8b799a7931d1582f3390c28"},
@@ -356,6 +366,7 @@ version = "6.8.0"
 requires_python = ">=3.8"
 summary = "Read metadata from Python packages"
 dependencies = [
+    "typing-extensions>=3.6.4; python_version < \"3.8\"",
     "zipp>=0.5",
 ]
 files = [
@@ -393,6 +404,7 @@ requires_python = ">=3.7"
 summary = "Python port of markdown-it. Markdown parsing, done right!"
 dependencies = [
     "mdurl~=0.1",
+    "typing-extensions>=3.7.4; python_version < \"3.8\"",
 ]
 files = [
     {file = "markdown-it-py-2.2.0.tar.gz", hash = "sha256:7c9a5e412688bc771c67432cbfebcdd686c93ce6484913dccf06cb5a0bea35a1"},
@@ -495,6 +507,16 @@ summary = "Type system extensions for programs checked with the mypy type checke
 files = [
     {file = "mypy_extensions-1.0.0-py3-none-any.whl", hash = "sha256:4392f6c0eb8a5668a69e23d168ffa70f0be9ccfd32b5cc2d26a34ae5b844552d"},
     {file = "mypy_extensions-1.0.0.tar.gz", hash = "sha256:75dbf8955dc00442a438fc4d0666508a9a97b6bd41aa2f0ffe9d2f2725af0782"},
+]
+
+[[package]]
+name = "objprint"
+version = "0.2.3"
+requires_python = ">=3.6"
+summary = "A library that can print Python objects in human readable format"
+files = [
+    {file = "objprint-0.2.3-py3-none-any.whl", hash = "sha256:1721e6f97bae5c5b86c2716a0d45a9dd2c9a4cd9f52cfc8a0dfbe801805554cb"},
+    {file = "objprint-0.2.3.tar.gz", hash = "sha256:73d0ad5a7c3151fce634c8892e5c2a050ccae3b1a353bf1316f08b7854da863b"},
 ]
 
 [[package]]
@@ -626,6 +648,7 @@ summary = "Render rich text, tables, progress bars, syntax highlighting, markdow
 dependencies = [
     "markdown-it-py>=2.2.0",
     "pygments<3.0.0,>=2.13.0",
+    "typing-extensions<5.0,>=4.0.0; python_version < \"3.9\"",
 ]
 files = [
     {file = "rich-13.7.1-py3-none-any.whl", hash = "sha256:4edbae314f59eb482f54e9e30bf00d33350aaa94f4bfcd4e9e3110e64d0d7222"},
@@ -639,6 +662,7 @@ requires_python = ">=3.7"
 summary = "Database Abstraction Library"
 dependencies = [
     "greenlet!=0.4.17; platform_machine == \"win32\" or platform_machine == \"WIN32\" or platform_machine == \"AMD64\" or platform_machine == \"amd64\" or platform_machine == \"x86_64\" or platform_machine == \"ppc64le\" or platform_machine == \"aarch64\"",
+    "importlib-metadata; python_version < \"3.8\"",
     "typing-extensions>=4.2.0",
 ]
 files = [
@@ -719,6 +743,39 @@ files = [
 ]
 
 [[package]]
+name = "viztracer"
+version = "0.16.3"
+requires_python = ">=3.8"
+summary = "A debugging and profiling tool that can trace and visualize python code execution"
+dependencies = [
+    "objprint>0.1.3",
+]
+files = [
+    {file = "viztracer-0.16.3-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:3a39fcee0ffd35639b75565afce9a48ea92a4386f4c2f4a2752b4ec068f273cb"},
+    {file = "viztracer-0.16.3-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:c223312ecf4adb2271ca4ea84b546b278ec2dbe15b5ace5aa630cb07c2b53d4f"},
+    {file = "viztracer-0.16.3-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1320a6ebb89d691a1eced48f5d842d5d459d79bf85ad4fbf004e46bbf417c0d5"},
+    {file = "viztracer-0.16.3-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:1a96df402baacdca90c23559c4632e517db2e91628d191a7670d95809960ca8e"},
+    {file = "viztracer-0.16.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ff04b25518eac932fec618c8297794c9894ac75db543b1c872cea945ae986feb"},
+    {file = "viztracer-0.16.3-cp310-cp310-win32.whl", hash = "sha256:8f56dad6111e1f3a0bd1f6de541d87c0c145fd88d4fd2b613b0c0d1f538b1a29"},
+    {file = "viztracer-0.16.3-cp310-cp310-win_amd64.whl", hash = "sha256:59c32b87b4c5ba25b78dcb993b255512106b669042ce2b31bb7b6a92edc43d67"},
+    {file = "viztracer-0.16.3-cp311-cp311-macosx_10_15_x86_64.whl", hash = "sha256:cca0a017635f6ade7cd73474bcdc19b2730cdc468f338912afe749234c6ebe30"},
+    {file = "viztracer-0.16.3-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:8d6a938c197f4f723ad2f8d7b8e1aa0449e249dd4702e67445aaf42392786378"},
+    {file = "viztracer-0.16.3-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8721e1fd177b4abff0cbee141a31d6b819867833c92866f238815b321178c6df"},
+    {file = "viztracer-0.16.3-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:73c0e88ecc68572599405cca54f52d7d9b7dc811992bf8edbee1860486627542"},
+    {file = "viztracer-0.16.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:73697d43ed42f6e5110166387c3b4d76b4e181bf70822bac3f7f3e39b12be21e"},
+    {file = "viztracer-0.16.3-cp311-cp311-win32.whl", hash = "sha256:dac628f38a23154a184bd5f37e215d8ada83e33892593036112584dec83b7369"},
+    {file = "viztracer-0.16.3-cp311-cp311-win_amd64.whl", hash = "sha256:13df50118ff0e3266c32b66f0ff26df202f7c4d9583a550dc537098303141cec"},
+    {file = "viztracer-0.16.3-cp312-cp312-macosx_10_15_x86_64.whl", hash = "sha256:4f07b263abe9ade8390253eebdd4658eb44288e98d1b7b9afae42a54d15197f1"},
+    {file = "viztracer-0.16.3-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:6f4b0b59cd97f7d6fb37766105cb062d042df87648670f560a3d730050026087"},
+    {file = "viztracer-0.16.3-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:2a2f9b2bf4f8e051cf9ee70bd7e6ff91c33239bcd01fa37005423915bfccaa64"},
+    {file = "viztracer-0.16.3-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:69971a9b24801259511545ec2a3b5a4f90733f64fca799268fb6d64d72c9e93e"},
+    {file = "viztracer-0.16.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a2f208a89c79a87ba563ee39f035df924a0109c4a2300a8098181e25f1f8afea"},
+    {file = "viztracer-0.16.3-cp312-cp312-win32.whl", hash = "sha256:bf23e06d8f9a870711a3441123c364ac6a5d0caa288c6acdd116212f81e46b2a"},
+    {file = "viztracer-0.16.3-cp312-cp312-win_amd64.whl", hash = "sha256:594e9dabf5cca584654d6813844be0377ae292e8dd507a013e9e427fd10d6fbd"},
+    {file = "viztracer-0.16.3.tar.gz", hash = "sha256:943cb874cf92cdc786cd87938ac64ea081e3ae06ef73f577deac5b4a2a9621d5"},
+]
+
+[[package]]
 name = "yarl"
 version = "1.9.2"
 requires_python = ">=3.7"
@@ -726,6 +783,7 @@ summary = "Yet another URL library"
 dependencies = [
     "idna>=2.0",
     "multidict>=4.0",
+    "typing-extensions>=3.7.4; python_version < \"3.8\"",
 ]
 files = [
     {file = "yarl-1.9.2-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:8c2ad583743d16ddbdf6bb14b5cd76bf43b0d0006e918809d5d4ddf7bde8dd82"},

@@ -58,6 +58,7 @@ dev = [
     "autoflake>=2.2.1",
     "isort>=5.13.2",
     "pyinstrument>=4.6.2",
+    "viztracer>=0.16.3",
 ]
 
 all = ['asmrmanager[aria2,idm,tui,pygame,mpd]']
@@ -72,3 +73,6 @@ line_length = 79
 
 [tool.autoflake]
 ignore-init-module-imports = true
+
+[tool.ruff.lint]
+ignore = ['E402']
