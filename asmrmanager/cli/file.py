@@ -10,6 +10,7 @@ from asmrmanager.cli.core import (
     multi_rj_argument,
     rj_argument,
 )
+from asmrmanager.common.rj_parse import id2source_name
 from asmrmanager.common.types import LocalSourceID
 from asmrmanager.filemanager.exceptions import DstItemAlreadyExistsException
 from asmrmanager.logger import logger
@@ -69,13 +70,17 @@ def recover(source_id: LocalSourceID, regex: str, ignore_filter: bool):
     res = fm.load_recover(source_id)
     if res is None:
         return
-    rj_path, recovers = res
+    recovers = res
+
+    files = fm.get_all_files(source_id)
 
     for recover in recovers:
         rel_path = recover["path"]
 
-        recover_file = rj_path / rel_path
-        if recover_file.exists():
+        # recover_file = rj_path / rel_path
+        # if recover_file.exists():
+        #     continue
+        if rel_path in files:
             continue
 
         if not re.search(regex, rel_path):
@@ -93,7 +98,7 @@ def recover(source_id: LocalSourceID, regex: str, ignore_filter: bool):
                     f"recover file {rel_path} since filters are ignored"
                 )
 
-        url2download.append((recover["url"], recover_file))
+        url2download.append((recover["url"], fm.download_path / rel_path))
 
     from asmrmanager.cli.core import create_downloader_and_database
 
@@ -171,17 +176,12 @@ def diff(source_id: LocalSourceID):
     display files filtered, missing and added
     """
     if res := fm.load_recover(source_id):
-        source_path, recovers = res
+        recovers = res
     else:
         return
 
-    local_files = set(
-        [
-            i.relative_to(source_path)
-            for i in source_path.rglob("*")
-            if not i.is_dir()
-        ]
-    )
+    local_files = fm.get_all_files(source_id)
+
     remote_files_should_down = set(
         [Path(i["path"]) for i in recovers if i["should_download"]]
     )
@@ -212,7 +212,7 @@ def diff(source_id: LocalSourceID):
     from rich import print
     from rich.tree import Tree
 
-    tree = Tree(str(source_path))
+    tree = Tree(id2source_name(source_id))
     p2tree = {Path("."): tree}
     for file in sorted(all_files, key=lambda x: x.parts):
         # if p2tree.get(file.parent) is None:
@@ -228,7 +228,43 @@ def diff(source_id: LocalSourceID):
     print(tree)
 
 
+@click.command()
+@click.option(
+    "--list",
+    "list_",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="only list source id (pipe it to `dl get --force` to redownload them)",
+)
+def check(list_: bool):
+    """
+    check for download path for files to be downloaded without missing or failed
+    """
+    source_ids = fm.list_("download")
+    for source_id in source_ids:
+        if res := fm.load_recover(source_id):
+            recovers = res
+        else:
+            logger.error(f"failed to load recover for id {source_id}")
+            return
+
+        local_files = fm.get_all_files(source_id)
+        remote_files_should_down = set(
+            [Path(i["path"]) for i in recovers if i["should_download"]]
+        )
+        should_download_but_missing = remote_files_should_down - local_files
+        if len(should_download_but_missing):
+            logger.error(
+                f"source_id {source_id} has missing files:\n"
+                + "\n".join(str(p) for p in should_download_but_missing)
+            )
+            if list_:
+                print(source_id)
+
+
 file.add_command(del_)
 file.add_command(recover)
 file.add_command(store)
 file.add_command(diff)
+file.add_command(check)

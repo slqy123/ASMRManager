@@ -30,13 +30,15 @@ def sources2ids(sources: Iterable[str]) -> Iterable[SourceID | None]:
     return [source2id(source) for source in sources]
 
 
-def source_name2id(source_name: SourceName) -> SourceID:
+def source_name2id(source_name: SourceName) -> LocalSourceID:
     source_id = source2id(source_name)
     assert source_id is not None
-    return source_id
+    return LocalSourceID(source_id)
 
 
-def source_names2ids(source_ids: Iterable[SourceName]) -> Iterable[SourceID]:
+def source_names2ids(
+    source_ids: Iterable[SourceName],
+) -> Iterable[LocalSourceID]:
     return [source_name2id(source_id) for source_id in source_ids]
 
 

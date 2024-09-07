@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Iterable, List, Literal, NamedTuple, Tuple
+from typing import Iterable, List, Literal, NamedTuple, Set, Tuple
 
 import toml
 
@@ -272,18 +272,28 @@ class FileManager:
         zip_chosen_folder(src, dst)
 
     def get_location(
-        self, source_id: LocalSourceID
+        self,
+        source_id: LocalSourceID,
+        prefer: Literal["storage", "download"] = "storage",
     ) -> Literal["download", "storage", None]:
         source_name = id2source_name(source_id)
-        if (self.storage_path / source_name).exists():
+        storage_exists = (self.storage_path / source_name).exists()
+        download_exists = (self.download_path / source_name).exists()
+        if storage_exists and download_exists:
+            return prefer
+        if storage_exists:
             return "storage"
-        if (self.download_path / source_name).exists():
+        if download_exists:
             return "download"
         return None
 
-    def get_path(self, source_id: LocalSourceID) -> Path | None:
+    def get_path(
+        self,
+        source_id: LocalSourceID,
+        prefer: Literal["storage", "download"] = "storage",
+    ) -> Path | None:
         """get rj file path"""
-        res = self.get_location(source_id)
+        res = self.get_location(source_id, prefer=prefer)
 
         match res:
             case "download":
@@ -339,8 +349,9 @@ class FileManager:
 
     def load_recover(
         self, source_id: LocalSourceID
-    ) -> Tuple[Path, List[RecoverRecord]] | None:
-        rj_path = self.get_path(source_id)
+    ) -> List[RecoverRecord] | None:
+        """load recover file of source ID(choose download path first)"""
+        rj_path = self.get_path(source_id, prefer="download")
         if rj_path is None:
             logger.error(f"item {source_id} does not exist")
             return
@@ -358,7 +369,26 @@ class FileManager:
         recovers: List[RecoverRecord] = json.loads(
             recover_path.read_text(encoding="utf8")
         )
-        return rj_path, recovers
+        return recovers
+
+    def get_all_files(self, source_id: LocalSourceID) -> Set[Path]:
+        """get all files of source ID both in download and storage path"""
+        source_name = id2source_name(source_id)
+        l1 = set(
+            [
+                i.relative_to(self.download_path / source_name)
+                for i in (self.download_path / source_name).rglob("*")
+                if not i.is_dir()
+            ]
+        )
+        l2 = set(
+            [
+                i.relative_to(self.storage_path / source_name)
+                for i in (self.storage_path / source_name).rglob("*")
+                if not i.is_dir()
+            ]
+        )
+        return l1 | l2
 
     @classmethod
     def get_fm(cls):

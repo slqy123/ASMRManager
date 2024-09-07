@@ -1,16 +1,18 @@
 import logging
 from logging.handlers import TimedRotatingFileHandler
-from os import makedirs
+from os import makedirs, environ
 from sys import stderr
 
 from colorlog import ColoredFormatter
 
 from asmrmanager.filemanager.appdirs_ import LOG_PATH
 
+LOG_LEVEL = logging.DEBUG if environ.get("ASMR_DEBUG") else logging.INFO
+
 log_path = LOG_PATH
 makedirs(log_path, exist_ok=True)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(LOG_LEVEL)
 
 console_formatter = ColoredFormatter(
     "%(asctime)s - %(log_color)s%(levelname)s%(reset)s - %(message)s",
@@ -23,7 +25,7 @@ file_formatter = logging.Formatter(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 console_handler = logging.StreamHandler(stderr)
-console_handler.setLevel(logging.DEBUG)
+console_handler.setLevel(LOG_LEVEL)
 console_handler.setFormatter(console_formatter)
 
 file_handler = TimedRotatingFileHandler(
@@ -32,7 +34,7 @@ file_handler = TimedRotatingFileHandler(
     backupCount=1,
     encoding="utf8",
 )
-file_handler.setLevel(logging.DEBUG)
+file_handler.setLevel(LOG_LEVEL)
 file_handler.setFormatter(file_formatter)
 
 logger.addHandler(console_handler)

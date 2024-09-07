@@ -84,10 +84,12 @@ def check(source_ids: List[LocalSourceID]):
 
         logger.info(f"No need to update {source_name}")
     db.commit()
-    print("Update succesfully.")
+    logger.info("Update succesfully.")
     if dl_queue:
-        print("Please check the item to download and get theme manually:")
-        print(" ".join(dl_queue))
+        logger.info(
+            "Please check the item to download and get theme manually:"
+        )
+        logger.info(" ".join(dl_queue))
 
 
 @click.command()

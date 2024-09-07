@@ -173,7 +173,7 @@ def main(path: Path):
         episodes.append(Music(file, None))
 
     if not episodes:
-        print("error input")
+        logger.error("error input")
         return
 
     app = LRCPlayer(episodes)

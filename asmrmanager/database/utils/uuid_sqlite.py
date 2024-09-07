@@ -42,5 +42,5 @@ class GUID(TypeDecorator):
     def process_result_value(self, value, dialect):
         return self._uuid_value(value)
 
-    def sort_key_function(self, value):
+    def sort_key_function(self, value):  # type: ignore
         return self._uuid_value(value)
