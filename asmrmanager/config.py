@@ -35,6 +35,7 @@ class Filter:
     range: Literal["file", "directory", "all"] = "all"  # 该规则针对的文件类型
     excat_match: bool = False  # 是否应精确匹配(从头到尾严格匹配)
     ignore_case: bool = True  # 是否忽略大小写
+    disable_when_nothing_to_download: bool = False
 
 
 @dataclass

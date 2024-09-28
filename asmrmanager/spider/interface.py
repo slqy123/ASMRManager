@@ -49,7 +49,7 @@ class ASMRDownloadManager(AsyncManager):
         id_should_download: Callable[[RemoteSourceID], bool] | None = None,
         json_should_download: Callable[[Dict[str, Any]], bool] | None = None,
         name_should_download: (
-            Callable[[str, Literal["directory", "file"]], bool] | None
+            Callable[[str, Literal["directory", "file"], bool], bool] | None
         ) = None,
         replace=False,
         download_method: Literal["aria2", "idm"] = "idm",

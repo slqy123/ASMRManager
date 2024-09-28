@@ -47,7 +47,7 @@ class ASMRDownloadAPI(ASMRAPI):
         proxy: str | None,
         json_should_download: Callable[[Dict[str, Any]], bool],
         name_should_download: Callable[
-            [str, Literal["directory", "file"]], bool
+            [str, Literal["directory", "file"], bool], bool
         ],
         replace=False,
         limit: int = 3,
@@ -107,7 +107,36 @@ class ASMRDownloadAPI(ASMRAPI):
                 logger.error("Unexpected track type: dict")
                 return
 
-        file_list = self.get_file_list(tracks, voice_path)
+        file_list = self.get_file_list(
+            tracks,
+            voice_path,
+        )
+        # logger.debug(f"file_list: {
+        #     list(
+        #         filter(
+        #             lambda f: f.should_download and f.path.suffix.lower()
+        #             in (".mp3", ".wav", ".flac", ".m4a"),
+        #             file_list,
+        #         )
+        #     )
+        # }")
+        if (
+            len(
+                list(
+                    filter(
+                        lambda f: f.should_download
+                        and f.path.suffix.lower()
+                        in (".mp3", ".wav", ".flac", ".m4a"),
+                        file_list,
+                    )
+                )
+            )
+            == 0
+        ):
+            logger.warning(
+                "No audio file found to download, try to disable some filters"
+            )
+            file_list = self.get_file_list(tracks, voice_path, disable=True)
         self.create_recover_file(file_list, voice_path)
         await self.create_dir_and_download(file_list)
 
@@ -235,8 +264,15 @@ class ASMRDownloadAPI(ASMRAPI):
                 continue
 
     def get_file_list(
-        self, tracks: List[Dict[str, Any]], voice_path: Path, download=True
+        self,
+        tracks: List[Dict[str, Any]],
+        voice_path: Path,
+        disable: bool = False,  # disable some filters to get more results
+        download=True,
     ):
+        def filter_(name: str, type_: Literal["directory", "file"]) -> bool:
+            return self.name_should_download(name, type_, disable)
+
         file_list: List[FileInfo] = []
         folders = [track for track in tracks if track["type"] == "folder"]
         files = [track for track in tracks if track["type"] != "folder"]
@@ -247,9 +283,7 @@ class ASMRDownloadAPI(ASMRAPI):
             )
             file_path = voice_path / file_name
 
-            if (not download) or (
-                not self.name_should_download(file["title"], "file")
-            ):
+            if (not download) or (not filter_(file["title"], "file")):
                 should_download = False
             else:
                 should_download = True
@@ -260,9 +294,7 @@ class ASMRDownloadAPI(ASMRAPI):
 
         for folder in folders:
             download_ = (
-                True
-                if self.name_should_download(folder["title"], "directory")
-                else False
+                True if filter_(folder["title"], "directory") else False
             )
             title: str = folder["title"].translate(
                 str.maketrans(r'/\:*?"<>|', "_________")
@@ -270,7 +302,10 @@ class ASMRDownloadAPI(ASMRAPI):
             new_path = voice_path / title
             file_list.extend(
                 self.get_file_list(
-                    folder["children"], new_path, download and download_
+                    folder["children"],
+                    new_path,
+                    disable,
+                    download and download_,
                 )
             )
 

@@ -4,8 +4,12 @@ from typing import Literal
 from asmrmanager.config import config
 
 
-def name_should_download(name: str, type_: Literal["directory", "file"]):
+def name_should_download(
+    name: str, type_: Literal["directory", "file"], disable: bool = False
+):
     for filter_ in config.filename_filters:
+        if disable and filter_.disable_when_nothing_to_download:
+            continue
         range_check = filter_.range == "all" or filter_.range == type_
         if not range_check:
             continue

@@ -51,6 +51,7 @@ secret = ""
 # range: Literal["file", "directory", "all"] = "all"  # 该规则针对的文件类型
 # excat_match: bool = False  # 是否应精确匹配(从头到尾严格匹配)
 # ignore_case: bool = True  # 是否忽略大小写
+# disable_when_nothing_to_download: bool = False  # 若设置为True，当检测到没有任何音频文件需要下载时，将禁用该规则并重新检查
 
 # 注意只有满足所有的include规则且不满足所有的exclude规则的文件才会被下载
 
@@ -64,10 +65,11 @@ regex = '([無无×]|不含|NO[ _]?)(効果音|SE|ＳＥ|BGM|音效)'
 [[filename_filters]]
 regex = '(声|ボイス|SE)のみ'
 
-# 过滤所有的wav
+# 过滤所有的wav，但是当没有任何音频文件可以下载时（例如：作品只提供wav音频），禁用该规则
 [[filename_filters]]
 regex = '.*\.wav$'
 range = "file"
+disable_when_nothing_to_download = true
 
 # 过滤包含 "反転" 的wav文件
 [[filename_filters]]
