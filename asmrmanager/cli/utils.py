@@ -34,14 +34,24 @@ def migrate():
 
 @click.command()
 @click.argument("mode", type=click.Choice(["lrc", "mp3", "flac"]))
+@click.option(
+    "--dst",
+    type=click.Choice(["download", "storage"]),
+    default="storage",
+    help="path to apply convert",
+)
 @rj_argument("local")
-def convert(source_id: LocalSourceID, mode: Literal["lrc", "mp3", "flac"]):
+def convert(
+    source_id: LocalSourceID,
+    mode: Literal["lrc", "mp3", "flac"],
+    dst: Literal["download", "storage"],
+):
     """convert file format and replace the existing file"""
     from asmrmanager.filemanager.manager import FileManager
 
     fm = FileManager.get_fm()
 
-    path = fm.get_path(source_id)
+    path = fm.get_path(source_id, dst)
     if path is None:
         logger.error("Source not found")
         exit(-1)
@@ -60,3 +70,4 @@ def convert(source_id: LocalSourceID, mode: Literal["lrc", "mp3", "flac"]):
 
 
 utils.add_command(migrate)
+utils.add_command(convert)

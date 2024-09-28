@@ -94,6 +94,12 @@ class ASMRDownloadManager(AsyncManager):
         params: BrowseParams,
         all_: bool,
     ):
+        total_pages_to_download = None
+        download_all_pages = False
+        if params.page == 0:
+            download_all_pages = True
+            params.page = 1
+
         filters = []
 
         filters += [f"$tag:{t}$" for t in tags]
@@ -118,21 +124,49 @@ class ASMRDownloadManager(AsyncManager):
         if text:
             filters.append(text)
 
-        if filters:
-            logger.info(f"searching with {filters} {params}")
-            search_result = await self.downloader.get_search_result(
-                " ".join(filters).replace("/", "%2F"), params=params.params
-            )
-        else:
-            logger.info(f"list works with {params}")
-            search_result = await self.downloader.list(params=params.params)
-        ids: List[RemoteSourceID] = [
-            work["id"] for work in search_result["works"]
-        ]
+        while True:
+            if filters:
+                logger.info(f"searching with {filters} {params}")
+                search_result = await self.downloader.get_search_result(
+                    " ".join(filters).replace("/", "%2F"), params=params.params
+                )
+            else:
+                logger.info(f"list works with {params}")
+                search_result = await self.downloader.list(
+                    params=params.params
+                )
+            ids: List[RemoteSourceID] = [
+                work["id"] for work in search_result["works"]
+            ]
 
-        if all_:
-            await self.get(ids)
-            return
+            if download_all_pages:
+                await self.get(ids)
+            elif all_:
+                await self.get(ids)
+                return
+
+            if not download_all_pages:
+                break
+            elif total_pages_to_download is None:
+                total_pages_to_download = (
+                    int(search_result["pagination"]["totalCount"])
+                    // int(search_result["pagination"]["pageSize"])
+                    + 1
+                )
+                logger.info(
+                    f"Total pages to download: {total_pages_to_download}"
+                )
+            else:
+                assert (
+                    search_result["pagination"]["currentPage"] == params.page
+                )
+                if params.page >= total_pages_to_download:
+                    logger.info("All pages downloaded.")
+                    return
+                logger.info(
+                    f"Downloading progress: {params.page}/{total_pages_to_download}"
+                )
+                params.page += 1
 
         # select RJs
         source_names: List[SourceName] = [

@@ -107,7 +107,7 @@ def browse_param_options(f):
         "--page",
         type=int,
         default=1,
-        help="page of the search result",
+        help="page of the search result, speicify to 0 if you want to download all pages",
         show_default=True,
     )
     @click.option(
