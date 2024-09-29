@@ -26,9 +26,13 @@ try:
 except (ImportError, ModuleNotFoundError):
     ARIA2_EXIST = False
 
-from typing import NamedTuple
+from typing import NamedTuple, TYPE_CHECKING
 
 from asmrmanager.filemanager.manager import FileManager
+
+if TYPE_CHECKING:
+    from .utils.IDMHelper import IDMHelper
+    from .utils.aria2_downloader import Aria2Downloader
 
 fm = FileManager.get_fm()
 
@@ -120,18 +124,12 @@ class ASMRDownloadAPI(ASMRAPI):
         #         )
         #     )
         # }")
-        if (
-            len(
-                list(
-                    filter(
-                        lambda f: f.should_download
-                        and f.path.suffix.lower()
-                        in (".mp3", ".wav", ".flac", ".m4a"),
-                        file_list,
-                    )
-                )
+        if not any(
+            map(
+                lambda f: f.should_download
+                and f.path.suffix.lower() in (".mp3", ".wav", ".flac", ".m4a"),
+                file_list,
             )
-            == 0
         ):
             logger.warning(
                 "No audio file found to download, try to disable some filters"

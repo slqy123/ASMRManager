@@ -247,7 +247,9 @@ def check(list_: bool):
             recovers = res
         else:
             logger.error(f"failed to load recover for id {source_id}")
-            return
+            if list_:
+                print(source_id)
+            continue
 
         local_files = fm.get_all_files(source_id)
         remote_files_should_down = set(
