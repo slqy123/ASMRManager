@@ -16,7 +16,7 @@ def format_time(time):
 DEFAULT_THRESHOLD = timedelta(seconds=2)
 
 
-def vtt2lrc(vtt, header=True, threshold=DEFAULT_THRESHOLD):
+def vtt2lrc(vtt_path: Path, header=True, threshold=DEFAULT_THRESHOLD):
     lrc = ""
 
     if header:
@@ -24,6 +24,7 @@ def vtt2lrc(vtt, header=True, threshold=DEFAULT_THRESHOLD):
 
     last_end = parse_time("23:59:59.99")  # Insanely big value
 
+    vtt = vtt_path.read_text(encoding="utf-8")
     for chunk in vtt.split("\n\n")[1:]:
         if not chunk:
             continue
@@ -53,8 +54,7 @@ def vtt2lrc(vtt, header=True, threshold=DEFAULT_THRESHOLD):
     "vtt", type=click.Path(exists=True, dir_okay=False, path_type=Path)
 )
 def main(vtt: Path):
-    content = vtt.read_text(encoding="utf-8")
-    lrc = vtt2lrc(content)
+    lrc = vtt2lrc(vtt)
     with open(
         vtt.with_suffix("").with_suffix(".lrc"), "w", encoding="utf-8"
     ) as f:

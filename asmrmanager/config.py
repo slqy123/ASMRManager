@@ -23,7 +23,7 @@ class Config:
     playlist_aliases: Dict[str, str]
     player: Literal["mpd", "pygame"]
     mpd_config: "MPDConfig"
-
+    before_store: str = ""
 
 @dataclass
 class Filter:
@@ -89,4 +89,5 @@ config = Config(
     playlist_aliases=_config.get("playlist_aliases", {}),
     player=_config.get("player", "pygame"),
     mpd_config=MPDConfig(**_config.get("mpd_config", {})),
+    before_store=_config.get("before_store", ""),
 )

@@ -36,6 +36,26 @@ download_method = "idm"
 # 若使用mpd请确保已安装mpd依赖并配置好mpd_config
 player = 'pygame'
 
+# asmr file store 前执行的脚本，若不需要可直接删除或留空，
+# 使用 Python 语法编写，运行时动态执行，并提供以下全局资源以供调用：
+
+# - path: pathlib.Path 音声的存储路径，download_path的子目录
+
+# - convert(file: pathlib.Path, to: Literal['mp3', 'wav', 'flac', 'm4a', 'lrc'])
+# 将单个文件转化为目标格式，mp3与m4a默认采用320k码率，flac默认使用压缩等级为5
+# 若使用to='lrc'，请确保原文件为vtt格式。
+
+# - convert_all(from_: Literal['mp3', 'wav', 'flac', 'm4a', 'vtt'], to: Literal['mp3', 'wav', 'flac', 'm4a', 'lrc'])
+# 将path 下的所有<from_>类型的文件转化为<to>类型，
+# 对convert函数的封装，其余细节与convert无异。
+
+before_store = '''
+convert_all('vtt', 'lrc')
+convert_all('wav', 'mp3')
+convert_all('flac', 'mp3')
+''''
+
+
 # 如使用aria2请配置此项，否则请忽略
 # 如果是在本地使用aria2，运行`aria2c --enable-rpc`，以下保持默认即可
 # 如果使用motrix，且没有更改过默认端口，请将端口(port)改为16800

@@ -32,6 +32,7 @@ sys.stderr.reconfigure(encoding="utf-8")  # type: ignore
 # catch oserror 然后提醒重试
 # view时如果目标文件存在则创建不同后缀名字
 # TODO 自动移动字幕文件
+# user script, store hook
 class OrderedGroup(click.Group):
     def __init__(self, name=None, commands=None, **attrs):
         super(OrderedGroup, self).__init__(name, commands, **attrs)

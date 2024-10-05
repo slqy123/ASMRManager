@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Iterable, List, Literal, NamedTuple, Set, Tuple
+from typing import Callable, Iterable, List, Literal, NamedTuple, Set, Tuple
 
 import toml
 
@@ -124,7 +124,12 @@ class FileManager:
     def could_store(self):
         return self.storage_path_exists and self.download_path_exists
 
-    def store(self, source_id: LocalSourceID, replace=True):
+    def store(
+        self,
+        source_id: LocalSourceID,
+        replace=True,
+        hook: Callable[[Path], None] | None = None,
+    ):
         """sync download path and storage path"""
         # TODO 换用fcp实现？
         assert self.could_store()
@@ -132,6 +137,10 @@ class FileManager:
         if not os.path.exists(self.download_path / rj_name):
             logger.warning(f"item {rj_name} does not exists, skip it")
             return
+
+        if hook is not None:
+            logger.info(f'Execute hook function for: {rj_name}')
+            hook(self.download_path / rj_name)
 
         # if os.path.exists(self.storage_path / rj_name):
         #     if not exists_ok:
@@ -189,13 +198,15 @@ class FileManager:
         #     )
         #     exit(-1)
 
-    def store_all(self, replace=True):
+    def store_all(
+        self, replace=True, hook: Callable[[Path], None] | None = None
+    ):
         for file in os.listdir(self.download_path):
             source_id = source_name2id(SourceName(file))
             if source_id is None:
                 logger.warning(f"Ignore invalid file {file} in download path")
                 continue
-            self.store(source_id, replace=replace)
+            self.store(source_id, replace=replace, hook=hook)
 
     def could_view(self):
         """
@@ -374,20 +385,16 @@ class FileManager:
     def get_all_files(self, source_id: LocalSourceID) -> Set[Path]:
         """get all files of source ID both in download and storage path"""
         source_name = id2source_name(source_id)
-        l1 = set(
-            [
-                i.relative_to(self.download_path / source_name)
-                for i in (self.download_path / source_name).rglob("*")
-                if not i.is_dir()
-            ]
-        )
-        l2 = set(
-            [
-                i.relative_to(self.storage_path / source_name)
-                for i in (self.storage_path / source_name).rglob("*")
-                if not i.is_dir()
-            ]
-        )
+        l1 = set([
+            i.relative_to(self.download_path / source_name)
+            for i in (self.download_path / source_name).rglob("*")
+            if not i.is_dir()
+        ])
+        l2 = set([
+            i.relative_to(self.storage_path / source_name)
+            for i in (self.storage_path / source_name).rglob("*")
+            if not i.is_dir()
+        ])
         return l1 | l2
 
     @classmethod
