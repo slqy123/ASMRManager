@@ -93,7 +93,11 @@ def check(source_ids: List[LocalSourceID]):
 
 
 @click.command()
-@click.argument("text", type=str, default="")
+@click.argument(
+    "keywords",
+    type=str,
+    nargs=-1,
+)
 @click.option(
     "--tags", "-t", type=str, multiple=True, help="tags to include[multiple]"
 )
@@ -163,7 +167,7 @@ def check(source_ids: List[LocalSourceID]):
 @browse_param_options
 @download_param_options
 def search(
-    text: str,
+    keywords: Tuple[str],
     tags: Tuple[str],
     vas: Tuple[str],
     circle: str | None,
@@ -182,6 +186,10 @@ def search(
     """
     search and download ASMR
 
+    The keywords argument is used to filter the title of an ASMR.
+    Specially, you can pass a keyword starts with `!`
+    to exclude this word, eg: `!中文版`
+
     the [multiple] options means you can add multiple same option such as:
 
         --tags tag1 --tags tag2 --no-tags tag3
@@ -198,7 +206,13 @@ def search(
     )
     spider.run(
         spider.search(
-            text,
+            " ".join(
+                map(
+                    lambda t: (t := t.strip())
+                    and ('-' + t[1:] if t.startswith("!") else t),
+                    keywords,
+                )
+            ),
             tags=tags,
             vas=vas,
             circle=circle,
