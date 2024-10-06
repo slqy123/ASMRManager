@@ -13,7 +13,7 @@ def convert_vtt2lrc(vtt_path: Path):
 
 
 def convert_audio_format(
-    audio_path: Path, dst: Literal["mp3", "flac","m4a", "wav"] = "mp3"
+    audio_path: Path, dst: Literal["mp3", "flac", "m4a", "wav"] = "mp3"
 ):
     from subprocess import run
 
@@ -27,11 +27,11 @@ def convert_audio_format(
         case "mp3":
             convert_args = ["mp3", "-ab", "320k"]
         case "flac":
-            convert_args = ["flac", '-compression_level', '5']
+            convert_args = ["flac", "-compression_level", "5"]
         case "wav":
             convert_args = ["pcm_s16le"]
         case "m4a":
-            convert_args = ["aac", '-ab', '320k']
+            convert_args = ["aac", "-ab", "320k"]
         case _:
             assert False
 

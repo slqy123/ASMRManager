@@ -40,9 +40,9 @@ def del_(source_id: LocalSourceID):
 
     folders = folder_chooser_multiple(
         rj_path,
-        lambda p: any([
-            i.suffix != ".info" for i in p.iterdir() if not i.is_dir()
-        ]),
+        lambda p: any(
+            [i.suffix != ".info" for i in p.iterdir() if not i.is_dir()]
+        ),
     )
 
     for folder in folders:
@@ -157,7 +157,9 @@ def store(source_ids: List[LocalSourceID], replace: bool, all_: bool):
             assert file.with_suffix(f".{to}").exists()
             file.unlink()
 
-        def convert_all(from_: str, to: Literal["mp3", "flac", "m4a", "wav", "lrc"]):
+        def convert_all(
+            from_: str, to: Literal["mp3", "flac", "m4a", "wav", "lrc"]
+        ):
             for file in path.rglob(f"*.{from_}", case_sensitive=False):
                 convert(file, to)
 
@@ -166,10 +168,10 @@ def store(source_ids: List[LocalSourceID], replace: bool, all_: bool):
         if not code.strip():
             return
 
-        exec(code, {"path": path, "convert": convert, "convert_all": convert_all})
-
-
-
+        exec(
+            code,
+            {"path": path, "convert": convert, "convert_all": convert_all},
+        )
 
     db = create_database()
     try:
@@ -218,12 +220,12 @@ def diff(source_id: LocalSourceID):
 
     local_files = fm.get_all_files(source_id)
 
-    remote_files_should_down = set([
-        Path(i["path"]) for i in recovers if i["should_download"]
-    ])
-    remote_files_filterd = set([
-        Path(i["path"]) for i in recovers if not i["should_download"]
-    ])
+    remote_files_should_down = set(
+        [Path(i["path"]) for i in recovers if i["should_download"]]
+    )
+    remote_files_filterd = set(
+        [Path(i["path"]) for i in recovers if not i["should_download"]]
+    )
     filtered_but_downloaded = remote_files_filterd & local_files
     should_download_but_missing = remote_files_should_down - local_files
     added_new_files = (
@@ -288,9 +290,9 @@ def check(list_: bool):
             continue
 
         local_files = fm.get_all_files(source_id)
-        remote_files_should_down = set([
-            Path(i["path"]) for i in recovers if i["should_download"]
-        ])
+        remote_files_should_down = set(
+            [Path(i["path"]) for i in recovers if i["should_download"]]
+        )
         should_download_but_missing = remote_files_should_down - local_files
         if len(should_download_but_missing):
             logger.error(

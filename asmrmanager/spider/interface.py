@@ -112,7 +112,12 @@ class ASMRDownloadManager(AsyncManager):
         filters += [f"$-circle:{nc}$" for nc in no_circle]
         filters += [f"$-age:{na}$" for na in no_age]
 
-        for name, value in (("rate", rate), ("sell", sell), ("price", price), ("duration", duration)):
+        for name, value in (
+            ("rate", rate),
+            ("sell", sell),
+            ("price", price),
+            ("duration", duration),
+        ):
             if value[0] is not None:
                 filters.append(f"${name}:{value[0]}$")
             if value[1] is not None:

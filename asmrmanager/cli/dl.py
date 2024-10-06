@@ -157,7 +157,10 @@ def check(source_ids: List[LocalSourceID]):
     "--price", "-pr", help="pirce interval", callback=interval_preprocess_cb
 )
 @click.option(
-    "--duration", "-d", help="duration interval", callback=time_interval_preprocess_cb
+    "--duration",
+    "-d",
+    help="duration interval",
+    callback=time_interval_preprocess_cb,
 )
 @click.option(
     "all_",
@@ -217,7 +220,7 @@ def search(
             " ".join(
                 map(
                     lambda t: (t := t.strip())
-                    and ('-' + t[1:] if t.startswith("!") else t),
+                    and ("-" + t[1:] if t.startswith("!") else t),
                     keywords,
                 )
             ),

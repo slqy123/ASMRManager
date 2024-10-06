@@ -25,6 +25,7 @@ class Config:
     mpd_config: "MPDConfig"
     before_store: str = ""
 
+
 @dataclass
 class Filter:
     regex: str = ""  # 正则表达式
