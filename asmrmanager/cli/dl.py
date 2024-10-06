@@ -9,6 +9,7 @@ from asmrmanager.cli.core import (
     download_param_options,
     fm,
     interval_preprocess_cb,
+    time_interval_preprocess_cb,
     multi_rj_argument,
 )
 from asmrmanager.common.browse_params import BrowseParams
@@ -156,6 +157,9 @@ def check(source_ids: List[LocalSourceID]):
     "--price", "-pr", help="pirce interval", callback=interval_preprocess_cb
 )
 @click.option(
+    "--duration", "-d", help="duration interval", callback=time_interval_preprocess_cb
+)
+@click.option(
     "all_",
     "--all/--select",
     type=bool,
@@ -179,6 +183,7 @@ def search(
     rate: Tuple[float | None, float | None],
     sell: Tuple[int | None, int | None],
     price: Tuple[int | None, int | None],
+    duration: Tuple[str | None, str | None],
     browse_params: BrowseParams,
     download_params: DownloadParams,
     all_: bool,
@@ -194,12 +199,15 @@ def search(
 
         --tags tag1 --tags tag2 --no-tags tag3
 
-    for options like --rate, --sell, --price, you should give a interval like:
+    for options like --rate, --sell, --price, --duration you should give a interval like:
 
-        --rate 3.9:4.7 --sell 1000: --price :200
+        --rate 3.9:4.7 --sell 1000: --price :200 --duration 10:60
 
     the interval a:b means a <= x < b, if a or b is not given
     i.e. a: or :b, it means no lower or upper limit
+
+    for --duration, expressions like `1.5h(1.5 hours)`, `10m(10 minutes)` are allowed,
+    or by default, the unit is minute.
     """
     spider, db = create_downloader_and_database(
         download_params=download_params
@@ -224,6 +232,7 @@ def search(
             rate=rate,
             sell=sell,
             price=price,
+            duration=duration,
             params=browse_params,
             all_=all_,
         )

@@ -249,9 +249,9 @@ def convert2local_ids(
         info = await downloader.downloader.get_voice_info(source_id)
         return LocalSourceID(source_name2id(info["source_id"]))
 
-    return downloader.run(
-        *[convert2local_id(remote_id) for remote_id in source_ids]
-    )
+    return downloader.run(*[
+        convert2local_id(remote_id) for remote_id in source_ids
+    ])
 
 
 def convert2local_id(x):
@@ -284,9 +284,9 @@ def convert2remote_ids(
             )
         return works[0]["id"]
 
-    return downloader.run(
-        *[convert2remote_id(local_id) for local_id in source_ids]
-    )
+    return downloader.run(*[
+        convert2remote_id(local_id) for local_id in source_ids
+    ])
 
 
 def convert2remote_id(x):
@@ -394,7 +394,7 @@ SEPARATOR = ":"
 def interval_preprocess_cb(ctx: click.Context, opt: click.Parameter, val: str):
     """
     input must be numeric or None,
-    and it returns a float/int/None value tuple
+    and it returns a float/int/str/None value tuple
     """
     if val is None:
         return (None, None)
@@ -404,17 +404,32 @@ def interval_preprocess_cb(ctx: click.Context, opt: click.Parameter, val: str):
     def _check(x: str):
         if x == "":
             return None
-        try:
-            xf: float = float(x)
-        except ValueError:
-            ctx.fail(f"{x} is not a valid number")
 
-        assert isinstance(xf, float)
+        if not x.isdigit():
+            if x[-1] in "hm" and x[:-1].isdigit():
+                return x
+            logger.warning(f"{x} is not a valid number or time")
+            return None
+
+        xf: float = float(x)
         if xf.is_integer():
             return int(xf)
         return xf
 
     return tuple(map(_check, vals))
+
+
+def time_interval_preprocess_cb(
+    ctx: click.Context, opt: click.Parameter, val: str
+):
+    return tuple(
+        map(
+            lambda x: str(x) + "m"
+            if (x is not None) and (not isinstance(x, str))
+            else x,
+            interval_preprocess_cb(ctx, opt, val),
+        )
+    )
 
 
 def pl_preprocess_cb(
