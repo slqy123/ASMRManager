@@ -34,7 +34,9 @@ class LRCPlayer(App):
     OPERATION_FREQ = 0.05
 
     def __init__(self, episodes: List[Music], *args, **kwargs):
+        episodes = sorted(episodes, key=lambda x: x.path)
         self.episodes = episodes
+        # logger.debug(self.episodes)
         match config.player:
             case "pygame":
                 from .player.pygameplayer import PyGamePlayer
