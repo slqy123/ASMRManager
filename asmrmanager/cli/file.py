@@ -154,7 +154,8 @@ def store(source_ids: List[LocalSourceID], replace: bool, all_: bool):
                 logger.debug(f"converting {file} to {to}")
                 convert_audio_format(file, to)
 
-            assert file.with_suffix(f".{to}").exists()
+            if len(file.suffixes) == 1:
+                assert file.with_suffix(f".{to}").exists()
             file.unlink()
 
         def convert_all(
