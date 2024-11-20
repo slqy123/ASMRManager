@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from pathlib import Path
+from asmrmanager.logger import logger
 
 import click
 
@@ -17,6 +18,7 @@ DEFAULT_THRESHOLD = timedelta(seconds=2)
 
 
 def vtt2lrc(vtt_path: Path, header=True, threshold=DEFAULT_THRESHOLD):
+    print(vtt_path)
     lrc = ""
 
     if header:
@@ -29,11 +31,20 @@ def vtt2lrc(vtt_path: Path, header=True, threshold=DEFAULT_THRESHOLD):
         if not chunk:
             continue
 
-        res = chunk.strip().split("\n", 1)
-        if res[0].isdigit():
-            time, text = res[1].split("\n", 1)
-        else:
-            time, text = res
+        # res = chunk.strip().split("\n", 1)
+        # if res[0].isdigit():
+        #     time, text = res[1].split("\n", 1)
+        # else:
+        #     time, text = res
+
+        match chunk.strip().split("\n"):
+            case [index, time, *text] if index.isdigit() and "-->" in time:
+                text = "\n".join(text)
+            case _:
+                logger.warning(
+                    f"Invalid chunk in vtt file {vtt_path}:\n{chunk}"
+                )
+                continue
 
         begin, end = map(parse_time, time.split("-->"))
 
