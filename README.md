@@ -121,6 +121,8 @@ pip install ASMRManager[依赖]
 - `pl add` 将某个音声添加到用户的云端播放列表(配合 `pl create` 使用)
 - `review` 为某个作品评分并评论(本地)
 
+更多使用示例可参考[这一小节](#使用示例)。
+
 > 使用命令时，如果不输入 RJID ，将会自动使用上一次命令的RJID。
 
 另外本工具提供基于 `trogon` 的可视化命令行界面，在安装`tui`依赖后使用 `asmr tui` 即可打开。
@@ -140,11 +142,59 @@ _ASMR_COMPLETE=zsh_source asmr > ~/.asmr-complete.zsh
 echo '. ~/.asmr-complete.zsh' >> ~/.zshrc
 ```
 
+## 使用示例
+搜索最近更新的40个(一页)作品并下载：
+```shell
+asmr dl search -o release --desc  # 选择并下载
+asmr dl search -o release --desc --all  # 下载全部
+```
+
+下载`治愈`标签下销量大于等于5000的全部的作品：
+```shell
+asmr dl search --tags 治愈 --sell 5000: --page 0 --all  # --page 0 会遍历下载所有页，否则默认只会下载第一页
+```
+
+下载某个社团下的全年龄并包含中文字幕的作品：
+```shell
+asmr dl search --circle Yostar --age general --subtitle
+```
+
+根据RJ/VJ/BJ号下载（下述输入格式适用于一切需要输入单个或多个ID的场合）：
+```shell
+asmr dl get RJ299717
+asmr dl get 299717  # RJ可以省略；对于8位RJ号，第一位的0也可以省略
+asmr dl get VJ015443
+asmr dl get 100000029  # 对于BJ与VJ，网站为了兼容RJ所使用的特殊ID
+asmr dl get 300015443  # 本项目存储VJ与BJ所使用的ID（"3" + 8位VJ号，BJ则为"4" + 8位BJ号）
+```
+
+检查下载目录下文件是否下载完全（只验证文件存在，不保证文件完整性）
+```shell
+asmr file check
+asmr file check --list | xargs asmr dl get --force   # 重新下载所有不完整的文件，以linux shell为例
+```
+
+将下载的文件转移到存储目录(STORAGE_PATH)，并执行相应文件格式转换(详情见config.toml的before_store字段)
+```shell
+asmr file store --all
+```
+
+比较本地文件与服务器文件的差异：
+
+![diff](./assets/diff.png)
+
+简单的关键词搜索（本地数据库）：
+```shell
+asmr query 治愈 --limit 3  # 搜索字段有：标题，社团名和标签名
+asmr query 治愈 --limit 3 --raw | jq .[].id | xargs -n1 asmr info # 输出为json格式，获取详细信息
+```
+
+
 ## 关于`dl search/get`的使用
 命令执行过程中会进行如下的检查与过滤操作：
 1. 开始下载前：检查RJ号是否应该下载，如果本地文件不存在或者数据库无记录都会执行下载操作。可以通过 `--force` 强制执行下载。
 1. 获取音声信息后：检查音声的tags，如果包含tag_filters里指定的tag，则跳过下载。可以通过 `--ignore-tag` 来强制下载。
-1. 获取下载文件后：检查文件的名称和路径，如果不符合filename_filters里指定的规则，则跳过下载。可以通过`ignore-name`来强制下载。
+1. 获取下载文件后：检查文件的名称和路径，如果不符合filename_filters里指定的规则，则跳过下载。可以通过`--ignore-name`来强制下载。
 1. 添加下载任务时：如果检测到本地有同名文件，则跳过该文件的下载。可以通过`--replace`来强制覆盖存在的文件。
 
 ## 其他
