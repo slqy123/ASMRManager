@@ -321,11 +321,25 @@ class FileManager:
         if not any(res):
             return None
 
-        return (
-            self.download_path / path
-            if res.__getattribute__(prefer)
-            else self.storage_path / path
-        )
+        # return (
+        #     self.download_path / path
+        #     if res.__getattribute__(prefer)
+        #     else self.storage_path / path
+        # )
+        if prefer == "download":
+            return (
+                self.download_path / path
+                if res.download
+                else self.storage_path / path
+            )
+        elif prefer == "storage":
+            return (
+                self.storage_path / path
+                if res.storage
+                else self.download_path / path
+            )
+        else:
+            raise ValueError("Invalid prefer value")
 
     def check_exists(self, rel_path: str, check_duplicate=True):
         """rel_path = source_name/rel"""
