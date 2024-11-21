@@ -28,7 +28,7 @@ def dl():
 @multi_rj_argument("remote")
 @download_param_options
 def get(source_ids: List[RemoteSourceID], download_params: DownloadParams):
-    """get ASMR by RJ ids"""
+    """get ASMR by RJ/VJ/BJ ids"""
     if not source_ids:
         logger.error("You must give at least one source id!")
         return

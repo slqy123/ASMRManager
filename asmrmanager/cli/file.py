@@ -290,11 +290,19 @@ def check(list_: bool):
                 print(source_id)
             continue
 
-        local_files = fm.get_all_files(source_id)
+        # local_files = fm.get_all_files(source_id)
         remote_files_should_down = set(
             [Path(i["path"]) for i in recovers if i["should_download"]]
         )
-        should_download_but_missing = remote_files_should_down - local_files
+        # should_download_but_missing = remote_files_should_down - local_files
+        should_download_but_missing = set(
+            filter(
+                lambda p: not any(
+                    fm.check_exists(f"{id2source_name(source_id)}/{str(p)}")
+                ),
+                remote_files_should_down,
+            )
+        )
         if len(should_download_but_missing):
             logger.error(
                 f"source_id {source_id} has missing files:\n"

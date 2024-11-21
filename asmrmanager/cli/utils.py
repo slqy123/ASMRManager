@@ -51,7 +51,7 @@ def convert(
 
     fm = FileManager.get_fm()
 
-    path = fm.get_path(source_id, dst)
+    path = fm.get_path(source_id, prefer=dst)
     if path is None:
         logger.error("Source not found")
         exit(-1)

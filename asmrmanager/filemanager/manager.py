@@ -1,7 +1,16 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Callable, Iterable, List, Literal, NamedTuple, Set, Tuple
+from typing import (
+    Callable,
+    Iterable,
+    List,
+    Literal,
+    NamedTuple,
+    Set,
+    Tuple,
+    overload,
+)
 
 import toml
 
@@ -301,20 +310,25 @@ class FileManager:
     def get_path(
         self,
         source_id: LocalSourceID,
+        rel: str = "",
         prefer: Literal["storage", "download"] = "storage",
     ) -> Path | None:
         """get rj file path"""
-        res = self.get_location(source_id, prefer=prefer)
+        source_name = id2source_name(source_id)
+        path = f"{source_name}/{rel}"
+        res = self.check_exists(path)
+        # res = self.get_location(source_id, prefer=prefer)
+        if not any(res):
+            return None
 
-        match res:
-            case "download":
-                return self.download_path / id2source_name(source_id)
-            case "storage":
-                return self.storage_path / id2source_name(source_id)
-            case _:
-                return None
+        return (
+            self.download_path / path
+            if res.__getattribute__(prefer)
+            else self.storage_path / path
+        )
 
-    def check_exists(self, rel_path: str):
+    def check_exists(self, rel_path: str, check_duplicate=True):
+        """rel_path = source_name/rel"""
         download, storage = False, False
         download_file_path = self.download_path / rel_path
         storage_file_path = self.storage_path / rel_path
@@ -322,39 +336,63 @@ class FileManager:
             download = True
         if storage_file_path.exists():
             storage = True
-        if (not download) and self.check_wav_flac_duplicate(
-            download_file_path
-        ):
-            download = True
-        if (not storage) and self.check_wav_flac_duplicate(storage_file_path):
-            storage = True
+
+        if check_duplicate:
+            if (not download) and self.check_file_duplicate(
+                download_file_path
+            ):
+                download = True
+            if (not storage) and self.check_file_duplicate(storage_file_path):
+                storage = True
 
         return NamedTuple(
             "ExistInfo", [("download", bool), ("storage", bool)]
         )(download, storage)
 
     @staticmethod
-    def check_wav_flac_duplicate(file_path: Path) -> bool:
-        """if file duplicate or already exists, return True"""
+    def check_file_duplicate(file_path: Path) -> bool:
+        """if file duplicate or already exists in a different type, return True"""
         if file_path.exists():
-            logger.error(
+            logger.warning(
                 f"file already exists: {file_path}, please "
                 "check for the existence of the download files first"
             )
             return True
-        match file_path.suffix.lower():
-            case ".wav":
-                another_file_path = file_path.with_suffix(".flac")
+
+        audio_formats = [".wav", ".flac", ".mp3", ".m4a"]
+        if file_path.suffix.lower() in audio_formats:
+            for audio_format in audio_formats:
+                another_file_path = file_path.with_suffix(audio_format)
                 if another_file_path.exists():
-                    logger.info(f"Detected {file_path} for same flac exists")
+                    logger.debug(
+                        f"Detected {file_path} duplicated for a same name {audio_format} exists"
+                    )
                     return True
-            case ".flac":
-                another_file_path = file_path.with_suffix(".wav")
+
+        lyrics_formats = [".lrc", ".vtt", ".mp3.vtt", ".wav.vtt"]
+        if file_path.suffix.lower() in lyrics_formats:
+            file_name = file_path.stem
+            for lyrics_format in lyrics_formats:
+                another_file_path = file_path.with_name(
+                    file_name + lyrics_format
+                )
                 if another_file_path.exists():
-                    logger.info(f"Detected {file_path} for same wav exists")
+                    logger.info(f"Detected {file_path} for same lyrics exists")
                     return True
-            case _:
-                pass
+
+        # match file_path.suffix.lower():
+        #     case ".wav":
+        #         another_file_path = file_path.with_suffix(".flac")
+        #         if another_file_path.exists():
+        #             logger.info(f"Detected {file_path} for same flac exists")
+        #             return True
+        #     case ".flac":
+        #         another_file_path = file_path.with_suffix(".wav")
+        #         if another_file_path.exists():
+        #             logger.info(f"Detected {file_path} for same wav exists")
+        #             return True
+        #     case _:
+        #         pass
 
         return False
 
@@ -362,13 +400,10 @@ class FileManager:
         self, source_id: LocalSourceID
     ) -> List[RecoverRecord] | None:
         """load recover file of source ID(choose download path first)"""
-        rj_path = self.get_path(source_id, prefer="download")
-        if rj_path is None:
-            logger.error(f"item {source_id} does not exist")
-            return
-
-        recover_path = rj_path / ".recover"
-        if not recover_path.exists():
+        recover_path = self.get_path(
+            source_id, rel=".recover", prefer="download"
+        )
+        if recover_path is None:
             logger.error(
                 f"item {source_id} does not have recover file, please update this"
                 " rj id first"
