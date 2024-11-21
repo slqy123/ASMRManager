@@ -3,7 +3,7 @@
 
 [metadata]
 groups = ["default", "aria2", "dev"]
-strategy = ["cross_platform"]
+strategy = []
 lock_version = "4.5.0"
 content_hash = "sha256:405ca052e57e275c9182a79437713512ffa42a47a644109e5bb4cd65e25278c5"
 
