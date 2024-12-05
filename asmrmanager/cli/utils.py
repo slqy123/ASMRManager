@@ -58,7 +58,10 @@ def convert(
     if mode == "lrc":
         for vtt_path in path.rglob("*.vtt"):
             convert_vtt2lrc(vtt_path)
-            assert vtt_path.with_suffix(".lrc").exists()
+            assert (
+                vtt_path.with_suffix(".lrc").exists()
+                or vtt_path.with_suffix("").with_suffix(".lrc").exists()
+            )
             vtt_path.unlink()
     elif mode in ("mp3", "flac"):
         from asmrmanager.common.fileconverter import convert_audio_format
