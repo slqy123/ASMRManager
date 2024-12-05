@@ -132,6 +132,14 @@ class ASMRAPI:
             data={"id": pl_id, "works": source_ids},
         )
 
+    async def _show_works_in_playlist(
+        self, pl_id: str, page: int = 1, page_size: int = 12
+    ):
+        return await self.get(
+            "playlist/get-playlist-works",
+            params={"id": pl_id, "page": page, "pageSize": page_size},
+        )
+
     async def _delete_playlist(self, pl_id: str):
         return await self.post("playlist/delete-playlist", data={"id": pl_id})
 

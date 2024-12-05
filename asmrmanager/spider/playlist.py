@@ -39,6 +39,12 @@ class ASMRPlayListAPI(ASMRAPI):
     async def delete_playlist(self, pl_id: uuid.UUID):
         return await self._delete_playlist(str(pl_id))
 
+    async def show_works_in_playlist(
+        self, pl_id: uuid.UUID, page: int = 1, page_size: int = 12
+    ) -> Tuple[List[Any], int]:
+        resp = await self._show_works_in_playlist(str(pl_id), page, page_size)
+        return resp["works"], resp["pagination"]["totalCount"]
+
     def process_playlists(self, playlists: List[Any]) -> List[PlayListItem]:
         res = []
         for item in playlists:

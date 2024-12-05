@@ -12,6 +12,7 @@ from typing import (
 )
 
 from asmrmanager.common.browse_params import BrowseParams
+from asmrmanager.common.output import print_table
 from asmrmanager.common.rj_parse import id2source_name, source_name2id
 from asmrmanager.common.select import select_multiple
 from asmrmanager.common.types import RemoteSourceID, SourceName
@@ -259,9 +260,18 @@ class ASMRPlayListManager(AsyncManager):
     async def list(self, num: int = 12, raw: bool = False):
         from asmrmanager.common.output import print_table
 
+        page = 1
         playlists, total = await self.playlist.get_playlists(
-            page=1, page_size=num
+            page=page, page_size=num
         )
+        logger.info(f"fetching playlists ({len(playlists)}/{total})")
+        while num * page < total:
+            page += 1
+            playlists_, _ = await self.playlist.get_playlists(
+                page=page, page_size=num
+            )
+            playlists += playlists_
+            logger.info(f"fetching playlists ({len(playlists)}/{total})")
         print_table(
             titles=["id", "name", "amount", "privacy"],
             rows=[
@@ -270,7 +280,6 @@ class ASMRPlayListManager(AsyncManager):
             ],
             raw=raw,
         )
-        print(f"({len(playlists)}/{total})")
 
         fm.save_playlist_cache(playlists)
 
@@ -306,6 +315,9 @@ class ASMRPlayListManager(AsyncManager):
             return
         logger.info(f"Sucessfully create playlist: {res['id']}.")
 
+        logger.info("Updating local playlist cache...")
+        await self.list()
+
     async def add(self, source_ids: List[RemoteSourceID], pl_id: uuid.UUID):
         res = await self.playlist.add_works_to_playlist(source_ids, pl_id)
         if not isinstance(res, dict):
@@ -317,3 +329,45 @@ class ASMRPlayListManager(AsyncManager):
             logger.error(f"Error when add works to playlist:{res}")
             return
         logger.info(f"Sucessfully add works to playlist {pl_id}.")
+
+    async def show(self, pl_id: uuid.UUID, page_size: int = 12):
+        page = 1
+        works, total_count = await self.playlist.show_works_in_playlist(
+            pl_id, page, page_size
+        )
+        while page * page_size < total_count:
+            page += 1
+            works_, _ = await self.playlist.show_works_in_playlist(
+                pl_id, page, page_size
+            )
+            works += works_
+            logger.info(
+                f"fetching works in playlist {pl_id}: {len(works)}/{total_count}"
+            )
+
+        titles = [
+            "id",
+            "title",
+            "circle_name",
+            "nsfw",
+            "subtitle",
+            "dl_count",
+            "voice_actors",
+        ]
+        print_table(
+            titles=titles,
+            rows=list(
+                map(
+                    lambda w: (
+                        w["source_id"],
+                        w["title"],
+                        w["circle"]["name"],
+                        w["nsfw"],
+                        w["has_subtitle"],
+                        w["dl_count"],
+                        ",".join([va["name"] for va in w["vas"]]),
+                    ),
+                    works,
+                )
+            ),
+        )

@@ -96,7 +96,15 @@ def create(
     pl.run(pl.create(name, desc, privacy))
 
 
+@click.command()
+@click.argument("pl_id", type=PLID(), callback=pl_preprocess_cb)
+def show(pl_id: uuid.UUID):
+    pl = create_playlist()
+    pl.run(pl.show(pl_id))
+
+
 pl.add_command(list_)
 pl.add_command(add)
 pl.add_command(remove)
 pl.add_command(create)
+pl.add_command(show)
