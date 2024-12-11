@@ -49,11 +49,14 @@ player = 'pygame'
 # 将path 下的所有<from_>类型的文件转化为<to>类型，
 # 对convert函数的封装，其余细节与convert无异。
 
-before_store = '''
-convert_all('vtt', 'lrc')
-convert_all('wav', 'mp3')
-convert_all('flac', 'mp3')
-''''
+# 例如下面的配置会将将所有的vtt文件转化为lrc文件，wav文件转化为mp3文件，flac文件转化为mp3文件
+# before_store = '''
+# convert_all('vtt', 'lrc')
+# convert_all('wav', 'mp3')
+# convert_all('flac', 'mp3')
+# ''''
+
+before_store = ''
 
 
 # 如使用aria2请配置此项，否则请忽略
@@ -77,7 +80,7 @@ secret = ""
 
 # 示例：过滤所有的SE(不完全)
 [[filename_filters]]
-regex = '(効果音|SE|ＳＥ|BGM|音效)([な無无×][し]?|cut|切除|カット)'
+regex = '(効果音|SE|ＳＥ|BGM|音效)[ ]?([な無无×][し]?|cut|切除|カット|オフ|off)'
 
 [[filename_filters]]
 regex = '([無无×]|不含|NO[ _]?)(効果音|SE|ＳＥ|BGM|音效)'
@@ -96,6 +99,10 @@ disable_when_nothing_to_download = true
 regex = '反転.*\.wav$'
 range = "file"
 
+# 过滤壁纸文件
+[[filename_filters]]
+regex = "壁紙|桌布|壁纸"
+
 [playlist_aliases]
 # 这里可以自定义列表的别名
 # 左侧为别名，右侧为对应uuid或列表的名字，例如
@@ -103,8 +110,8 @@ range = "file"
 # 别名1 = 列表名1
 # 在创建列表时，列表名是可以重复的，因此如果右侧填列表名的话，
 # 请确认列表名的唯一性，否则将自动选取第一个符合的列表名。
-liked = '__SYS_PLAYLIST_LIKED'  # 我喜欢的 的列表别名
-marked = '__SYS_PLAYLIST_MARKED'  # 我标记的 的列表别名
+liked = '__SYS_PLAYLIST_LIKED'   # 我喜欢的 的列表别名
+marked = '__SYS_PLAYLIST_MARKED' # 我标记的 的列表别名
 
 [mpd_config]
 # 这里的配置是客户端的配置

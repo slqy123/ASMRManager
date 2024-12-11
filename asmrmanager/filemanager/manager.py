@@ -140,7 +140,6 @@ class FileManager:
         hook: Callable[[Path], None] | None = None,
     ):
         """sync download path and storage path"""
-        # TODO 换用fcp实现？
         assert self.could_store()
         rj_name = id2source_name(source_id)
         if not os.path.exists(self.download_path / rj_name):
