@@ -4,15 +4,15 @@ name = "ASMRManager"
 dynamic = ["version"]
 description = "download, manage and play the voices on asmr.one"
 keywords = [
-  "asmr",
-  "downloader",
-  "music",
-  "player",
-  "manager",
-  "cli",
-  "tui",
-  "commandline",
-  "terminal",
+    "asmr",
+    "downloader",
+    "music",
+    "player",
+    "manager",
+    "cli",
+    "tui",
+    "commandline",
+    "terminal",
 ]
 authors = [{ name = "SLQY", email = "sqiyel@gmail.com" }]
 dependencies = [
@@ -22,7 +22,7 @@ dependencies = [
     "colorlog>=6.7.0",
     "pylrc==0.1.2",
     "rich>=13.0.0",
-    "SQLAlchemy==2.0.10",
+    "SQLAlchemy==2.0.36",
     "textual==0.26.0",
     "mutagen>=1.46.0",
     "appdirs>=1.4.4",

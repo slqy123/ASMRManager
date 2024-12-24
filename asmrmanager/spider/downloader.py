@@ -1,38 +1,59 @@
+from importlib import import_module
 import json
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Literal, TypeVar
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    NamedTuple,
+    TYPE_CHECKING,
+    TypeVar,
+)
+import typing
 
 import asyncstdlib
 
+from asmrmanager.common.rj_parse import id2source_name, source_name2id
 from asmrmanager.common.types import RemoteSourceID
+from asmrmanager.config import Aria2Config
+from asmrmanager.filemanager.manager import FileManager
+from asmrmanager.logger import logger
+from asmrmanager.spider.asmrapi import ASMRAPI
 
 T = TypeVar("T", bound="ASMRDownloadAPI")
 
 
-from asmrmanager.common.rj_parse import id2source_name, source_name2id
-from asmrmanager.config import Aria2Config
-from asmrmanager.logger import logger
-from asmrmanager.spider.asmrapi import ASMRAPI
-
-try:
-    IDMHELPER_EXIST = True
-    from .utils.IDMHelper import IDMHelper
-except (ImportError, ModuleNotFoundError):
-    IDMHELPER_EXIST = False
-
-try:
-    ARIA2_EXIST = True
-    from .utils.aria2_downloader import Aria2Downloader
-except (ImportError, ModuleNotFoundError):
-    ARIA2_EXIST = False
-
-from typing import NamedTuple, TYPE_CHECKING
-
-from asmrmanager.filemanager.manager import FileManager
-
 if TYPE_CHECKING:
-    from .utils.IDMHelper import IDMHelper
-    from .utils.aria2_downloader import Aria2Downloader
+    from .utils.IDMHelper import IDMHelper as _IDMHelper
+    from .utils.aria2_downloader import Aria2Downloader as _Aria2Downloader
+
+try:
+    IDMHelper = typing.cast(
+        "type[_IDMHelper]",
+        import_module(".utils.IDMHelper", "asmrmanager.spider").IDMHelper,
+    )
+# except (ImportError, ModuleNotFoundError):
+except Exception as _:
+    # __IDMHELPER_EXIST = False
+    IDMHelper = None
+
+
+try:
+    # __ARIA2_EXIST = True
+    # from .utils.aria2_downloader import Aria2Downloader
+    Aria2Downloader = typing.cast(
+        "type[_Aria2Downloader]",
+        import_module(
+            ".utils.aria2_downloader", "asmrmanager.spider"
+        ).Aria2Downloader,
+    )
+# except (ImportError, ModuleNotFoundError):
+except Exception as _:
+    # __ARIA2_EXIST = False
+    Aria2Downloader = None
+
 
 fm = FileManager.get_fm()
 
@@ -70,12 +91,19 @@ class ASMRDownloadAPI(ASMRAPI):
             else self.download_by_aria2
         )
 
-        if ARIA2_EXIST:
-            assert Aria2Downloader
-            # 不默认使用配置文件中的proxy，可以在aria2.conf中自行添加all-proxy配置
-            self.aria2_downloader = Aria2Downloader(None)
         self.aria2_config = aria2_config
         self.download_method = download_method
+
+        if self.download_method == "aria2":
+            assert (
+                Aria2Downloader is not None
+            ), "You have `download_method = aria2` configured, but failed to import corresponding class: Aria2Downloader"
+            # 不默认使用配置文件中的proxy，可以在aria2.conf中自行添加all-proxy配置
+            self.aria2_downloader = Aria2Downloader(None)
+        else:
+            assert (
+                IDMHelper is not None
+            ), "You have `download_method = idm` configured, but failed to import corresponding class: IDMHelper"
 
     async def download(
         self,
@@ -167,7 +195,7 @@ class ASMRDownloadAPI(ASMRAPI):
     ) -> bool:
         """the save path + file should not exist,
         and the filename should be legal"""
-        assert IDMHELPER_EXIST and IDMHelper
+        assert IDMHelper is not None
         m = IDMHelper(url, str(save_path.absolute()), file_name, 3)
         res = m.send_link_to_idm()
         if res != 0:
