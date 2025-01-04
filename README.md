@@ -128,7 +128,7 @@ pip install ASMRManager[依赖]
 另外本工具提供基于 `trogon` 的可视化命令行界面，在安装`tui`依赖后使用 `asmr tui` 即可打开。
 
 ## 命令行补全
-仅适用于Linux，详情可参考[官方文档](https://click.palletsprojects.com/en/8.1.x/shell-completion)。
+仅支持 Bash/Fish/Zsh，详情可参考[官方文档](https://click.palletsprojects.com/en/8.1.x/shell-completion)。
 ```shell
 # fish
 _ASMR_COMPLETE=fish_source asmr > ~/.config/fish/completions/asmr.fish
@@ -171,7 +171,7 @@ asmr dl get 300015443  # 本项目存储VJ与BJ所使用的ID（"3" + 8位VJ号�
 检查下载目录下文件是否下载完全（只验证文件存在，不保证文件完整性）
 ```shell
 asmr file check
-asmr file check --list | xargs asmr dl get --force   # 重新下载所有不完整的文件，以linux shell为例
+asmr file check --list | xargs asmr dl get --force   # 重新下载所有不完整的文件，以bash shell为例
 ```
 
 将下载的文件转移到存储目录(STORAGE_PATH)，并执行相应文件格式转换(详情见config.toml的before_store字段)
@@ -196,6 +196,13 @@ asmr query 治愈 --limit 3 --raw | jq .[].id | xargs -n1 asmr info # 输出为j
 1. 获取音声信息后：检查音声的tags，如果包含tag_filters里指定的tag，则跳过下载。可以通过 `--ignore-tag` 来强制下载。
 1. 获取下载文件后：检查文件的名称和路径，如果不符合filename_filters里指定的规则，则跳过下载。可以通过`--ignore-name`来强制下载。
 1. 添加下载任务时：如果检测到本地有同名文件，则跳过该文件的下载。可以通过`--replace`来强制覆盖存在的文件。
+
+## 多线程下载相关
+由于网站对下载并无相关限制，因此没必要设置过高的线程数，一般来说单文件1～2即可。
+对于 `IDM` 设置方法如下：
+![IDM](./assets/IDM.png)
+
+对于 `aria2` 修改配置 `max-connection-per-server = 2` 即可：
 
 ## 其他
 

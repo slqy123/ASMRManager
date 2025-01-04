@@ -155,7 +155,7 @@ def browse_param_options(f):
     )
     wrapper_common_options.__doc__ += """
 
-    nsfw will only show the full age ASMRs
+    --order=nsfw will only show the full age ASMRs
 
     for other --order values, you can refer to the website for
     explicit meaning
