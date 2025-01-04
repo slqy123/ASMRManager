@@ -14,7 +14,11 @@ from typing import (
 
 import toml
 
-from asmrmanager.common.rj_parse import id2source_name, source_name2id, source2id
+from asmrmanager.common.rj_parse import (
+    id2source_name,
+    source_name2id,
+    source2id,
+)
 from asmrmanager.common.types import (
     LocalSourceID,
     PlayListItem,
@@ -210,7 +214,8 @@ class FileManager:
         self, replace=True, hook: Callable[[Path], None] | None = None
     ):
         for file in os.listdir(self.download_path):
-            
+            if not (self.download_path / file).is_dir():
+                continue
             if source2id(file) is None:
                 logger.warning(f"Ignore invalid file {file} in download path")
                 continue
@@ -280,11 +285,11 @@ class FileManager:
             logger.error("Invalid path")
             return []
 
-        for name in p.iterdir():
-            rj_id = source_name2id(SourceName(name.name))
+        for item in p.iterdir():
+            rj_id = source2id(item.name)
             if rj_id is None:
                 continue
-            yield rj_id
+            yield LocalSourceID(rj_id)
 
     def zip_file(self, src: Path, dst: Path):
         from asmrmanager.filemanager.file_zipper import zip_chosen_folder
