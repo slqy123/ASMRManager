@@ -63,13 +63,22 @@ def convert(
                 or vtt_path.with_suffix("").with_suffix(".lrc").exists()
             )
             vtt_path.unlink()
-    elif mode in ("mp3", "flac"):
+    elif mode == "flac":
         from asmrmanager.common.fileconverter import convert_audio_format
 
         for wav_path in path.rglob("*.wav"):
             convert_audio_format(wav_path, mode)
             assert wav_path.with_suffix(f".{mode}").exists()
             wav_path.unlink()
+    elif mode == "mp3":
+        from asmrmanager.common.fileconverter import convert_audio_format
+
+        for src_path in path.rglob("*.*"):
+            if src_path.is_dir() or src_path.suffix not in [".flac", ".wav"]:
+                continue
+            convert_audio_format(src_path, mode)
+            assert src_path.with_suffix(f".{mode}").exists()
+            src_path.unlink()
 
 
 utils.add_command(migrate)
