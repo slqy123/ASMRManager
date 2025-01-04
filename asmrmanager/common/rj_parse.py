@@ -1,6 +1,6 @@
 from typing import Iterable, List
 
-from .types import LocalSourceID, RemoteSourceID, SourceID, SourceName
+from .types import LocalSourceID, SourceID, SourceName
 
 
 def source2id(source: str) -> SourceID | None:

@@ -61,6 +61,7 @@ class LRC:
                     )
                 else:
                     return 0
+
     def get_lyrics(self, t: int, prev: int = 1, next: int = 1) -> List[str]:
         index = self.index(t)
         return [

@@ -8,8 +8,6 @@ from typing import (
     Literal,
     NamedTuple,
     Set,
-    Tuple,
-    overload,
 )
 
 import toml
