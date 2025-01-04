@@ -14,7 +14,7 @@ from typing import (
 
 import toml
 
-from asmrmanager.common.rj_parse import id2source_name, source_name2id
+from asmrmanager.common.rj_parse import id2source_name, source_name2id, source2id
 from asmrmanager.common.types import (
     LocalSourceID,
     PlayListItem,
@@ -210,10 +210,11 @@ class FileManager:
         self, replace=True, hook: Callable[[Path], None] | None = None
     ):
         for file in os.listdir(self.download_path):
-            source_id = source_name2id(SourceName(file))
-            if source_id is None:
+            
+            if source2id(file) is None:
                 logger.warning(f"Ignore invalid file {file} in download path")
                 continue
+            source_id = source_name2id(SourceName(file))
             self.store(source_id, replace=replace, hook=hook)
 
     def could_view(self):
