@@ -99,6 +99,7 @@ def create(
 @click.command()
 @click.argument("pl_id", type=PLID(), callback=pl_preprocess_cb)
 def show(pl_id: uuid.UUID):
+    """show asmrs in the playlist"""
     pl = create_playlist()
     pl.run(pl.show(pl_id))
 

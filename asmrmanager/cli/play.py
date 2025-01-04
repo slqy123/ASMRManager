@@ -9,6 +9,7 @@ from asmrmanager.logger import logger
 @click.pass_context
 @rj_argument("local")
 def play(ctx: click.Context, source_id: LocalSourceID):
+    """play asmr with a simple TUI"""
     from asmrmanager.filemanager.utils import folder_chooser
 
     """play an asmr in the terminal"""
