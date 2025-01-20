@@ -131,13 +131,11 @@ class ASMRDownloadAPI(ASMRAPI):
         self.create_info_file(voice_info, voice_path=voice_path)
 
         tracks = await self.get_voice_tracks(voice_id)
-        if isinstance(tracks, dict):
-            if error_info := tracks.get("error"):
-                logger.error(f"RJ{voice_id} not found, {error_info}")
-                return
-            else:
-                logger.error("Unexpected track type: dict")
-                return
+        if tracks is None:
+            logger.error(
+                f"Remote id {voice_id} error: failed to get tracks, skip download"
+            )
+            return
 
         file_list = self.get_file_list(
             tracks,
@@ -187,7 +185,25 @@ class ASMRDownloadAPI(ASMRAPI):
         return voice_info
 
     async def get_voice_tracks(self, voice_id: RemoteSourceID):
-        return await self.get(f"tracks/{voice_id}")
+        tracks: list[dict] | dict = await self.get(
+            f"tracks/{voice_id}", params={"v": 1}
+        )
+        if isinstance(tracks, dict):
+            if error_info := tracks.get("error"):
+                logger.error(f"Remote id {voice_id} error, {error_info}")
+                if error_info.strip() == "No tracks found":
+                    asmr_web_url = self.base_api_url.replace(
+                        "/api/", ""
+                    ).replace("api.", "")
+                    logger.error(
+                        "I seems to be a problem with the server that has missing files.\n"
+                        f"Try giving feedback there: {asmr_web_url}/work/{voice_id}"
+                    )
+                return None
+            else:
+                logger.error("Unexpected track type: dict")
+                return None
+        return tracks
 
     @staticmethod
     async def download_by_idm(

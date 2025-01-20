@@ -230,13 +230,9 @@ class ASMRDownloadManager(AsyncManager):
             self.downloader.create_info_file(voice_info, voice_path)
 
             tracks = await self.downloader.get_voice_tracks(source_id_)
-            if isinstance(tracks, dict):
-                if error_info := tracks.get("error"):
-                    logger.error(f"RJ{source_id_} not found, {error_info}")
-                    return
-                else:
-                    logger.error("Unexpected track type: dict")
-                    return
+            if tracks is None:
+                logger.error(f"Failed to get tracks for {source_id_}.")
+                return
 
             file_list = self.downloader.get_file_list(tracks, voice_path)
             self.downloader.create_recover_file(file_list, voice_path)
