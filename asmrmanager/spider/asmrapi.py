@@ -45,6 +45,7 @@ class ASMRAPI:
         self.password = password
         self.proxy = proxy
         self.limit = limit
+        self.recommender_uuid: str = ""
 
     async def login(self) -> None:
         try:
@@ -54,12 +55,14 @@ class ASMRAPI:
                 headers=self.headers,
                 proxy=self.proxy,
             ) as resp:
-                token = (await resp.json())["token"]
+                resp = await resp.json()
+                token = resp["token"]
                 self.headers.update(
                     {
                         "Authorization": f"Bearer {token}",
                     }
                 )
+                self.recommender_uuid = resp["user"]["recommenderUuid"]
         except ClientConnectorError as err:
             logger.error(f"Login failed, {err}")
 
@@ -142,6 +145,31 @@ class ASMRAPI:
 
     async def _delete_playlist(self, pl_id: str):
         return await self.post("playlist/delete-playlist", data={"id": pl_id})
+
+    async def get_recommendations(self, page: int = 1):
+        return await self.post(
+            "recommender/recommend-for-user",
+            data={
+                "keyword": " ",
+                "recommenderUuid": self.recommender_uuid,
+                "page": page,
+                "subtitle": 0,
+                "localSubtitledWorks": [],
+                "withPlaylistStatus": [],
+            },
+        )
+
+    async def get_popular(self, page: int = 1):
+        return await self.post(
+            "recommender/popular",
+            data={
+                "keyword": " ",
+                "page": page,
+                "subtitle": 0,
+                "localSubtitledWorks": [],
+                "withPlaylistStatus": [],
+            },
+        )
 
     async def get_search_result(
         self, content: str, params: dict

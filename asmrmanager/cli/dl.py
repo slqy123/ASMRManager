@@ -243,7 +243,27 @@ def search(
     db.commit()
 
 
+@click.command()
+@download_param_options
+def rec(download_params: DownloadParams):
+    """download recommendations of the current account"""
+    spider, db = create_downloader_and_database(download_params)
+    spider.run(spider.get_recommendations())
+    db.commit()
+
+
+@click.command()
+@download_param_options
+def popular(download_params: DownloadParams):
+    """download current popular ASMRs"""
+    spider, db = create_downloader_and_database(download_params)
+    spider.run(spider.get_popular())
+    db.commit()
+
+
 dl.add_command(get)
 dl.add_command(check)
 dl.add_command(search)
 dl.add_command(update)
+dl.add_command(rec)
+dl.add_command(popular)

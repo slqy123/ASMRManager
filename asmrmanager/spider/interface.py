@@ -243,6 +243,16 @@ class ASMRDownloadManager(AsyncManager):
 
         await asyncio.gather(*tasks)
 
+    async def get_recommendations(self, page: int = 1):
+        res = await self.downloader.get_recommendations(page)
+        ids = [work["id"] for work in res["works"]]
+        await self.get(ids)
+
+    async def get_popular(self, page: int = 1):
+        res = await self.downloader.get_popular(page)
+        ids = [work["id"] for work in res["works"]]
+        await self.get(ids)
+
 
 class ASMRPlayListManager(AsyncManager):
     def __init__(
