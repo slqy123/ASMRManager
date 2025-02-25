@@ -2,6 +2,7 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 from os import makedirs, environ
 from sys import stderr
+from rich.console import Console
 from rich.logging import RichHandler
 from rich.traceback import install as install_rich_traceback
 
@@ -16,7 +17,9 @@ makedirs(log_path, exist_ok=True)
 logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)
 
-console_handler = RichHandler(LOG_LEVEL, rich_tracebacks=True, markup=True)
+console_handler = RichHandler(
+    LOG_LEVEL, Console(stderr=True), rich_tracebacks=True, markup=True
+)
 
 file_formatter = logging.Formatter(
     "%(asctime)s - %(filename)s - %(levelname)s - %(message)s",
