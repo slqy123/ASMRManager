@@ -76,7 +76,9 @@ def create_downloader_and_database(
                 else id_should_download
             ),  # 如果数据库中不存在或者文件不存在，都执行下载
             json_should_download=lambda info: db.add_info(
-                info, check=download_params.check_tag
+                info,
+                check=download_params.check_tag,
+                tag_strategy=config.tag_strategy,
             ),
             name_should_download=(
                 name_should_download

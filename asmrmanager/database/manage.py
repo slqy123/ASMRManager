@@ -100,13 +100,55 @@ class DataBaseManager:
             asmr.tags.append(tag)
         return asmr
 
-    def add_info(self, info: Dict[str, Any], check: bool = True) -> bool:
+    def add_info(
+        self,
+        info: Dict[str, Any],
+        check: bool = True,
+        tag_strategy: str = "common_only",
+    ) -> bool:
         """
         add/update info to database and check
         if it has tag in the filter or not,
         return True if should download
         """
 
+        def tag_strategy_filter(tag: dict) -> bool:
+            """true if tag should be accepted and stored in database"""
+            upvote: int = tag["upvote"]
+            downvote: int = tag["downvote"]
+            voteRank: int = tag["voteRank"]
+            if voteRank != upvote - downvote:
+                logger.warning(
+                    f"voteRank is not equal to upvote - downvote: {tag}"
+                )
+            myVote: int = tag["myVote"]
+            voteStatus: int = tag["voteStatus"]
+
+            common_only = voteStatus == 1
+            accept_all = True
+            except_rejected = voteStatus in (0, 1)
+
+            res = eval(
+                tag_strategy,
+                {
+                    "upvote": upvote,
+                    "downvote": downvote,
+                    "voteRank": voteRank,
+                    "myVote": myVote,
+                    "voteStatus": voteStatus,
+                    "common_only": common_only,
+                    "accept_all": accept_all,
+                    "except_rejected": except_rejected,
+                    "tag": tag,
+                },
+            )
+            if not res:
+                logger.info(
+                    f"tag {tag['name']} ({upvote}/{downvote}, common={common_only}) is filtered"
+                )
+            return res
+
+        info["tags"] = list(filter(tag_strategy_filter, info["tags"]))
         asmr = self.parse_info(info)
 
         self.session.merge(asmr)
