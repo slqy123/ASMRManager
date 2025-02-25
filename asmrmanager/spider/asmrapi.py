@@ -57,11 +57,9 @@ class ASMRAPI:
             ) as resp:
                 resp = await resp.json()
                 token = resp["token"]
-                self.headers.update(
-                    {
-                        "Authorization": f"Bearer {token}",
-                    }
-                )
+                self.headers.update({
+                    "Authorization": f"Bearer {token}",
+                })
                 self.recommender_uuid = resp["user"]["recommenderUuid"]
         except ClientConnectorError as err:
             logger.error(f"Login failed, {err}")

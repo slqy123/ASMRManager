@@ -95,15 +95,15 @@ class ASMRDownloadAPI(ASMRAPI):
         self.download_method = download_method
 
         if self.download_method == "aria2":
-            assert (
-                Aria2Downloader is not None
-            ), "You have `download_method = aria2` configured, but failed to import corresponding class: Aria2Downloader"
+            assert Aria2Downloader is not None, (
+                "You have `download_method = aria2` configured, but failed to import corresponding class: Aria2Downloader"
+            )
             # 不默认使用配置文件中的proxy，可以在aria2.conf中自行添加all-proxy配置
             self.aria2_downloader = Aria2Downloader(None)
         else:
-            assert (
-                IDMHelper is not None
-            ), "You have `download_method = idm` configured, but failed to import corresponding class: IDMHelper"
+            assert IDMHelper is not None, (
+                "You have `download_method = idm` configured, but failed to import corresponding class: IDMHelper"
+            )
 
     async def download(
         self,

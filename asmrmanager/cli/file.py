@@ -40,9 +40,9 @@ def del_(source_id: LocalSourceID):
 
     folders = folder_chooser_multiple(
         rj_path,
-        lambda p: any(
-            [i.suffix != ".info" for i in p.iterdir() if not i.is_dir()]
-        ),
+        lambda p: any([
+            i.suffix != ".info" for i in p.iterdir() if not i.is_dir()
+        ]),
     )
 
     for folder in folders:
@@ -221,12 +221,12 @@ def diff(source_id: LocalSourceID):
 
     local_files = fm.get_all_files(source_id)
 
-    remote_files_should_down = set(
-        [Path(i["path"]) for i in recovers if i["should_download"]]
-    )
-    remote_files_filterd = set(
-        [Path(i["path"]) for i in recovers if not i["should_download"]]
-    )
+    remote_files_should_down = set([
+        Path(i["path"]) for i in recovers if i["should_download"]
+    ])
+    remote_files_filterd = set([
+        Path(i["path"]) for i in recovers if not i["should_download"]
+    ])
     filtered_but_downloaded = remote_files_filterd & local_files
     should_download_but_missing = remote_files_should_down - local_files
     added_new_files = (
@@ -291,9 +291,9 @@ def check(list_: bool):
             continue
 
         # local_files = fm.get_all_files(source_id)
-        remote_files_should_down = set(
-            [Path(i["path"]) for i in recovers if i["should_download"]]
-        )
+        remote_files_should_down = set([
+            Path(i["path"]) for i in recovers if i["should_download"]
+        ])
         # should_download_but_missing = remote_files_should_down - local_files
         should_download_but_missing = set(
             filter(

@@ -152,40 +152,36 @@ def check(source_ids: List[LocalSourceID]):
     "-l",
     help="language to include[multiple]",
     default=None,
-    type=click.Choice(
-        [
-            "JPN",
-            "ENG",
-            "CHI_HANS",
-            "CHI_HANT",
-            "CHI",
-            "KO_KR",
-            "SPA",
-            "ITA",
-            "GER",
-            "FRE",
-        ]
-    ),
+    type=click.Choice([
+        "JPN",
+        "ENG",
+        "CHI_HANS",
+        "CHI_HANT",
+        "CHI",
+        "KO_KR",
+        "SPA",
+        "ITA",
+        "GER",
+        "FRE",
+    ]),
 )
 @click.option(
     "--no-lang",
     "-nl",
     help="language to exclude[multiple]",
     multiple=True,
-    type=click.Choice(
-        [
-            "JPN",
-            "ENG",
-            "CHI_HANS",
-            "CHI_HANT",
-            "CHI",
-            "KO_KR",
-            "SPA",
-            "ITA",
-            "GER",
-            "FRE",
-        ]
-    ),
+    type=click.Choice([
+        "JPN",
+        "ENG",
+        "CHI_HANS",
+        "CHI_HANT",
+        "CHI",
+        "KO_KR",
+        "SPA",
+        "ITA",
+        "GER",
+        "FRE",
+    ]),
 )
 @click.option(
     "--rate", "-r", help="rating interval", callback=interval_preprocess_cb
