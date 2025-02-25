@@ -148,6 +148,46 @@ def check(source_ids: List[LocalSourceID]):
     type=click.Choice(["general", "r15", "adult"]),
 )
 @click.option(
+    "--lang",
+    "-l",
+    help="language to include[multiple]",
+    default=None,
+    type=click.Choice(
+        [
+            "JPN",
+            "ENG",
+            "CHI_HANS",
+            "CHI_HANT",
+            "CHI",
+            "KO_KR",
+            "SPA",
+            "ITA",
+            "GER",
+            "FRE",
+        ]
+    ),
+)
+@click.option(
+    "--no-lang",
+    "-nl",
+    help="language to exclude[multiple]",
+    multiple=True,
+    type=click.Choice(
+        [
+            "JPN",
+            "ENG",
+            "CHI_HANS",
+            "CHI_HANT",
+            "CHI",
+            "KO_KR",
+            "SPA",
+            "ITA",
+            "GER",
+            "FRE",
+        ]
+    ),
+)
+@click.option(
     "--rate", "-r", help="rating interval", callback=interval_preprocess_cb
 )
 @click.option(
@@ -179,10 +219,12 @@ def search(
     vas: Tuple[str],
     circle: str | None,
     age: str | None,
+    lang: str | None,
     no_tags: Tuple[str],
     no_vas: Tuple[str],
     no_circle: Tuple[str],
     no_age: Tuple[str],
+    no_lang: Tuple[str],
     rate: Tuple[float | None, float | None],
     sell: Tuple[int | None, int | None],
     price: Tuple[int | None, int | None],
@@ -228,10 +270,12 @@ def search(
             vas=vas,
             circle=circle,
             age=age,
+            lang=lang,
             no_tags=no_tags,
             no_vas=no_vas,
             no_circle=no_circle,
             no_age=no_age,
+            no_lang=no_lang,
             rate=rate,
             sell=sell,
             price=price,

@@ -85,10 +85,12 @@ class ASMRDownloadManager(AsyncManager):
         vas: Tuple[str],
         circle: str | None,
         age: str | None,
+        lang: str | None,
         no_tags: Tuple[str],
         no_vas: Tuple[str],
         no_age: Tuple[str],
         no_circle: Tuple[str],
+        no_lang: Tuple[str],
         rate: Tuple[float | None, float | None],
         sell: Tuple[int | None, int | None],
         price: Tuple[int | None, int | None],
@@ -112,6 +114,7 @@ class ASMRDownloadManager(AsyncManager):
 
         filters += [f"$-circle:{nc}$" for nc in no_circle]
         filters += [f"$-age:{na}$" for na in no_age]
+        filters += [f"$-lang:{nl}$" for nl in no_lang]
 
         for name, value in (
             ("rate", rate),
@@ -128,6 +131,8 @@ class ASMRDownloadManager(AsyncManager):
             filters.append(f"$circle:{circle}$")
         if age:
             filters.append(f"$age:{age}$")
+        if lang:
+            filters.append(f"$lang:{lang}$")
         if text:
             filters.append(text)
 
