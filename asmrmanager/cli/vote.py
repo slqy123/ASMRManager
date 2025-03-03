@@ -173,6 +173,7 @@ def choose_tag_interactively(mode: Literal["all", "prev", "new"]) -> int:
     "--tag", "-t", default=None, type=TagType("prev"), help="tag id or name"
 )
 def vote_up(source_id: RemoteSourceID, tag: int | None):
+    """upvote a tag"""
     if tag is None:
         tag = choose_tag_interactively("prev")
 
@@ -186,6 +187,7 @@ def vote_up(source_id: RemoteSourceID, tag: int | None):
     "--tag", "-t", default=None, type=TagType("prev"), help="tag id or name"
 )
 def vote_down(source_id: RemoteSourceID, tag: int | None):
+    """down vote a tag"""
     if tag is None:
         tag = choose_tag_interactively("prev")
     api = create_tags_api()
@@ -198,6 +200,7 @@ def vote_down(source_id: RemoteSourceID, tag: int | None):
     "--tag", "-t", default=None, type=TagType("new"), help="tag id or name"
 )
 def vote_add(source_id: RemoteSourceID, tag: int | None):
+    """add a new tag"""
     if tag is None:
         tag = choose_tag_interactively("new")
     api = create_tags_api()
@@ -206,6 +209,7 @@ def vote_add(source_id: RemoteSourceID, tag: int | None):
 
 @click.group("vote")
 def vote():
+    """vote tags for a work"""
     pass
 
 

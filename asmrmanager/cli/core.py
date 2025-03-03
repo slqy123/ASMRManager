@@ -166,10 +166,10 @@ def browse_param_options(f):
     )
     wrapper_common_options.__doc__ += """
 
-    --order=nsfw will only show the full age ASMRs
+--order=nsfw will only show the full age ASMRs
 
-    for other --order values, you can refer to the website for
-    explicit meaning
+for other --order values, you can refer to the website for
+explicit meaning
     """
 
     return wrapper_common_options
@@ -220,11 +220,11 @@ def download_param_options(f):
     wrap.__doc__ = "" if wrap.__doc__ is None else wrap.__doc__
     wrap.__doc__ += """
 
-    --force will check the download RJ files again though it is already
-     in the database, it work just like update
+--force will check the download RJ files again though it is already
+    in the database, it work just like update
 
-    --replace option will first delte the original file,
-    then add the new file to download queue(i.e. IDM or aria2)
+--replace option will first delte the original file,
+then add the new file to download queue(i.e. IDM or aria2)
     """
     return wrap
 
