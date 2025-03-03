@@ -1,6 +1,7 @@
 import functools
 import uuid
 from typing import TYPE_CHECKING, Any, List, Literal, Tuple
+from functools import lru_cache
 
 import asyncstdlib
 import click
@@ -97,6 +98,14 @@ def create_playlist():
     from asmrmanager.spider.interface import ASMRPlayListManager
 
     return ASMRPlayListManager(
+        name=config.username, password=config.password, proxy=config.proxy
+    )
+
+
+def create_tags_api():
+    from asmrmanager.spider import ASMRTagManager
+
+    return ASMRTagManager(
         name=config.username, password=config.password, proxy=config.proxy
     )
 
@@ -223,6 +232,7 @@ def download_param_options(f):
 PREVIOUS_RJ_PATH = fm.DATA_PATH / ".prev_rj"
 
 
+@lru_cache
 def get_prev_source():
     if not PREVIOUS_RJ_PATH.exists():
         return ""
@@ -251,9 +261,9 @@ def convert2local_ids(
         info = await downloader.downloader.get_voice_info(source_id)
         return LocalSourceID(source_name2id(info["source_id"]))
 
-    return downloader.run(*[
-        convert2local_id(remote_id) for remote_id in source_ids
-    ])
+    return downloader.run(
+        *[convert2local_id(remote_id) for remote_id in source_ids]
+    )
 
 
 def convert2local_id(x):
@@ -286,9 +296,9 @@ def convert2remote_ids(
             )
         return works[0]["id"]
 
-    return downloader.run(*[
-        convert2remote_id(local_id) for local_id in source_ids
-    ])
+    return downloader.run(
+        *[convert2remote_id(local_id) for local_id in source_ids]
+    )
 
 
 def convert2remote_id(x):

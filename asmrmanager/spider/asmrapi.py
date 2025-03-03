@@ -57,9 +57,11 @@ class ASMRAPI:
             ) as resp:
                 resp = await resp.json()
                 token = resp["token"]
-                self.headers.update({
-                    "Authorization": f"Bearer {token}",
-                })
+                self.headers.update(
+                    {
+                        "Authorization": f"Bearer {token}",
+                    }
+                )
                 self.recommender_uuid = resp["user"]["recommenderUuid"]
         except ClientConnectorError as err:
             logger.error(f"Login failed, {err}")
@@ -174,27 +176,24 @@ class ASMRAPI:
     ) -> Dict[str, Any]:
         return await self.get(f"search/{content}", params=params)
 
-    async def get_tags(self):
+    async def _get_tags(self):
         return await self.get("tags/")
-        # keys: id: str, name: str, count: int, i18n: dict
 
-    async def attach_tags(self, tag_ids: list[int], work_id: int):
+    async def _attach_tags(self, tag_ids: list[int], work_id: int):
         return await self.post(
-            f"works/{work_id}/attach-tags-to-work",
+            "vote/attach-tags-to-work",
             data={"tagIDs": tag_ids, "workID": work_id},
         )
-        # "error": "vote.mustBindEmailFirst"
 
-    async def vote_tag(self, tag_id: int, work_id: int, up: bool):
+    async def _vote_tag(self, tag_id: int, work_id: int, up: bool):
         return await self.post(
-            f"tags/{tag_id}/vote-tag",
+            "vote/vote-work-tag",
             data={
                 "status": 1 if up else 2,
                 "tagID": tag_id,
                 "workID": work_id,
             },
         )
-        # "success": true
 
     async def list(self, params: dict) -> Dict[str, Any]:
         return await self.get("works", params=params)

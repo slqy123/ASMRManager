@@ -17,6 +17,7 @@ from asmrmanager.cli.review import review
 from asmrmanager.cli.sql import sql
 from asmrmanager.cli.utils import utils
 from asmrmanager.cli.view import view
+from asmrmanager.cli.vote import vote
 from asmrmanager.cli.which import which
 from asmrmanager.logger import logger
 
@@ -67,6 +68,7 @@ main.add_command(which)
 main.add_command(file)
 main.add_command(pl)
 main.add_command(utils)
+main.add_command(vote)
 
 if __name__ == "__main__":
     main()

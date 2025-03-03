@@ -10,6 +10,7 @@ from typing import (
     Tuple,
     TypeVar,
 )
+from dataclasses import dataclass
 
 from asmrmanager.common.browse_params import BrowseParams
 from asmrmanager.common.output import print_table
@@ -21,6 +22,7 @@ from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
 from asmrmanager.spider.asmrapi import ASMRAPI
 from asmrmanager.spider.playlist import ASMRPlayListAPI
+from asmrmanager.spider.tag import ASMRTagAPI
 
 from .downloader import ASMRDownloadAPI
 
@@ -382,3 +384,59 @@ class ASMRPlayListManager(AsyncManager):
                 )
             ),
         )
+
+
+@dataclass
+class ASMRTag:
+    id: int
+    name: str
+    myVote: int
+    downvote: int
+    upvote: int
+    voteRank: int
+    voteStatus: int
+    i18n: dict[
+        Literal["en-us", "ja-jp", "zh-cn"],
+        dict[Literal["name", "history"], Any],
+    ]
+
+
+class ASMRTagManager(AsyncManager):
+    def __init__(
+        self, name: str, password: str, proxy: str | None, limit: int = 3
+    ) -> None:
+        self.api = ASMRTagAPI(name, password, proxy, limit)
+
+    async def get_asmr_tags(self, source_id: RemoteSourceID):
+        voice_info = await ASMRDownloadAPI.get_voice_info(self.api, source_id)  # type: ignore
+        return [ASMRTag(**i) for i in voice_info["tags"]]
+
+    async def get_all_tags(self):
+        return await self.api.get_all_tags()
+
+    async def attach_tags(self, tag_ids: list[int], source_id: RemoteSourceID):
+        resp = await self.api.attach_tags(tag_ids, source_id)
+        if isinstance(resp, dict) and resp.get("error"):
+            logger.error(
+                f"Failed to attach tags to {source_id}: {resp['error']}"
+            )
+            return
+        else:
+            logger.info(f"Successfully attach tags to {source_id}.")
+
+    async def vote_tag(
+        self,
+        tag_id: int,
+        source_id: RemoteSourceID,
+        action: Literal["up", "down"],
+    ):
+        resp = await self.api.vote_tag(tag_id, source_id, action)
+        if isinstance(resp, dict) and resp.get("error"):
+            logger.error(
+                f"Failed to vote tag {tag_id} for {source_id}: {resp['error']}"
+            )
+            return
+        else:
+            logger.info(
+                f"Successfully vote tag {tag_id} {action} for {source_id}."
+            )
