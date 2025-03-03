@@ -22,6 +22,28 @@ storage_path = "/path/to/some/place"
 # 如不使用 view 方法可以设为空
 view_path = "/path/to/some/place"
 
+# 标签接受策略，具体说明参考官方频道：https://t.me/asmr_one_chan/73
+# 可选项有：
+# 1. common_only：默认值，只接受普通标签
+# 2. accept_all：接受所有标签
+# 3. except_rejected：接受除被否决的标签外的所有标签
+# 4. 自定义python表达式，返回一个bool值，代表是否接受该标签。
+#    可用条件有：
+#    upvote: int 赞同票数
+#    downvote: int 反对票数
+#    voteRank: int 赞同票数-反对票数
+#    myVote: int 我的投票，0为未投票，1为赞同，2为反对
+#    voteStatus: int 标签状态，0为低愿力，1为普通；被否决可能是2？我还没遇到过
+#    tag: dict[str, Any] 标签的详细信息，具体参见任意一个作品目录下的<RJ号>.json文件，使用 asmr which 可输出文件路径
+
+# 需要注意的是，这一步发生在tag_filter之前，即通过这一步排除掉的标签，将被视为该作品不存在该标签。
+# 因此，如果你特别讨厌某个标签，那么对于包含该标签的作品，即使票数并不多，也可以考虑接受该标签，这样在下一步的tag_filter中就可以过滤掉这个作品。
+# 例如下面的设置，将对于特定的标签只需分数大于2即考虑接受，而一般标签需要分数大于5：
+# tag_strategy = "common_only or (voteRank >= 5 or (tag['name'] in ['tagname1', 'tagname2'] and voteRank >= 2))"
+
+# 默认会过滤除普通标签外的所有标签
+tag_strategy = "common_only"
+
 # 过滤掉那些你不喜欢的标签
 tag_filter = ["tagname1", "tagname2"]
 

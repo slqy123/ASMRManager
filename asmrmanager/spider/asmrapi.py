@@ -57,9 +57,11 @@ class ASMRAPI:
             ) as resp:
                 resp = await resp.json()
                 token = resp["token"]
-                self.headers.update({
-                    "Authorization": f"Bearer {token}",
-                })
+                self.headers.update(
+                    {
+                        "Authorization": f"Bearer {token}",
+                    }
+                )
                 self.recommender_uuid = resp["user"]["recommenderUuid"]
         except ClientConnectorError as err:
             logger.error(f"Login failed, {err}")
@@ -173,6 +175,25 @@ class ASMRAPI:
         self, content: str, params: dict
     ) -> Dict[str, Any]:
         return await self.get(f"search/{content}", params=params)
+
+    async def _get_tags(self):
+        return await self.get("tags/")
+
+    async def _attach_tags(self, tag_ids: list[int], work_id: int):
+        return await self.post(
+            "vote/attach-tags-to-work",
+            data={"tagIDs": tag_ids, "workID": work_id},
+        )
+
+    async def _vote_tag(self, tag_id: int, work_id: int, up: bool):
+        return await self.post(
+            "vote/vote-work-tag",
+            data={
+                "status": 1 if up else 2,
+                "tagID": tag_id,
+                "workID": work_id,
+            },
+        )
 
     async def list(self, params: dict) -> Dict[str, Any]:
         return await self.get("works", params=params)

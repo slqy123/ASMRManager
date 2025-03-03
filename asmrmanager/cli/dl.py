@@ -152,36 +152,40 @@ def check(source_ids: List[LocalSourceID]):
     "-l",
     help="language to include[multiple]",
     default=None,
-    type=click.Choice([
-        "JPN",
-        "ENG",
-        "CHI_HANS",
-        "CHI_HANT",
-        "CHI",
-        "KO_KR",
-        "SPA",
-        "ITA",
-        "GER",
-        "FRE",
-    ]),
+    type=click.Choice(
+        [
+            "JPN",
+            "ENG",
+            "CHI_HANS",
+            "CHI_HANT",
+            "CHI",
+            "KO_KR",
+            "SPA",
+            "ITA",
+            "GER",
+            "FRE",
+        ]
+    ),
 )
 @click.option(
     "--no-lang",
     "-nl",
     help="language to exclude[multiple]",
     multiple=True,
-    type=click.Choice([
-        "JPN",
-        "ENG",
-        "CHI_HANS",
-        "CHI_HANT",
-        "CHI",
-        "KO_KR",
-        "SPA",
-        "ITA",
-        "GER",
-        "FRE",
-    ]),
+    type=click.Choice(
+        [
+            "JPN",
+            "ENG",
+            "CHI_HANS",
+            "CHI_HANT",
+            "CHI",
+            "KO_KR",
+            "SPA",
+            "ITA",
+            "GER",
+            "FRE",
+        ]
+    ),
 )
 @click.option(
     "--rate", "-r", help="rating interval", callback=interval_preprocess_cb
@@ -232,15 +236,15 @@ def search(
     """
     search and download ASMR
 
-    The keywords argument is used to filter the title of an ASMR.
+    The argument are some keywords to filter the title or id of an ASMR.
     Specially, you can pass a keyword starts with `!`
-    to exclude this word, eg: `!中文版`
+    to exclude works containing this word, eg: `!中文版`
 
     the [multiple] options means you can add multiple same option such as:
 
         --tags tag1 --tags tag2 --no-tags tag3
 
-    for options like --rate, --sell, --price, --duration you should give a interval like:
+    for options like --rate, --sell, --price, --duration you should give an interval like:
 
         --rate 3.9:4.7 --sell 1000: --price :200 --duration 10:60
 

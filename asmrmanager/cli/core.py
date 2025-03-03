@@ -1,6 +1,7 @@
 import functools
 import uuid
 from typing import TYPE_CHECKING, Any, List, Literal, Tuple
+from functools import lru_cache
 
 import asyncstdlib
 import click
@@ -76,7 +77,9 @@ def create_downloader_and_database(
                 else id_should_download
             ),  # 如果数据库中不存在或者文件不存在，都执行下载
             json_should_download=lambda info: db.add_info(
-                info, check=download_params.check_tag
+                info,
+                check=download_params.check_tag,
+                tag_strategy=config.tag_strategy,
             ),
             name_should_download=(
                 name_should_download
@@ -95,6 +98,14 @@ def create_playlist():
     from asmrmanager.spider.interface import ASMRPlayListManager
 
     return ASMRPlayListManager(
+        name=config.username, password=config.password, proxy=config.proxy
+    )
+
+
+def create_tags_api():
+    from asmrmanager.spider import ASMRTagManager
+
+    return ASMRTagManager(
         name=config.username, password=config.password, proxy=config.proxy
     )
 
@@ -155,10 +166,10 @@ def browse_param_options(f):
     )
     wrapper_common_options.__doc__ += """
 
-    --order=nsfw will only show the full age ASMRs
+--order=nsfw will only show the full age ASMRs
 
-    for other --order values, you can refer to the website for
-    explicit meaning
+for other --order values, you can refer to the website for
+explicit meaning
     """
 
     return wrapper_common_options
@@ -209,11 +220,11 @@ def download_param_options(f):
     wrap.__doc__ = "" if wrap.__doc__ is None else wrap.__doc__
     wrap.__doc__ += """
 
-    --force will check the download RJ files again though it is already
-     in the database, it work just like update
+--force will check the download RJ files again though it is already
+    in the database, it work just like update
 
-    --replace option will first delte the original file,
-    then add the new file to download queue(i.e. IDM or aria2)
+--replace option will first delte the original file,
+then add the new file to download queue(i.e. IDM or aria2)
     """
     return wrap
 
@@ -221,6 +232,7 @@ def download_param_options(f):
 PREVIOUS_RJ_PATH = fm.DATA_PATH / ".prev_rj"
 
 
+@lru_cache
 def get_prev_source():
     if not PREVIOUS_RJ_PATH.exists():
         return ""
@@ -249,9 +261,9 @@ def convert2local_ids(
         info = await downloader.downloader.get_voice_info(source_id)
         return LocalSourceID(source_name2id(info["source_id"]))
 
-    return downloader.run(*[
-        convert2local_id(remote_id) for remote_id in source_ids
-    ])
+    return downloader.run(
+        *[convert2local_id(remote_id) for remote_id in source_ids]
+    )
 
 
 def convert2local_id(x):
@@ -284,9 +296,9 @@ def convert2remote_ids(
             )
         return works[0]["id"]
 
-    return downloader.run(*[
-        convert2remote_id(local_id) for local_id in source_ids
-    ])
+    return downloader.run(
+        *[convert2remote_id(local_id) for local_id in source_ids]
+    )
 
 
 def convert2remote_id(x):

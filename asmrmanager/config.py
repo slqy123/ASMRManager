@@ -15,6 +15,7 @@ class Config:
     download_path: str
     storage_path: str
     view_path: str
+    tag_strategy: Literal["common_only", "accept_all", "except_rejected"] | str
     tag_filter: List[str]
     editor: str
     filename_filters: List["Filter"]
@@ -82,6 +83,7 @@ config = Config(
     download_path=_config["download_path"],
     storage_path=_config["storage_path"],
     view_path=_config["view_path"],
+    tag_strategy=_config.get("tag_strategy", "common_only"),
     tag_filter=_config["tag_filter"],
     editor=_config["editor"],
     filename_filters=filename_filters,

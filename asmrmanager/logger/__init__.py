@@ -10,7 +10,13 @@ install_rich_traceback()
 
 from asmrmanager.filemanager.appdirs_ import LOG_PATH
 
-LOG_LEVEL = logging.DEBUG if environ.get("ASMR_DEBUG") else logging.INFO
+LOG_LEVEL = logging.INFO
+if environ.get("ASMR_DEBUG"):
+    LOG_LEVEL = logging.DEBUG
+if environ.get("ASMR_TEST"):
+    LOG_LEVEL = logging.WARNING
+if environ.get("_ASMR_COMPLETE") is not None:
+    LOG_LEVEL = logging.CRITICAL
 
 log_path = LOG_PATH
 makedirs(log_path, exist_ok=True)

@@ -1,5 +1,23 @@
 # ASMRManager
+<details>
+  <summary>目录</summary>
 
+<!--toc:start-->
+- [ASMRManager](#asmrmanager)
+  - [功能介绍](#功能介绍)
+    - [下载](#下载)
+    - [管理](#管理)
+    - [播放](#播放)
+  - [使用方法](#使用方法)
+  - [命令行补全](#命令行补全)
+  - [使用示例](#使用示例)
+  - [关于`dl search/get`的使用（作品，标签，文件的过滤细节）](#关于dl-searchget的使用作品标签文件的过滤细节)
+  - [多线程下载相关](#多线程下载相关)
+  - [其他](#其他)
+<!--toc:end-->
+
+
+</details>
 包含下载，管理，播放(命令行 TUI)的 <https://asmr.one> 的 CLI 管理工具。
 
 ## 功能介绍
@@ -12,29 +30,37 @@
 
 ```
 > asmr dl search --help
-2024-02-27 16:54:42 - INFO - Run program with: dl search --help
-Usage: asmr dl search [OPTIONS] [TEXT]
+[03/03/25 22:48:19] INFO     Run program with: dl search --help
+Usage: asmr dl search [OPTIONS] [KEYWORDS]...
 
   search and download ASMR
+
+  The argument are some keywords to filter the title or id of an ASMR.
+  Specially, you can pass a keyword starts with `!` to exclude works
+  containing this word, eg: `!中文版`
 
   the [multiple] options means you can add multiple same option such as:
 
       --tags tag1 --tags tag2 --no-tags tag3
 
-  for options like --rate, --sell, --price, you should give a interval like:
+  for options like --rate, --sell, --price, --duration you should give an
+  interval like:
 
-      --rate 3.9:4.7 --sell 1000: --price :200
+      --rate 3.9:4.7 --sell 1000: --price :200 --duration 10:60
 
   the interval a:b means a <= x < b, if a or b is not given i.e. a: or :b, it
   means no lower or upper limit
 
-  --force will check the download RJ files again though it is already  in the
-  database, it work just like update
+  for --duration, expressions like `1.5h(1.5 hours)`, `10m(10 minutes)` are
+  allowed, or by default, the unit is minute.
+
+  --force will check the download RJ files again though it is already     in
+  the database, it work just like update
 
   --replace option will first delte the original file, then add the new file
   to download queue(i.e. IDM or aria2)
 
-  nsfw will only show the full age ASMRs
+  --order=nsfw will only show the full age ASMRs
 
   for other --order values, you can refer to the website for explicit meaning
 
@@ -48,11 +74,17 @@ Options:
   -a, --age [general|r15|adult]   age limitation to include[multiple]
   -na, --no-age [general|r15|adult]
                                   age limitation to exclude[multiple]
+  -l, --lang [JPN|ENG|CHI_HANS|CHI_HANT|CHI|KO_KR|SPA|ITA|GER|FRE]
+                                  language to include[multiple]
+  -nl, --no-lang [JPN|ENG|CHI_HANS|CHI_HANT|CHI|KO_KR|SPA|ITA|GER|FRE]
+                                  language to exclude[multiple]
   -r, --rate TEXT                 rating interval
   -s, --sell TEXT                 selling interval
   -pr, --price TEXT               pirce interval
+  -d, --duration TEXT             duration interval
   --all / --select                download all RJs  [default: select]
-  -p, --page INTEGER              page of the search result  [default: 1]
+  -p, --page INTEGER              page of the search result, speicify to 0 if
+                                  you want to download all pages  [default: 1]
   --subtitle / --no-subtitle      if the ASMR has subtitle(中文字幕)  [default:
                                   no-subtitle]
   -o, --order [create_date|rating|release|dl_count|price|rate_average_2dp|review_count|id|nsfw|random]
@@ -119,6 +151,7 @@ pip install ASMRManager[依赖]
 - `file store` 将下载文件转移到存储目录(STORAGE_PATH)，并执行相应文件格式转换(详情见config.toml的before_store字段)
 - `view` 将选择文件并移动到 VIEW_PATH
 - `pl add` 将某个音声添加到用户的云端播放列表(配合 `pl create` 使用)
+- `pl vote up/down/add` 对相关标签进行投票，或添加新标签
 - `review` 为某个作品评分并评论(本地)
 
 更多使用示例可参考[这一小节](#使用示例)。
@@ -189,8 +222,15 @@ asmr query 治愈 --limit 3  # 搜索字段有：标题，社团名和标签名
 asmr query 治愈 --limit 3 --raw | jq .[].id | xargs -n1 asmr info # 输出为json格式，获取详细信息
 ```
 
+标签投票（对于*nix用户，安装命令行补全后可以更快捷地找到想要的tag；windows用户也可以选择不传入tag，交互式选择tag）
+```shell
+asmr vote up -t ASMR
+asmr vote down -t 497
+asmr vote up  # 不传入-t参数，会进入交互式选择模式
+```
 
-## 关于`dl search/get`的使用
+
+## 关于`dl search/get`的使用（作品，标签，文件的过滤细节）
 命令执行过程中会进行如下的检查与过滤操作：
 1. 开始下载前：检查RJ号是否应该下载，如果本地文件不存在或者数据库无记录都会执行下载操作。可以通过 `--force` 强制执行下载。
 1. 获取音声信息后：检查音声的tags，如果包含tag_filters里指定的tag，则跳过下载。可以通过 `--ignore-tag` 来强制下载。
