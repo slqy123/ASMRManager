@@ -437,16 +437,20 @@ class FileManager:
     def get_all_files(self, source_id: LocalSourceID) -> Set[Path]:
         """get all files of source ID both in download and storage path"""
         source_name = id2source_name(source_id)
-        l1 = set([
-            i.relative_to(self.download_path / source_name)
-            for i in (self.download_path / source_name).rglob("*")
-            if not i.is_dir()
-        ])
-        l2 = set([
-            i.relative_to(self.storage_path / source_name)
-            for i in (self.storage_path / source_name).rglob("*")
-            if not i.is_dir()
-        ])
+        l1 = set(
+            [
+                i.relative_to(self.download_path / source_name)
+                for i in (self.download_path / source_name).rglob("*")
+                if not i.is_dir()
+            ]
+        )
+        l2 = set(
+            [
+                i.relative_to(self.storage_path / source_name)
+                for i in (self.storage_path / source_name).rglob("*")
+                if not i.is_dir()
+            ]
+        )
         return l1 | l2
 
     @classmethod
