@@ -27,7 +27,7 @@ dependencies = [
     "appdirs>=1.4.4",
     "toml>=0.10.2",
     "beaupy>=3.7.2",
-    "asyncstdlib>=3.12.2",
+    "asyncstdlib>=3.13.1",
 ]
 requires-python = ">=3.10"
 readme = "README.md"
