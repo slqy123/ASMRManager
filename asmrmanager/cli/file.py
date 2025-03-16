@@ -74,6 +74,7 @@ def recover(source_id: LocalSourceID, regex: str, ignore_filter: bool):
     recovers = res
 
     files = fm.get_all_files(source_id)
+    source_name = id2source_name(source_id)
 
     for recover in recovers:
         rel_path = recover["path"]
@@ -99,13 +100,16 @@ def recover(source_id: LocalSourceID, regex: str, ignore_filter: bool):
                     f"recover file {rel_path} since filters are ignored"
                 )
 
-        url2download.append((recover["url"], fm.download_path / rel_path))
+        url2download.append(
+            (recover["url"], fm.download_path / source_name / rel_path)
+        )
 
     from asmrmanager.cli.core import create_downloader_and_database
 
     downloader, _ = create_downloader_and_database()
     tasks = []
     for url, path in url2download:
+        path.parent.mkdir(parents=True, exist_ok=True)
         tasks.append(
             downloader.downloader.process_download(url, path.parent, path.name)
         )
