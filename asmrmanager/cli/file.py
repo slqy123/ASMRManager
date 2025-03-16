@@ -1,12 +1,14 @@
 import re
 from pathlib import Path
 from typing import List, Tuple, Literal
+import typing
 
 import click
 
 from asmrmanager.config import config
 from asmrmanager.cli.core import (
     create_database,
+    create_general_api,
     fm,
     multi_rj_argument,
     rj_argument,
@@ -273,6 +275,14 @@ def diff(source_id: LocalSourceID):
 
 @click.command()
 @click.option(
+    "--offline",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Skip hash verification(By default hash verification is enabled, "
+    "which takes a long time for calculating and web request)",
+)
+@click.option(
     "--list",
     "list_",
     is_flag=True,
@@ -280,10 +290,11 @@ def diff(source_id: LocalSourceID):
     show_default=True,
     help="only list source id (pipe it to `dl get --force` to redownload them)",
 )
-def check(list_: bool):
+def check(list_: bool, offline: bool):
     """
-    check for download path for files to be downloaded without missing or failed
+    check for download path for files to be downloaded correctly without missing or fail.
     """
+    # TODO: check hash with xxhash3
     source_ids = fm.list_("download")
     for source_id in source_ids:
         if res := fm.load_recover(source_id):
@@ -314,6 +325,53 @@ def check(list_: bool):
             )
             if list_:
                 print(source_id)
+            continue
+
+        if offline:
+            continue
+
+        remote_files_should_down_list = [
+            Path(i["path"]) for i in recovers if i["should_download"]
+        ]
+        file_ids = [i.get("fileId") for i in recovers if i["should_download"]]
+        if not all(isinstance(i, int) for i in file_ids):
+            logger.warning(
+                f"source_id {source_id} has missing fileId in recover, "
+                "please update your recover file first"
+            )
+            continue
+        file_ids = typing.cast(List[int], file_ids)
+        # file_ids = [int(i.split("/")[1]) for i in file_ids]
+
+        file_paths: List[Path] = []
+        for file in remote_files_should_down_list:
+            file_path = fm.get_path(source_id, str(file), prefer="download")
+            assert file_path is not None, (
+                f"Unexpected None value for file path = {file_path}"
+                " and source_id = {source_id}"
+            )
+            assert file_path.exists() and file_path.is_file()
+            file_paths.append(file_path)
+
+        api = create_general_api()
+        res = api.run(
+            *[
+                api.verify(file_path, file_id)
+                for file_path, file_id in zip(file_paths, file_ids)
+            ]
+        )
+        if not all(res):
+            logger.error(
+                f"source_id {source_id} has files that failed to verify hash:"
+            )
+            for i, (file_path, file_id) in enumerate(
+                zip(file_paths, file_ids)
+            ):
+                if not res[i]:
+                    logger.error(f"fileId: {file_id}, {file_path}")
+            if list_:
+                print(source_id)
+            continue
 
 
 file.add_command(del_)

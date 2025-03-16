@@ -1,7 +1,7 @@
 import functools
 import uuid
 from typing import TYPE_CHECKING, Any, List, Literal, Tuple
-from functools import lru_cache
+from functools import cache, lru_cache
 
 import asyncstdlib
 import click
@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from asmrmanager.spider import ASMRDownloadManager
 
 
+@cache
 def create_database(
     skip_check: bool = False,
 ):  # skip_check is only used for migration
@@ -47,6 +48,7 @@ def create_database(
     return db
 
 
+@cache
 def create_downloader_and_database(
     download_params: DownloadParams | None = None,
 ) -> Tuple["ASMRDownloadManager", "DataBaseManager"]:
@@ -94,6 +96,7 @@ def create_downloader_and_database(
     )
 
 
+@cache
 def create_playlist():
     from asmrmanager.spider.interface import ASMRPlayListManager
 
@@ -102,10 +105,20 @@ def create_playlist():
     )
 
 
+@cache
 def create_tags_api():
     from asmrmanager.spider import ASMRTagManager
 
     return ASMRTagManager(
+        name=config.username, password=config.password, proxy=config.proxy
+    )
+
+
+@cache
+def create_general_api():
+    from asmrmanager.spider import ASMRGeneralManager
+
+    return ASMRGeneralManager(
         name=config.username, password=config.password, proxy=config.proxy
     )
 

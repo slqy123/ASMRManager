@@ -195,6 +195,17 @@ class ASMRAPI:
             },
         )
 
+    async def verify_hash(self, fileId: int, hash_: str):
+        return await self.post(
+            "media/verify-workfile-hash",
+            data={
+                "fileId": fileId,
+                "hash": hash_.lower(),
+                "UA": self.headers["User-Agent"],
+                "processorName": "Native",
+            },
+        )
+
     async def list(self, params: dict) -> Dict[str, Any]:
         return await self.get("works", params=params)
 

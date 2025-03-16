@@ -60,7 +60,8 @@ fm = FileManager.get_fm()
 # TODO 统一管理固定的参数
 
 FileInfo = NamedTuple(
-    "FileInfo", [("path", Path), ("url", str), ("should_download", bool)]
+    "FileInfo",
+    [("path", Path), ("url", str), ("should_download", bool), ("id", int)],
 )
 
 
@@ -172,6 +173,7 @@ class ASMRDownloadAPI(ASMRAPI):
                 ),
                 "url": file.url,
                 "should_download": file.should_download,
+                "fileId": file.id,
             }
             for file in file_list
         ]
@@ -329,9 +331,17 @@ class ASMRDownloadAPI(ASMRAPI):
                 should_download = False
             else:
                 should_download = True
+            file_hash = file["hash"].split("/")
+            assert len(file_hash) == 2
+            file_id = int(file_hash[1])
 
             file_list.append(
-                FileInfo(file_path, file["mediaDownloadUrl"], should_download)
+                FileInfo(
+                    file_path,
+                    file["mediaDownloadUrl"],
+                    should_download,
+                    file_id,
+                )
             )
 
         for folder in folders:

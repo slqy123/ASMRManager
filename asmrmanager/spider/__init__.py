@@ -1,4 +1,9 @@
 from .downloader import ASMRAPI
-from .interface import ASMRDownloadManager, ASMRTagManager
+from .interface import ASMRDownloadManager, ASMRTagManager, ASMRGeneralManager
 
-__all__ = ["ASMRAPI", "ASMRDownloadManager", "ASMRTagManager"]
+__all__ = [
+    "ASMRAPI",
+    "ASMRDownloadManager",
+    "ASMRTagManager",
+    "ASMRGeneralManager",
+]

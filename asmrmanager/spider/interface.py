@@ -1,4 +1,5 @@
 import asyncio
+from pathlib import Path
 import uuid
 from typing import (
     Any,
@@ -11,6 +12,7 @@ from typing import (
     TypeVar,
 )
 from dataclasses import dataclass
+import xxhash
 
 from asmrmanager.common.browse_params import BrowseParams
 from asmrmanager.common.output import print_table
@@ -440,3 +442,22 @@ class ASMRTagManager(AsyncManager):
             logger.info(
                 f"Successfully vote tag {tag_id} {action} for {source_id}."
             )
+
+
+class ASMRGeneralManager(AsyncManager):
+    def __init__(
+        self, name: str, password: str, proxy: str | None, limit: int = 3
+    ) -> None:
+        self.api = ASMRAPI(name, password, proxy, limit)
+
+    async def verify(self, file_path: Path, file_id: int) -> bool:
+        xxhash_ = xxhash.xxh128_hexdigest(file_path.read_bytes())
+        res = await self.api.verify_hash(file_id, xxhash_)
+        logger.debug(f"Hash of file {file_id}: {xxhash_}")
+        logger.debug(f"Response: {res}")
+        res = res["result"]
+        if res:
+            logger.info(f"File {file_id} is verified.")
+        else:
+            logger.error(f"File {file_id} is not verified.")
+        return res

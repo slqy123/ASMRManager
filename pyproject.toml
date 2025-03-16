@@ -28,6 +28,7 @@ dependencies = [
     "toml>=0.10.2",
     "beaupy>=3.7.2",
     "asyncstdlib>=3.13.1",
+    "xxhash>=3.5.0",
 ]
 requires-python = ">=3.10"
 readme = "README.md"

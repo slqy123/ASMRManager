@@ -420,6 +420,7 @@ class FileManager:
         recover_path = self.get_path(
             source_id, rel=".recover", prefer="download"
         )
+        logger.debug(f"recover path: {recover_path}")
         if recover_path is None:
             logger.error(
                 f"item {source_id} does not have recover file, please update this"
