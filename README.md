@@ -1,6 +1,10 @@
 # ASMRManager
 <details>
-  <summary>目录</summary>
+  <summary>
+
+  ## →目录←
+
+  </summary>
 
 <!--toc:start-->
 - [ASMRManager](#asmrmanager)
@@ -18,7 +22,7 @@
 
 
 </details>
-包含下载，管理，播放(命令行 TUI)的 <https://asmr.one> 的 CLI 管理工具。
+包含下载，管理，播放(命令行 TUI)的 https://asmr.one 的 CLI 管理工具。
 
 ## 功能介绍
 
@@ -121,13 +125,17 @@ Options:
 pip install ASMRManager[依赖]
 ```
 
-可选则的依赖项有 `idm`, `aria2`, `tui`，`pygame`,`mpd`, `all`，多个依赖使用逗号分隔，其中`all`为安装所有依赖。例如 `pip install ASMRManager[idm,tui]`
+可选则的依赖项有 `idm`, `aria2`, `tui`，`pygame`,`mpd`, `all`，多个依赖使用逗号分隔，其中`all`为安装所有依赖。
+具体功能如下：
 
 - 下载：`idm` 或 `aria2` 二选一，`idm` 为 windows 平台专用，`aria2` 为跨平台。
 - 播放：`pygame` 或 `mpd` 二选一。
 - 其他：`tui` 为可视化命令行界面。
 
-> 此处也可以选择使用 `pipx` 来替代 `pip`，避免污染全局环境。
+示例： `pip install ASMRManager[idm,tui]` （idm 与 aria2 至少安装其一，以实现最基础的下载功能，其他选项可随意）
+
+> [!NOTE]
+> 推荐使用 `pipx` 替代 `pip` 进行安装，以避免环境污染。
 > 安装方法：`pip install pipx`
 
 ---
@@ -147,7 +155,7 @@ pip install ASMRManager[依赖]
 常用的命令有：
 - `dl search` 搜索并下载。
 - `info` 搜索某个 RJID 的具体信息
-- `file check` 检查下载目录下的文件是否按照规则被正确下载 
+- `file check` 检查下载目录下的文件是否按照规则被正确下载，并验证文件完整性
 - `file store` 将下载文件转移到存储目录(STORAGE_PATH)，并执行相应文件格式转换(详情见config.toml的before_store字段)
 - `view` 将选择文件并移动到 VIEW_PATH
 - `pl add` 将某个音声添加到用户的云端播放列表(配合 `pl create` 使用)
@@ -201,7 +209,7 @@ asmr dl get 100000029  # 对于BJ与VJ，网站为了兼容RJ所使用的特殊I
 asmr dl get 300015443  # 本项目存储VJ与BJ所使用的ID（"3" + 8位VJ号，BJ则为"4" + 8位BJ号）
 ```
 
-检查下载目录下文件是否下载完全（只验证文件存在，不保证文件完整性）
+检查下载目录下文件是否下载完全（默认会计算hash并向服务器验证，较为耗时。可使用 --offline 跳过）
 ```shell
 asmr file check
 asmr file check --list | xargs asmr dl get --force   # 重新下载所有不完整的文件，以bash shell为例
