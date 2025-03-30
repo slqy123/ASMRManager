@@ -17,11 +17,23 @@ def get_audio_files(rj_path: Path) -> List[Path]:
         if f.suffix.lower() in [".mp3", ".wav", ".flac", ".m4a"]
     ]
 
-def format_timestamp(seconds: float) -> str:
-    hours = int(seconds // 3600)
-    minutes = int((seconds % 3600) // 60)
-    seconds = seconds % 60
-    return f"{hours:02d}:{minutes:02d}:{seconds:06.3f}"
+def format_lrc_timestamp(seconds: float) -> str:
+    total_seconds = round(seconds, 2)
+    minutes = int(total_seconds // 60)
+    remaining_seconds = total_seconds % 60
+    
+    secs = int(remaining_seconds)
+    hundredths = int(round((remaining_seconds - secs) * 100))
+    
+    if hundredths >= 100:
+        secs += 1
+        hundredths -= 100
+    
+    if secs >= 60:
+        minutes += 1
+        secs -= 60
+    
+    return f"{minutes:02d}:{secs:02d}.{hundredths:02d}"
 
 def format_timedelta(seconds: float) -> str:
     delta = timedelta(seconds=seconds)
@@ -42,7 +54,7 @@ def format_timedelta(seconds: float) -> str:
 @click.argument("audio_file", type=click.Path(exists=True), required=False)
 @rj_argument("local")
 @click.option("--model-size", "-m", default="base", help="Size of the Whisper model (e.g., tiny, base, small, medium, large)")
-@click.option("--output", "-o", type=click.Path(), help="Output file path (defaults to a .vtt file with the same name as the audio file)")
+@click.option("--output", "-o", type=click.Path(), help="Output file path (defaults to a .lrc file with the same name as the audio file)")
 @click.option("--language", "-l", default="ja", help="Language to be recognized (e.g., ja, en, zh)")
 @click.option("--device", "-d", default="auto", help="Computing device (e.g., cpu, cuda, auto)")
 @click.option("--single", "-s", is_flag=True, help="Process only the first file (valid when no specific audio file is provided)")
@@ -55,9 +67,7 @@ def subtitle(
     device: str,
     single: bool,
 ):
-    """
-    generate subtitles for audio files using the Whisper model.
-    """
+    """generate LRC subtitles for audio files using the Whisper model"""
     if audio_file:
         audio_files = [Path(audio_file)]
     else:
@@ -69,11 +79,12 @@ def subtitle(
         audio_files.sort()
         if single:
             audio_files = audio_files[:1]
+
     error_count = 0
     start_time = datetime.now()
     try:
-        for _, audio_path in enumerate(audio_files, 1):
-            output_path = Path(output) if output else audio_path.with_suffix(".vtt")
+        for audio_path in audio_files:
+            output_path = Path(output) if output else audio_path.with_suffix(".lrc")
             try:
                 cpu_threads = os.cpu_count() or 4
                 model = WhisperModel(model_size, device=device, cpu_threads=cpu_threads)
@@ -88,21 +99,19 @@ def subtitle(
                 total_duration = float(info.duration) if info.duration > 0 else 1e-6
                 
                 with open(output_path, "w", encoding="utf-8") as f:
-                    f.write("WEBVTT\n\n")
                     with tqdm(
                         total=total_duration,
                         desc=f"{audio_path.name}",
                         unit="s",
                         bar_format="{l_bar}{bar}| {n:.1f}/{total:.1f}s [{elapsed}<{remaining}, ETA: {eta}]"
                     ) as pbar:
-                        for i, segment in enumerate(segments, 1):
+                        for segment in segments:
                             pbar.update(segment.end - pbar.n)
                             
-                            f.write(
-                                f"{i}\n"
-                                f"{format_timestamp(segment.start)} --> {format_timestamp(segment.end)}\n"
-                                f"{segment.text.strip()}\n\n"
-                            )
+                            start_lrc = format_lrc_timestamp(segment.start)
+                            text = segment.text.strip().replace('\n', ' ')
+                            f.write(f"[{start_lrc}] {text}\n")
+                        
                         if pbar.n < total_duration:
                             pbar.update(total_duration - pbar.n)
             except Exception as e:
