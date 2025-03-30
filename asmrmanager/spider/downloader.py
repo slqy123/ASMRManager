@@ -112,6 +112,7 @@ class ASMRDownloadAPI(ASMRAPI):
         save_path: Path | None = None,
     ) -> None:
         voice_info = await self.get_voice_info(voice_id)
+        assert voice_info is not None, f"Failed to download voice {voice_id}"
 
         should_down = self.json_should_download(voice_info)
         if not should_down:
@@ -181,9 +182,15 @@ class ASMRDownloadAPI(ASMRAPI):
             json.dump(recover, f, ensure_ascii=False, indent=4)
 
     @asyncstdlib.lru_cache(None)
-    async def get_voice_info(self, voice_id: RemoteSourceID) -> Dict[str, Any]:
+    async def get_voice_info(
+        self, voice_id: RemoteSourceID
+    ) -> Dict[str, Any] | None:
         voice_info = await self.get(f"work/{voice_id}")
         assert isinstance(voice_info, dict)
+        # logger.debug(f"get voice info: {voice_info}")
+        if err := voice_info.get("error"):
+            logger.error(f"failed to get info of {voice_id}. error: {err}")
+            return None
         return voice_info
 
     async def get_voice_tracks(self, voice_id: RemoteSourceID):

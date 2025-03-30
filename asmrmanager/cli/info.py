@@ -53,6 +53,9 @@ def info_from_web(source_id: RemoteSourceID):
     (rj_info,) = downloader.run(
         downloader.downloader.get_voice_info(source_id)
     )
+    if rj_info is None:
+        exit(1)
+
     # logger.debug(rj_info)
 
     res = db.parse_info(rj_info)

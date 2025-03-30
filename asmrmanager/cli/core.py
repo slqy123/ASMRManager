@@ -272,6 +272,9 @@ def convert2local_ids(
         if res is not None:
             return LocalSourceID(SourceID(res))
         info = await downloader.downloader.get_voice_info(source_id)
+        if info is None:
+            logger.warning(f"failed to convert {source_id} to local id")
+            return None
         return LocalSourceID(source_name2id(info["source_id"]))
 
     return downloader.run(

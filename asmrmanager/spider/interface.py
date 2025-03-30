@@ -216,6 +216,9 @@ class ASMRDownloadManager(AsyncManager):
     async def update(self, ids: List[RemoteSourceID]):
         async def update_one(source_id_: RemoteSourceID):
             voice_info = await self.downloader.get_voice_info(source_id_)
+            if voice_info is None:
+                logger.error(f"Failed to update {source_id_}.")
+                return
 
             # should_down = self.spider.json_should_download(voice_info)
             # if not should_down:
@@ -411,6 +414,7 @@ class ASMRTagManager(AsyncManager):
 
     async def get_asmr_tags(self, source_id: RemoteSourceID):
         voice_info = await ASMRDownloadAPI.get_voice_info(self.api, source_id)  # type: ignore
+        assert voice_info is not None, "Failed to get voice info."
         return [ASMRTag(**i) for i in voice_info["tags"]]
 
     async def get_all_tags(self):
