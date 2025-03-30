@@ -63,17 +63,6 @@ dev = [
 
 all = ['asmrmanager[aria2,idm,tui,pygame,mpd]']
 
-[tool.black]
-line-length = 79
-preview = true
-
-[tool.isort]
-profile = "black"
-line_length = 79
-
-[tool.autoflake]
-ignore-init-module-imports = true
-
 [tool.ruff]
 line-length = 79
 
