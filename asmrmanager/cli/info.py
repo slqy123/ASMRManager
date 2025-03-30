@@ -1,5 +1,7 @@
 import click
 
+from asmrmanager.common.rj_parse import id2source_name
+from asmrmanager.config import config
 from asmrmanager.cli.core import (
     convert2remote_id,
     create_database,
@@ -76,9 +78,28 @@ def info_from_web(source_id: RemoteSourceID):
     show_default=True,
     help="get a random info in the database",
 )
+@click.option(
+    "--web",
+    "-w",
+    is_flag=True,
+    default=False,
+    help="open the corresponding web page",
+)
 @rj_argument("local")
-def info(source_id: LocalSourceID, rand: bool):
+def info(source_id: LocalSourceID, rand: bool, web: bool):
     """show info of the ASMR by id"""
+    if web:
+        import webbrowser
+
+        if config.api_channel is None:
+            url = "https://asmr.one"
+        else:
+            url = config.api_channel
+            assert url.startswith("api.")
+            url = f"https://{url[4:]}"
+
+        webbrowser.open(f"{url}/work/{id2source_name(source_id)}")
+        return
     db = create_database()
 
     v_info = db.func.get_info(source_id, rand=rand)
