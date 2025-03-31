@@ -1,21 +1,17 @@
+import click
+import os
+import traceback
 from pathlib import Path
 from typing import Optional, List
-import traceback
 from datetime import datetime, timedelta
 from faster_whisper import WhisperModel
 from tqdm import tqdm
-import click
 from asmrmanager.cli.core import fm, rj_argument
 from asmrmanager.common.types import LocalSourceID
 from asmrmanager.logger import logger
-import os
-
-def get_audio_files(rj_path: Path) -> List[Path]:
-    return [
-        f
-        for f in rj_path.rglob("*.*")
-        if f.suffix.lower() in [".mp3", ".wav", ".flac", ".m4a"]
-    ]
+from asmrmanager.filemanager.utils import folder_chooser
+from asmrmanager.config import config
+from asmrmanager.lrcplayer.main import MUSIC_SUFFIXES
 
 def format_lrc_timestamp(seconds: float) -> str:
     total_seconds = round(seconds, 2)
@@ -51,48 +47,74 @@ def format_timedelta(seconds: float) -> str:
     return " ".join(parts)
 
 @click.command()
-@click.argument("audio_file", type=click.Path(exists=True), required=False)
 @rj_argument("local")
-@click.option("--model-size", "-m", default="base", help="Size of the Whisper model (e.g., tiny, base, small, medium, large)")
+@click.option("--force", "-f", is_flag=True, help="Overwrite existing LRC files")
 @click.option("--output", "-o", type=click.Path(), help="Output file path (defaults to a .lrc file with the same name as the audio file)")
-@click.option("--language", "-l", default="ja", help="Language to be recognized (e.g., ja, en, zh)")
-@click.option("--device", "-d", default="auto", help="Computing device (e.g., cpu, cuda, auto)")
-@click.option("--single", "-s", is_flag=True, help="Process only the first file (valid when no specific audio file is provided)")
 def subtitle(
-    audio_file: Optional[str],
     source_id: LocalSourceID,
-    model_size: str,
     output: Optional[str],
-    language: Optional[str],
-    device: str,
-    single: bool,
+    force: bool = False,
 ):
     """generate LRC subtitles for audio files using the Whisper model"""
-    if audio_file:
-        audio_files = [Path(audio_file)]
-    else:
-        rj_path = fm.get_path(source_id)
-        if not rj_path:
-            logger.error(f"RJ{source_id} not found")
-            return
-        audio_files = get_audio_files(rj_path)
-        audio_files.sort()
-        if single:
-            audio_files = audio_files[:1]
+    subtitle_config = config.subtitle_config
+
+    rj_path = fm.get_path(source_id)
+    if rj_path is None:
+        logger.error(f"RJ id {source_id} not found!")
+        return
+
+    try:
+        path = folder_chooser(
+            rj_path,
+            lambda _, count: bool(
+                set(count.keys()).intersection(MUSIC_SUFFIXES)
+            ),
+        )
+    except ValueError:
+        logger.error(
+            f"No music files{MUSIC_SUFFIXES} found, please check your local"
+            " file."
+        )
+        exit(-1)
+
+    assert path.is_dir()
+
+    audio_paths: List[Path] = []
+    for file in path.iterdir():
+        if file.is_dir():
+            continue
+
+        if file.suffix not in MUSIC_SUFFIXES:
+            continue
+
+        audio_paths.append(file)
+
+    if not audio_paths:
+        logger.error("error input")
+        return
+    
+    audio_paths.sort()
 
     error_count = 0
+    skip_count = 0
     start_time = datetime.now()
     try:
-        for audio_path in audio_files:
+        for audio_path in audio_paths:
             output_path = Path(output) if output else audio_path.with_suffix(".lrc")
+
+            if output_path.exists() and not force:
+                logger.info(f"Skipping {audio_path.name}: LRC file already exists")
+                skip_count += 1
+                continue
+                
             try:
                 cpu_threads = os.cpu_count() or 4
-                model = WhisperModel(model_size, device=device, cpu_threads=cpu_threads)
+                model = WhisperModel(subtitle_config.model_size, device=subtitle_config.device, cpu_threads=cpu_threads)
                 logger.debug(f"Using {cpu_threads} CPU threads for processing")
                 
                 segments, info = model.transcribe(
                     str(audio_path),
-                    language=language,
+                    language=subtitle_config.language,
                     vad_filter=True,
                 )
                 
@@ -103,7 +125,7 @@ def subtitle(
                         total=total_duration,
                         desc=f"{audio_path.name}",
                         unit="s",
-                        bar_format="{l_bar}{bar}| {n:.1f}/{total:.1f}s [{elapsed}<{remaining}, ETA: {eta}]"
+                        bar_format="{l_bar}{bar}| {n:.1f}/{total:.1f}s [{elapsed}<{remaining}"
                     ) as pbar:
                         for segment in segments:
                             pbar.update(segment.end - pbar.n)
@@ -122,5 +144,7 @@ def subtitle(
     finally:
         total_time = datetime.now() - start_time
         logger.info(f"Processing completed, total time: {format_timedelta(total_time.total_seconds())}")
+        if skip_count > 0:
+            logger.info(f"Skipped {skip_count} existing LRC files")
         if error_count > 0:
             logger.warning(f"{error_count} errors occurred")
