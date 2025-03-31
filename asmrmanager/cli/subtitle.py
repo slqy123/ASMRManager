@@ -1,11 +1,10 @@
 import click
 import os
 import traceback
+from tqdm import tqdm
 from pathlib import Path
 from typing import Optional, List
 from datetime import datetime, timedelta
-from faster_whisper import WhisperModel
-from tqdm import tqdm
 from asmrmanager.cli.core import fm, rj_argument
 from asmrmanager.common.types import LocalSourceID
 from asmrmanager.logger import logger
@@ -56,6 +55,13 @@ def subtitle(
     force: bool = False,
 ):
     """generate LRC subtitles for audio files using the Whisper model"""
+    try:
+        from faster_whisper import WhisperModel
+    except ImportError:
+        raise ImportError(
+            "faster_whisper is not installed, please install asmrmanager with subtitle"
+            " dpendency."
+        )
     subtitle_config = config.subtitle_config
 
     rj_path = fm.get_path(source_id)
