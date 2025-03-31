@@ -1,12 +1,14 @@
-from typing import Literal
-
+from typing import Literal, Optional, List
+from pathlib import Path
 import click
 
-from asmrmanager.common.subtitle import subtitle
-from asmrmanager.cli.core import rj_argument
+from asmrmanager.cli.core import rj_argument, fm
 from asmrmanager.common.fileconverter import convert_vtt2lrc
 from asmrmanager.common.types import LocalSourceID
 from asmrmanager.logger import logger
+from asmrmanager.lrcplayer.main import MUSIC_SUFFIXES
+from asmrmanager.filemanager.utils import folder_chooser
+from asmrmanager.common.subtitle import generate_subtitle
 
 
 @click.group()
@@ -80,6 +82,69 @@ def convert(
             convert_audio_format(src_path, mode)
             assert src_path.with_suffix(f".{mode}").exists()
             src_path.unlink()
+
+
+@click.command()
+@rj_argument("local")
+@click.option(
+    "--force", "-f", is_flag=True, help="Overwrite existing LRC files"
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(path_type=Path),
+    help="Output file path (defaults to a .lrc file with the same name as the audio file)",
+)
+def subtitle(
+    source_id: LocalSourceID,
+    output: Optional[Path],
+    force: bool = False,
+):
+    """generate LRC subtitles for audio files using the Whisper model"""
+
+    rj_path = fm.get_path(source_id)
+    if rj_path is None:
+        logger.error(f"RJ id {source_id} not found!")
+        return
+
+    try:
+        path = folder_chooser(
+            rj_path,
+            lambda _, count: bool(
+                set(count.keys()).intersection(MUSIC_SUFFIXES)
+            ),
+        )
+    except ValueError:
+        logger.error(
+            f"No music files{MUSIC_SUFFIXES} found, please check your local"
+            " file."
+        )
+        exit(-1)
+
+    assert path.is_dir()
+
+    audio_paths: List[Path] = []
+    for file in path.iterdir():
+        if file.is_dir():
+            continue
+
+        if file.suffix not in MUSIC_SUFFIXES:
+            continue
+
+        audio_paths.append(file)
+
+    if not audio_paths:
+        logger.error("No audio files found in the specified directory.")
+        return
+
+    audio_paths.sort()
+    try:
+        for audio_path in audio_paths:
+            logger.info(f"Generating LRC file for {audio_path.name}")
+            generate_subtitle(audio_path, output, force)
+    except KeyboardInterrupt:
+        logger.error("Subtitle generation interrupted by user.")
+        return
 
 
 utils.add_command(migrate)
