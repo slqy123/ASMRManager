@@ -21,11 +21,11 @@ class Config:
     filename_filters: List["Filter"]
     download_method: Literal["aria2", "idm"]
     aria2_config: "Aria2Config"
+    subtitle_config: "SubtitleConfig"
     playlist_aliases: Dict[str, str]
     player: Literal["mpd", "pygame"]
     mpd_config: "MPDConfig"
     before_store: str = ""
-
 
 @dataclass
 class Filter:
@@ -54,6 +54,11 @@ class MPDConfig:
     port: int = 6600
     music_directory: str | None = None
 
+@dataclass
+class SubtitleConfig:
+    device: str = "auto"
+    model_size: str = "base"
+    language: str = "ja"
 
 _config = toml.load(CONFIG_PATH / "config.toml")
 
@@ -93,4 +98,5 @@ config = Config(
     player=_config.get("player", "pygame"),
     mpd_config=MPDConfig(**_config.get("mpd_config", {})),
     before_store=_config.get("before_store", ""),
+    subtitle_config=SubtitleConfig(**_config.get("subtitle_config", {})),
 )

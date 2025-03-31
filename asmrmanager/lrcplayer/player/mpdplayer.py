@@ -16,7 +16,7 @@ try:
 except ImportError:
     raise ImportError(
         "python-mpd2 is not installed, please install asmrmanager with mpd"
-        " dpendency."
+        " dependency."
     )
 
 MPDStatus = NamedTuple(

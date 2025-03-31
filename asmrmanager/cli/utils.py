@@ -2,6 +2,7 @@ from typing import Literal
 
 import click
 
+from asmrmanager.common.subtitle import subtitle
 from asmrmanager.cli.core import rj_argument
 from asmrmanager.common.fileconverter import convert_vtt2lrc
 from asmrmanager.common.types import LocalSourceID
@@ -83,3 +84,4 @@ def convert(
 
 utils.add_command(migrate)
 utils.add_command(convert)
+utils.add_command(subtitle)
