@@ -60,7 +60,7 @@ def subtitle(
     except ImportError:
         raise ImportError(
             "faster_whisper is not installed, please install asmrmanager with subtitle"
-            " dpendency."
+            " dependency."
         )
     subtitle_config = config.subtitle_config
 
@@ -131,7 +131,7 @@ def subtitle(
                         total=total_duration,
                         desc=f"{audio_path.name}",
                         unit="s",
-                        bar_format="{l_bar}{bar}| {n:.1f}/{total:.1f}s [{elapsed}<{remaining}"
+                        bar_format="{l_bar}{bar}| {n:.1f}/{total:.1f}s [{elapsed}<{remaining}]"
                     ) as pbar:
                         for segment in segments:
                             pbar.update(segment.end - pbar.n)

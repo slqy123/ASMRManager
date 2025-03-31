@@ -9,7 +9,7 @@ try:
 except ImportError:
     raise ImportError(
         "pygame is not installed, please install asmrmanager with pygame"
-        " dpendency."
+        " dependency."
     )
 
 
