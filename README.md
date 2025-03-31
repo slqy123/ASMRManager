@@ -1,12 +1,14 @@
 # ASMRManager
+
 <details>
   <summary>
 
-  ## →目录←
+## →目录←
 
   </summary>
 
 <!--toc:start-->
+
 - [ASMRManager](#asmrmanager)
   - [功能介绍](#功能介绍)
     - [下载](#下载)
@@ -18,8 +20,7 @@
   - [关于`dl search/get`的使用（作品，标签，文件的过滤细节）](#关于dl-searchget的使用作品标签文件的过滤细节)
   - [多线程下载相关](#多线程下载相关)
   - [其他](#其他)
-<!--toc:end-->
-
+  <!--toc:end-->
 
 </details>
 包含下载，管理，播放(命令行 TUI)的 https://asmr.one 的 CLI 管理工具。
@@ -125,12 +126,12 @@ Options:
 pip install ASMRManager[依赖]
 ```
 
-可选则的依赖项有 `idm`, `aria2`, `tui`，`pygame`,`mpd`, `all`，多个依赖使用逗号分隔，其中`all`为安装所有依赖。
+可选则的依赖项有 `idm`, `aria2`, `tui`，`pygame`,`mpd`,`subtitle`, `all`，多个依赖使用逗号分隔，其中`all`为安装所有依赖。
 具体功能如下：
 
 - 下载：`idm` 或 `aria2` 二选一，`idm` 为 windows 平台专用，`aria2` 为跨平台。
 - 播放：`pygame` 或 `mpd` 二选一。
-- 其他：`tui` 为可视化命令行界面。
+- 其他：`tui` 为可视化命令行界面。`subtitle` 使用faster-whisper生成字幕文件。
 
 示例： `pip install ASMRManager[idm,tui]` （idm 与 aria2 至少安装其一，以实现最基础的下载功能，其他选项可随意）
 
@@ -153,6 +154,7 @@ pip install ASMRManager[依赖]
 
 完成后使用 `asmr -h` 查看各命令的使用说明，对于子命令不清楚的同样可以查看帮助，例如 `asmr dl -h`。
 常用的命令有：
+
 - `dl search` 搜索并下载。
 - `info` 搜索某个 RJID 的具体信息
 - `file check` 检查下载目录下的文件是否按照规则被正确下载，并验证文件完整性
@@ -169,7 +171,9 @@ pip install ASMRManager[依赖]
 另外本工具提供基于 `trogon` 的可视化命令行界面，在安装`tui`依赖后使用 `asmr tui` 即可打开。
 
 ## 命令行补全
+
 仅支持 Bash/Fish/Zsh，详情可参考[官方文档](https://click.palletsprojects.com/en/8.1.x/shell-completion)。
+
 ```shell
 # fish
 _ASMR_COMPLETE=fish_source asmr > ~/.config/fish/completions/asmr.fish
@@ -184,23 +188,28 @@ echo '. ~/.asmr-complete.zsh' >> ~/.zshrc
 ```
 
 ## 使用示例
+
 搜索最近更新的40个(一页)作品并下载：
+
 ```shell
 asmr dl search -o release --desc  # 选择并下载
 asmr dl search -o release --desc --all  # 下载全部
 ```
 
 下载`治愈`标签下销量大于等于5000的全部的作品：
+
 ```shell
 asmr dl search --tags 治愈 --sell 5000: --page 0 --all  # --page 0 会遍历下载所有页，否则默认只会下载第一页
 ```
 
 下载某个社团下的全年龄并包含中文字幕的作品：
+
 ```shell
 asmr dl search --circle Yostar --age general --subtitle
 ```
 
 根据RJ/VJ/BJ号下载（下述输入格式适用于一切需要输入单个或多个ID的场合）：
+
 ```shell
 asmr dl get RJ299717
 asmr dl get 299717  # RJ可以省略；对于8位RJ号，第一位的0也可以省略
@@ -210,12 +219,14 @@ asmr dl get 300015443  # 本项目存储VJ与BJ所使用的ID（"3" + 8位VJ号�
 ```
 
 检查下载目录下文件是否下载完全（默认会计算hash并向服务器验证，较为耗时。可使用 --offline 跳过）
+
 ```shell
 asmr file check
 asmr file check --list | xargs asmr dl get --force   # 重新下载所有不完整的文件，以bash shell为例
 ```
 
 将下载的文件转移到存储目录(STORAGE_PATH)，并执行相应文件格式转换(详情见config.toml的before_store字段)
+
 ```shell
 asmr file store --all
 ```
@@ -225,27 +236,37 @@ asmr file store --all
 ![diff](./assets/diff.png)
 
 简单的关键词搜索（本地数据库）：
+
 ```shell
 asmr query 治愈 --limit 3  # 搜索字段有：标题，社团名和标签名
 asmr query 治愈 --limit 3 --raw | jq .[].id | xargs -n1 asmr info # 输出为json格式，获取详细信息
 ```
 
-标签投票（对于*nix用户，安装命令行补全后可以更快捷地找到想要的tag；windows用户也可以选择不传入tag，交互式选择tag）
+标签投票（对于\*nix用户，安装命令行补全后可以更快捷地找到想要的tag；windows用户也可以选择不传入tag，交互式选择tag）
+
 ```shell
 asmr vote up -t ASMR
 asmr vote down -t 497
 asmr vote up  # 不传入-t参数，会进入交互式选择模式
 ```
 
+生成字幕文件，目前仅支持LRC格式：
+
+```shell
+asmr utils subtitle
+```
 
 ## 关于`dl search/get`的使用（作品，标签，文件的过滤细节）
+
 命令执行过程中会进行如下的检查与过滤操作：
+
 1. 开始下载前：检查RJ号是否应该下载，如果本地文件不存在或者数据库无记录都会执行下载操作。可以通过 `--force` 强制执行下载。
 1. 获取音声信息后：检查音声的tags，如果包含tag_filters里指定的tag，则跳过下载。可以通过 `--ignore-tag` 来强制下载。
 1. 获取下载文件后：检查文件的名称和路径，如果不符合filename_filters里指定的规则，则跳过下载。可以通过`--ignore-name`来强制下载。
 1. 添加下载任务时：如果检测到本地有同名文件，则跳过该文件的下载。可以通过`--replace`来强制覆盖存在的文件。
 
 ## 多线程下载相关
+
 由于网站对下载并无相关限制，因此没必要设置过高的线程数，一般来说单文件1～2即可。
 对于 `IDM` 设置方法如下：
 ![IDM](./assets/IDM.png)

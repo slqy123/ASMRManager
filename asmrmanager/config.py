@@ -27,6 +27,7 @@ class Config:
     mpd_config: "MPDConfig"
     before_store: str = ""
 
+
 @dataclass
 class Filter:
     regex: str = ""  # 正则表达式
@@ -54,11 +55,13 @@ class MPDConfig:
     port: int = 6600
     music_directory: str | None = None
 
+
 @dataclass
 class SubtitleConfig:
     device: str = "auto"
     model_size: str = "base"
     language: str = "ja"
+
 
 _config = toml.load(CONFIG_PATH / "config.toml")
 

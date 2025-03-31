@@ -20,7 +20,7 @@ def utils():
 
 @click.command()
 def migrate():
-    "mirate the database to the latest version(3.0.0+)"
+    "mirate the database to the latest version(2.0.0+)"
     from sqlalchemy.sql import text
 
     from asmrmanager.cli.core import create_database
