@@ -2,7 +2,7 @@ from typing import Literal
 
 import click
 
-from asmrmanager.cli.subtitle import subtitle
+from asmrmanager.common.subtitle import subtitle
 from asmrmanager.cli.core import rj_argument
 from asmrmanager.common.fileconverter import convert_vtt2lrc
 from asmrmanager.common.types import LocalSourceID

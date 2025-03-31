@@ -96,7 +96,7 @@ def subtitle(
         audio_paths.append(file)
 
     if not audio_paths:
-        logger.error("error input")
+        logger.error("No audio files found in the specified directory.")
         return
     
     audio_paths.sort()
