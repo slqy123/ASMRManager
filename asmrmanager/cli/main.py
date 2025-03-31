@@ -15,7 +15,6 @@ from asmrmanager.cli.play import play
 from asmrmanager.cli.query import query
 from asmrmanager.cli.review import review
 from asmrmanager.cli.sql import sql
-from asmrmanager.cli.subtitle import subtitle
 from asmrmanager.cli.utils import utils
 from asmrmanager.cli.view import view
 from asmrmanager.cli.vote import vote
@@ -70,7 +69,6 @@ main.add_command(file)
 main.add_command(pl)
 main.add_command(utils)
 main.add_command(vote)
-main.add_command(subtitle)
 
 if __name__ == "__main__":
     main()
