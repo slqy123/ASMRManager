@@ -1,7 +1,6 @@
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from os import makedirs, environ
-from sys import stderr
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.traceback import install as install_rich_traceback

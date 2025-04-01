@@ -1,8 +1,7 @@
-from typing import Any, Literal
+from typing import Literal
 
 from asmrmanager.common.types import RemoteSourceID
 from .asmrapi import ASMRAPI
-from dataclasses import dataclass
 
 
 class ASMRTagAPI(ASMRAPI):

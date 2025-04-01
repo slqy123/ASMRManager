@@ -1,11 +1,6 @@
-import click
 import os
-import traceback
-from tqdm import tqdm
 from pathlib import Path
-from typing import Optional, List
-from datetime import datetime, timedelta
-from asmrmanager.common.types import LocalSourceID
+from datetime import timedelta
 from asmrmanager.logger import logger
 from asmrmanager.config import config
 from rich.progress import (
