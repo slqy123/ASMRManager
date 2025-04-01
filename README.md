@@ -120,7 +120,7 @@ Options:
 
 ## 使用方法
 
-本工具支持 `python >= 3.10`, 安装方法如下：
+本工具支持 `python >= 3.10`, 如需使用faster-whisper生成字幕文件，则还需满足`python < 3.13`，安装方法如下：
 
 ```shell
 pip install ASMRManager[依赖]
