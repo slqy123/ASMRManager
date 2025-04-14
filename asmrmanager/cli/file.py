@@ -350,7 +350,18 @@ def check(list_: bool, offline: bool):
                 f"Unexpected None value for file path = {file_path}"
                 " and source_id = {source_id}"
             )
-            assert file_path.exists() and file_path.is_file()
+            if not (file_path.exists() and file_path.is_file()):
+                if fm.check_exists(f"{id2source_name(source_id)}/{str(file)}"):
+                    logger.warning(
+                        f"file {file_path} seems to be deleted, but another "
+                        "file with same name and different extension exists"
+                    )
+                else:
+                    logger.error(
+                        f"file {file_path} does not exist or is not a file"
+                    )
+                continue
+
             file_paths.append(file_path)
 
         api = create_general_api()
