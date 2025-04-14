@@ -167,7 +167,9 @@ def store(source_ids: List[LocalSourceID], replace: bool, all_: bool):
         def convert_all(
             from_: str, to: Literal["mp3", "flac", "m4a", "wav", "lrc"]
         ):
-            for file in path.rglob(f"*.{from_}", case_sensitive=False):
+            for file in path.rglob(
+                f"*.{from_}", case_sensitive=False
+            ):  # case_sensitive was added in python 3.12
                 convert(file, to)
 
         code = config.before_store
