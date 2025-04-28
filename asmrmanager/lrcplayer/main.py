@@ -81,7 +81,7 @@ class LRCPlayer(App):
             return f"{seconds // 60_000}:{seconds % 60_000 // 1000:02d}"
 
         self.query_one("#time", expect_type=Label).update(
-            f"[{format_time(self.player.pos)}"
+            f"\\[{format_time(self.player.pos)}"
             " / "
             f"{format_time(self.player.total_time)}]"
         )
@@ -108,7 +108,7 @@ class LRCPlayer(App):
 
         with Center():
             yield ProgressBar(100, show_eta=False, id="pgbar")
-            yield Label("[0:00 / 0:00]", id="time")
+            yield Label("\\[0:00 / 0:00]", id="time")
 
         yield Footer()
 
