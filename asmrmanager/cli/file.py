@@ -170,7 +170,8 @@ def store(source_ids: List[LocalSourceID], replace: bool, all_: bool):
             for file in path.rglob(
                 f"*.{from_}", case_sensitive=False
             ):  # case_sensitive was added in python 3.12
-                convert(file, to)
+                if not file.is_dir():
+                    convert(file, to)
 
         code = config.before_store
         logger.debug("executing before_store_hook code: %s", code)
