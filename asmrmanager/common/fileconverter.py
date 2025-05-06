@@ -1,7 +1,7 @@
 from pathlib import Path
 from shutil import which
 from typing import Literal
-from asmrmanager.logger import logger
+# from asmrmanager.logger import logger
 
 
 def convert_vtt2lrc(vtt_path: Path):
@@ -9,14 +9,17 @@ def convert_vtt2lrc(vtt_path: Path):
 
     assert vtt_path.suffix == ".vtt"
     lrc_content = vtt2lrc(vtt_path)
-    lrc_path = vtt_path.with_suffix(".lrc")
-    if len(vtt_path.suffixes) == 2:  # formats like `audio.mp3.vtt`
-        if not vtt_path.with_suffix("").exists():
-            logger.warning(
-                f"lyrics {vtt_path} does not have corresponding audio file"
-            )
-            return
+    if vtt_path.suffixes[-2].lower() in (".mp3", ".m4a", ".wav", ".flac"):
         lrc_path = vtt_path.with_suffix("").with_suffix(".lrc")
+    else:
+        lrc_path = vtt_path.with_suffix(".lrc")
+
+    # if len(vtt_path.suffixes) == 2:  # formats like `audio.mp3.vtt`
+    # if not vtt_path.with_suffix("").exists():
+    #     logger.warning(
+    #         f"lyrics {vtt_path} does not have corresponding audio file"
+    #     )
+    #     return
     with open(lrc_path, "w", encoding="utf-8") as f:
         f.write(lrc_content)
 
