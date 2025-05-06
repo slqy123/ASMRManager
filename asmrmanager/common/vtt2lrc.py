@@ -40,6 +40,8 @@ def vtt2lrc(vtt_path: Path, header=True, threshold=DEFAULT_THRESHOLD):
         match chunk.strip().split("\n"):
             case [index, time, *text] if index.isdigit() and "-->" in time:
                 text = "\n".join(text)
+            case [time, *text] if "-->" in time:
+                text = "\n".join(text)
             case _:
                 logger.warning(
                     f"Invalid chunk in vtt file {vtt_path}:\n{chunk}"
