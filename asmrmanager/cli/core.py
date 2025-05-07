@@ -196,8 +196,8 @@ def download_param_options(f):
         is_flag=True,
         default=False,
         help=(
-            "force download even if the RJ id exists in database,"
-            "or by default, RJ already in the database will be skipped"
+            "force download even if the item exists in database,"
+            "or by default, items already in the database will be skipped"
         ),
     )
     @click.option(
@@ -233,10 +233,10 @@ def download_param_options(f):
     wrap.__doc__ = "" if wrap.__doc__ is None else wrap.__doc__
     wrap.__doc__ += """
 
---force will check the download RJ files again though it is already
-    in the database, it work just like update
+--force will check the download works again though it is already 
+in the database
 
---replace option will first delte the original file,
+--replace will first delete the original file, 
 then add the new file to download queue(i.e. IDM or aria2)
     """
     return wrap

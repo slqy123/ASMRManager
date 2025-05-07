@@ -126,7 +126,7 @@ Options:
 pip install ASMRManager[依赖]
 ```
 
-可选则的依赖项有 `idm`, `aria2`, `tui`，`pygame`,`mpd`,`subtitle`, `all`，多个依赖使用逗号分隔，其中`all`为安装所有依赖。
+可选则的依赖项有 `idm`，`aria2`，`tui`，`pygame`，`mpd`，`subtitle`，`all`，多个依赖使用逗号分隔，其中`all`为安装所有依赖。
 具体功能如下：
 
 - 下载：`idm` 或 `aria2` 二选一，`idm` 为 windows 平台专用，`aria2` 为跨平台。

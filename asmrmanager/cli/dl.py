@@ -236,11 +236,11 @@ def search(
     """
     search and download ASMR
 
-    The argument are some keywords to filter the title or id of an ASMR.
-    Specially, you can pass a keyword starts with `!`
-    to exclude works containing this word, eg: `!中文版`
+    The arguments passed to this command will be used as keywords to search.
+    if you pass a keyword starts with `!`, this will
+    exclude works containing such keyword, eg: `!中文版`
 
-    the [multiple] options means you can add multiple same option such as:
+    the [multiple] option means you can add multiple same options such as:
 
         --tags tag1 --tags tag2 --no-tags tag3
 
@@ -252,7 +252,7 @@ def search(
     i.e. a: or :b, it means no lower or upper limit
 
     for --duration, expressions like `1.5h(1.5 hours)`, `10m(10 minutes)` are allowed,
-    or by default, the unit is minute.
+    or by default, the unit is `minute`.
     """
     spider, db = create_downloader_and_database(
         download_params=download_params

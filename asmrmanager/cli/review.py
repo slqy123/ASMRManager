@@ -10,7 +10,7 @@ from asmrmanager.logger import logger
 @click.option("-s", "--star", type=int, help="must be integer in [1, 5]")
 @click.option("-c", "--comment", type=str)
 def review(source_id: LocalSourceID, star: int, comment: str):
-    """review an ASMR with star(1-5) and comment and add it to storage path"""
+    """review an ASMR with star(1-5), add comment and put it into storage path"""
     logger.info(
         f"run command review with rj_id={source_id}, star={star} comment={comment}"
     )

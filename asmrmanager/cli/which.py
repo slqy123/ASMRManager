@@ -27,7 +27,7 @@ def which(source_id: LocalSourceID, show: bool):
             os.system(f'xdg-open "{path}"')
         else:
             logger.error(
-                "option --show is for windows and linux only, if you are using other platform, using"
+                "option --show is for windows and XDG based linux desktop environment only, if you are using other platform, using"
                 " `cd $(asmr which <RJID>)` instead."
             )
             return
