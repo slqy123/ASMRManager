@@ -61,7 +61,7 @@ player = 'pygame'
 # asmr file store 前执行的脚本，若不需要可直接删除或留空，
 # 使用 Python 语法编写，运行时动态执行，并提供以下全局资源以供调用：
 
-# - path: pathlib.Path 音声的存储路径，download_path的子目录
+# - path: pathlib.Path 音声的下载路径，download_path的子目录
 
 # - convert(file: pathlib.Path, to: Literal['mp3', 'wav', 'flac', 'm4a', 'lrc'])
 # 将单个文件转化为目标格式，mp3与m4a默认采用320k码率，flac默认使用压缩等级为5
@@ -100,30 +100,30 @@ secret = ""
 
 # 注意只有满足所有的include规则且不满足所有的exclude规则的文件才会被下载
 
-# 示例：过滤所有的SE(不完全)
-[[filename_filters]]
-regex = '(効果音|SE|ＳＥ|BGM|音效)[ ]?([な無无×][し]?|cut|切除|カット|オフ|off)'
-
-[[filename_filters]]
-regex = '([無无×]|不含|NO[ _]?)(効果音|SE|ＳＥ|BGM|音效)'
-
-[[filename_filters]]
-regex = '(声|ボイス|SE)のみ'
+# 示例：过滤所有的无SE音频（不保证完全）
+# [[filename_filters]]
+# regex = '(効果音|SE|ＳＥ|BGM|音效|環境音)[ ]?([な無无×][し]?|cut|切除|カット|オフ|off)'
+#
+# [[filename_filters]]
+# regex = '([無无×]|不含|NO[ _]?)(効果音|SE|ＳＥ|BGM|音效|環境音)'
+#
+# [[filename_filters]]
+# regex = '(声|ボイス|SE)のみ'
 
 # 过滤所有的wav，但是当没有任何音频文件可以下载时（例如：作品只提供wav音频），禁用该规则
-[[filename_filters]]
-regex = '.*\.wav$'
-range = "file"
-disable_when_nothing_to_download = true
+# [[filename_filters]]
+# regex = '.*\.wav$'
+# range = "file"
+# disable_when_nothing_to_download = true
 
 # 过滤包含 "反転" 的wav文件
-[[filename_filters]]
-regex = '反転.*\.wav$'
-range = "file"
+# [[filename_filters]]
+# regex = '反転.*\.wav$'
+# range = "file"
 
 # 过滤壁纸文件
-[[filename_filters]]
-regex = "壁紙|桌布|壁纸"
+# [[filename_filters]]
+# regex = "壁紙|桌布|壁纸"
 
 [playlist_aliases]
 # 这里可以自定义列表的别名
