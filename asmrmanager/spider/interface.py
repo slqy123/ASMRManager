@@ -461,7 +461,7 @@ class ASMRGeneralManager(AsyncManager):
         logger.debug(f"Response: {res}")
         res = res["result"]
         if res:
-            logger.info(f"File {file_id} is verified.")
+            logger.debug(f"File {file_id} is verified.")
         else:
             logger.error(f"File {file_id} is not verified.")
         return res

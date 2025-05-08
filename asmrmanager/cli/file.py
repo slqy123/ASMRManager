@@ -386,6 +386,10 @@ def check(list_: bool, offline: bool):
             if list_:
                 print(source_id)
             continue
+        else:
+            logger.info(
+                f"source_id {source_id} has all files verified successfully"
+            )
 
 
 file.add_command(del_)
