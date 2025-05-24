@@ -145,33 +145,61 @@ def store(source_ids: List[LocalSourceID], replace: bool, all_: bool):
 
     def before_store_hook(path: Path):
         from asmrmanager.common.fileconverter import (
-            convert_audio_format,
+            AudioConverter,
             convert_vtt2lrc,
         )
 
         def convert(
             file: Path, to: Literal["mp3", "flac", "m4a", "wav", "lrc"]
         ):
+            if file.suffix.lower() == f".{to}":
+                logger.debug(f"{file} already in {to} format, skipping")
+                return
             if to == "lrc":
                 assert file.suffix.lower() == ".vtt"
                 logger.debug(f"converting {file} to lrc")
                 convert_vtt2lrc(file)
             else:
                 logger.debug(f"converting {file} to {to}")
-                convert_audio_format(file, to)
+                with AudioConverter(f"Audio conversion to {to}") as converter:
+                    converter.convert(file, dst=to)
 
             if len(file.suffixes) == 1:
                 assert file.with_suffix(f".{to}").exists()
+            logger.info("Removing old file: %s", file)
             file.unlink()
 
         def convert_all(
             from_: str, to: Literal["mp3", "flac", "m4a", "wav", "lrc"]
         ):
-            for file in path.rglob(
-                f"*.{from_}", case_sensitive=False
-            ):  # case_sensitive was added in python 3.12
-                if not file.is_dir():
-                    convert(file, to)
+            if to == "lrc":
+                for file in path.rglob(
+                    f"*.{from_}", case_sensitive=False
+                ):  # case_sensitive was added in python 3.12
+                    if not file.is_dir():
+                        convert(file, to)
+            else:
+                src_paths = list(
+                    filter(
+                        lambda p: not p.is_dir()
+                        and p.suffix.lower() != f".{to}",
+                        path.rglob(f"*.{from_}", case_sensitive=False),
+                    )
+                )
+                if len(src_paths) == 0:
+                    logger.info(
+                        f"No files to convert from {from_} to {to} in {path}"
+                    )
+                    return
+                with AudioConverter(f"Audio conversion to {to}") as converter:
+                    converter.convert(*src_paths, dst=to)
+
+                for src_path in src_paths:
+                    if src_path.suffix.lower() == f".{to}":
+                        continue
+                    if src_path.with_suffix(f".{to}").exists():
+                        logger.info("Removing old file: %s", src_path)
+                        src_path.unlink()
 
         code = config.before_store
         logger.debug("executing before_store_hook code: %s", code)

@@ -18,7 +18,6 @@ DEFAULT_THRESHOLD = timedelta(seconds=2)
 
 
 def vtt2lrc(vtt_path: Path, header=True, threshold=DEFAULT_THRESHOLD):
-    print(vtt_path)
     lrc = ""
 
     if header:

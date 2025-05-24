@@ -36,7 +36,7 @@ def migrate():
 
 
 @click.command()
-@click.argument("mode", type=click.Choice(["lrc", "mp3", "flac"]))
+@click.argument("mode", type=click.Choice(["lrc", "mp3", "flac", "m4a"]))
 @click.option(
     "--dst",
     type=click.Choice(["download", "storage"]),
@@ -46,7 +46,7 @@ def migrate():
 @rj_argument("local")
 def convert(
     source_id: LocalSourceID,
-    mode: Literal["lrc", "mp3", "flac"],
+    mode: Literal["lrc", "mp3", "flac", "m4a"],
     dst: Literal["download", "storage"],
 ):
     """convert file format and replace the existing file"""
@@ -65,23 +65,28 @@ def convert(
                 vtt_path.with_suffix(".lrc").exists()
                 or vtt_path.with_suffix("").with_suffix(".lrc").exists()
             )
+            logger.info("Converted %s to LRC", vtt_path)
             vtt_path.unlink()
-    elif mode == "flac":
-        from asmrmanager.common.fileconverter import convert_audio_format
+    else:
+        from asmrmanager.common.fileconverter import AudioConverter
 
-        for wav_path in path.rglob("*.wav"):
-            convert_audio_format(wav_path, mode)
-            assert wav_path.with_suffix(f".{mode}").exists()
-            wav_path.unlink()
-    elif mode == "mp3":
-        from asmrmanager.common.fileconverter import convert_audio_format
+        src_paths = list(
+            filter(
+                lambda p: not p.is_dir()
+                and p.suffix.lower() in [".flac", ".wav", ".m4a"]
+                and p.suffix.lower() != f".{mode}",
+                path.rglob("*.*"),
+            )
+        )
 
-        for src_path in path.rglob("*.*"):
-            if src_path.is_dir() or src_path.suffix not in [".flac", ".wav"]:
+        with AudioConverter(f"utils convert to {mode}") as converter:
+            converter.convert(*src_paths, dst=mode)
+        for src_path in src_paths:
+            if src_path.suffix.lower() == f".{mode}":
                 continue
-            convert_audio_format(src_path, mode)
-            assert src_path.with_suffix(f".{mode}").exists()
-            src_path.unlink()
+            if src_path.with_suffix(f".{mode}").exists():
+                logger.info("Removing old file: %s", src_path)
+                src_path.unlink()
 
 
 @click.command()
