@@ -29,9 +29,10 @@
 
 ### 下载
 
-支持网站所支持的所有索引方式(关键词，标签，会社，价格，声优，日期，年龄分级等等)以及排序方式。
-目前仅支持调用 IDM 或 aria2 下载。
-支持根据根据文件名对下载的文件进行过滤，以及对音频文件的格式转换。
+- 支持网站所支持的所有索引方式(关键词，标签，会社，价格，声优，日期，时长，年龄分级等等)以及排序方式。
+- （仅）支持调用 IDM 或 aria2 下载。
+- 支持高度自定义的过滤规则，可实现对作品的标签，文件名进行过滤，按需下载。
+- 支持音频文件的格式转换。
 
 ```
 > asmr dl search --help
@@ -111,14 +112,19 @@ Options:
 
 ### 管理
 
-可以对作品进行评分，评论。也支持用关键词进行搜索(但需要一点 sql 基础，仓库提供了一些模板，例如 [search.sql](./asmrmanager/filemanager/resources/sqls.example/search.sql))
+可以对本地作品进行评分，评论（仅本地）。
+也支持使用预定义的SQL脚本进行搜索(仓库提供了一些模板，例如 [search.sql](./asmrmanager/filemanager/resources/sqls.example/search.sql))
 
 ### 播放
 
-非常简陋的终端播放界面，支持歌词显示，按照歌词信息快进，切换歌曲，支持以pygame(sdl)或mpd做为后端，可以预见的将来应该会完善一下(但感觉够用了应该不会再加啥功能了)。
+非常简陋的终端播放界面，支持歌词显示，按照歌词信息快进，切换歌曲，支持以pygame(sdl)或mpd做为后端<del>，可以预见的将来应该会完善一下(但感觉够用了应该不会再加啥功能了)</del>，且不会再添加更多功能。如需更高级的播放功能，请使用第三方播放器，配合`asmr view add` 命令使用。
 ![tui-screenshot](./assets/tui-screenshot.png)
 
 ## 使用方法
+
+> [!NOTE]
+> 推荐使用 `pipx` 替代 `pip` 进行安装，以避免环境污染。
+> 安装方法：`pip install pipx`
 
 本工具支持 `python >= 3.12`，安装方法如下：
 
@@ -133,11 +139,9 @@ pip install ASMRManager[依赖]
 - 播放：`pygame` 或 `mpd` 二选一。
 - 其他：`tui` 为可视化命令行界面。`subtitle` 使用faster-whisper生成字幕文件。
 
-示例： `pip install ASMRManager[idm,tui]` （idm 与 aria2 至少安装其一，以实现最基础的下载功能，其他选项可随意）
+其中，idm 与 aria2 至少安装其一，以实现最基础的下载功能，其余选项可随意按需添加。
 
-> [!NOTE]
-> 推荐使用 `pipx` 替代 `pip` 进行安装，以避免环境污染。
-> 安装方法：`pip install pipx`
+示例： `pip install ASMRManager[idm,tui]`
 
 ---
 
@@ -248,6 +252,15 @@ asmr query 治愈 --limit 3 --raw | jq .[].id | xargs -n1 asmr info # 输出为j
 asmr vote up -t ASMR
 asmr vote down -t 497
 asmr vote up  # 不传入-t参数，会进入交互式选择模式
+```
+
+播放列表管理
+
+```shell
+asmr pl list # 列出所有播放列表
+asmr pl create myplaylist --desc "An example playlist" --privacy PRIVATE  # 创建一个播放列表，并将权限设置为私密。
+asmr pl add myplaylist RJ123456  # 将音声添加到myplaylist播放列表中
+asmr pl show myplaylist  # 展示myplaylist播放列表中的音声
 ```
 
 生成字幕文件，目前仅支持LRC格式：
