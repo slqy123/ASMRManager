@@ -257,10 +257,16 @@ class FileManager:
         for path in self.view_path.iterdir():
             if path.stem != rj_name:
                 continue
-            if path.is_dir() and path.is_symlink():
-                os.remove(path)
+            if path.is_symlink():
+                logger.info(f"remove symlink {path}")
+                path.unlink(missing_ok=True)
+                return
+            elif path.is_dir():
+                logger.info(f"remove directory {path}")
+                shutil.rmtree(path)
                 return
             elif path.suffix == ".zip":
+                logger.info(f"remove zip file {path}")
                 os.remove(path)
                 return
         else:
