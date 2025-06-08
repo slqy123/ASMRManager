@@ -253,28 +253,21 @@ class FileManager:
     def remove_view(self, source_id: LocalSourceID):
         assert self.could_view()
         rj_name = id2source_name(source_id)
+        related_files = list(self.view_path.glob(f"{rj_name}*"))
+        if not related_files:
+            logger.error(f"file {rj_name} not exists in view path")
+            return
 
-        for path in self.view_path.iterdir():
-            if path.stem != rj_name:
-                continue
+        for path in related_files:
             if path.is_symlink():
                 logger.info(f"remove symlink {path}")
                 path.unlink(missing_ok=True)
-                return
             elif path.is_dir():
                 logger.info(f"remove directory {path}")
                 shutil.rmtree(path)
-                return
             elif path.suffix == ".zip":
                 logger.info(f"remove zip file {path}")
                 os.remove(path)
-                return
-        else:
-            logger.error(f"file {rj_name} not exists")
-            return
-        # path = self.view_path / rj_name
-        # assert path.is_dir() and path.is_symlink()
-        # os.remove(path)
 
     def list_(
         self, path: Literal["download", "view", "storage"]
