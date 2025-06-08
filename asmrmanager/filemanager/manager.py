@@ -290,7 +290,7 @@ class FileManager:
             return []
 
         for item in p.iterdir():
-            rj_id = source2id(item.name)
+            rj_id = source2id(item.name.split(".", maxsplit=1)[0])
             if rj_id is None:
                 continue
             yield LocalSourceID(rj_id)
