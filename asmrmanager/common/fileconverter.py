@@ -51,14 +51,14 @@ class AudioConverter:
                 " add it to your path"
             )
 
-        self.console_width = Console().width
+        self.console = Console()
         self.progress = Progress(
             TextColumn(
                 "{task.description}",
                 table_column=Column(overflow="fold"),
             ),
             SpinnerColumn(),
-            BarColumn(min(self.console_width // 8, 40)),
+            BarColumn(min(self.console.width // 8, 40)),
             TaskProgressColumn(),
             TimeRemainingColumn(True),
         )
@@ -124,9 +124,6 @@ class AudioConverter:
                         src,
                     ),
                 )
-            )
-            logger.info(
-                "Successfully converted files:\n%s", "\n".join(map(str, src))
             )
 
         asyncio.run(_entry())
