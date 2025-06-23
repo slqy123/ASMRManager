@@ -66,7 +66,10 @@ class ASMRAPI:
         except ClientConnectorError as err:
             logger.error(f"Login failed, {err}")
 
-    async def get(self, route: str, params: dict | None = None) -> Any:
+    async def get(
+        self, route: str, params: dict | None = None, max_retry: int = 5
+    ) -> Any:
+        retry = 0
         resp_json = None
         while not resp_json:
             try:
@@ -80,10 +83,17 @@ class ASMRAPI:
                     return resp_json
             except Exception as e:
                 logger.warning(f"Request {route} failed: {e}")
+                if retry >= max_retry:
+                    logger.error(f"Max retries reached for {route}.")
+                    exit(-1)
+                retry += 1
                 await asyncio.sleep(3)
         return resp_json
 
-    async def post(self, route: str, data: dict | None = None) -> Any:
+    async def post(
+        self, route: str, data: dict | None = None, max_retry: int = 5
+    ) -> Any:
+        retry = 0
         resp_json = None
         while not resp_json:
             try:
@@ -97,6 +107,10 @@ class ASMRAPI:
                     return resp_json
             except Exception as e:
                 logger.warning(f"Request {route} failed: {e}")
+                if retry >= max_retry:
+                    logger.error(f"Max retries reached for {route}.")
+                    exit(-1)
+                retry += 1
                 await asyncio.sleep(3)
         return resp_json
 
