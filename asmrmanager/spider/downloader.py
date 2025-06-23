@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
 try:
     IDMHelper = typing.cast(
-        "type[_IDMHelper]",
+        "type[_IDMHelper]|None",
         import_module(".utils.IDMHelper", "asmrmanager.spider").IDMHelper,
     )
 # except (ImportError, ModuleNotFoundError):
@@ -44,7 +44,7 @@ try:
     # __ARIA2_EXIST = True
     # from .utils.aria2_downloader import Aria2Downloader
     Aria2Downloader = typing.cast(
-        "type[_Aria2Downloader]",
+        "type[_Aria2Downloader]|None",
         import_module(
             ".utils.aria2_downloader", "asmrmanager.spider"
         ).Aria2Downloader,

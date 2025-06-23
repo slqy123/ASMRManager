@@ -7,8 +7,6 @@ import re
 from rich.console import Console
 from rich.table import Column
 
-from asmrmanager.logger import logger
-
 
 def convert_vtt2lrc(vtt_path: Path):
     from .vtt2lrc import vtt2lrc
