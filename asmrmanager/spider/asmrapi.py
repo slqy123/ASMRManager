@@ -14,28 +14,13 @@ class ASMRAPI:
     base_api_url = "https://api.asmr-200.com/api/"
 
     headers = {
-        "Referer": "https://www.asmr.one/",
-        # ---
-        # 这些参数中的某一个或几个应该可以解决
-        # 如RJ296187会出现的 504 Gateway Time-out 问题
-        "Origin": "https://www.asmr.one",
-        "Host": "api.asmr-200.com",
-        "Connection": "keep-alive",
-        "Sec-Fetch-Mode": "cors",
-        "Sec-Fetch-Site": "cross-site",
-        "Sec-Fetch-Dest": "empty",
-        # ---
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko)"
-            " Chrome/78.0.3904.108 Safari/537.36"
-        ),
+        "User-Agent": "ASMRManager (https://github.com/slqy123/ASMRManager)",
     }
 
     @classmethod
     def set_api_channel(cls, api_channel: str):
         cls.base_api_url = f"https://{api_channel}/api/"
-        cls.headers["host"] = api_channel
+        # cls.headers["Host"] = api_channel
 
     def __init__(
         self, name: str, password: str, proxy: str | None, limit: int
