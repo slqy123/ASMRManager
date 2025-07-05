@@ -67,9 +67,10 @@ player = 'pygame'
 # 将单个文件转化为目标格式，mp3与m4a默认采用320k码率，flac默认使用压缩等级为5
 # 若使用to='lrc'，请确保原文件为vtt格式。
 
-# - convert_all(from_: Literal['mp3', 'wav', 'flac', 'm4a', 'vtt'], to: Literal['mp3', 'wav', 'flac', 'm4a', 'lrc'])
+# - convert_all(from_: Literal['mp3', 'wav', 'flac', 'm4a', 'vtt'], to: Literal['mp3', 'wav', 'flac', 'm4a', 'lrc'], threads: int = 6)
 # 将path 下的所有<from_>类型的文件转化为<to>类型，
 # 对convert函数的封装，其余细节与convert无异。
+# 其中threads参数为同时运行的ffmpeg线程数，默认为6。
 
 # 例如下面的配置会将将所有的vtt文件转化为lrc文件，wav文件转化为mp3文件，flac文件转化为mp3文件
 # before_store = '''

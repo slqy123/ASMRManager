@@ -103,7 +103,10 @@ def recover(source_id: LocalSourceID, regex: str, ignore_filter: bool):
                 )
 
         url2download.append(
-            (recover["url"], fm.download_path / source_name / rel_path)
+            (
+                recover["url"],
+                fm.download_path / source_name / rel_path,
+            )
         )
 
     from asmrmanager.cli.core import create_downloader_and_database
@@ -170,7 +173,9 @@ def store(source_ids: List[LocalSourceID], replace: bool, all_: bool):
             file.unlink()
 
         def convert_all(
-            from_: str, to: Literal["mp3", "flac", "m4a", "wav", "lrc"]
+            from_: str,
+            to: Literal["mp3", "flac", "m4a", "wav", "lrc"],
+            threads: int = 6,
         ):
             if to == "lrc":
                 for file in path.rglob(
@@ -191,7 +196,9 @@ def store(source_ids: List[LocalSourceID], replace: bool, all_: bool):
                         f"No files to convert from {from_} to {to} in {path}"
                     )
                     return
-                with AudioConverter(f"Audio conversion to {to}") as converter:
+                with AudioConverter(
+                    f"Audio conversion to {to}", threads=threads
+                ) as converter:
                     converter.convert(*src_paths, dst=to)
 
                 for src_path in src_paths:
