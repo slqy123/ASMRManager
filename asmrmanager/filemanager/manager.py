@@ -41,6 +41,10 @@ class FileManager:
     CACHE_PATH = CACHE_PATH
     __instance = None
 
+    ExistInfo = NamedTuple(
+        "ExistInfo", [("download", bool), ("storage", bool)]
+    )
+
     @classmethod
     def init_config(cls):
         cls.CONFIG_PATH.mkdir(parents=True, exist_ok=True)
@@ -102,6 +106,7 @@ class FileManager:
         if dst_path.exists():
             playlists = toml.load(dst_path)["playlists"]
             return [PlayListItem(**p) for p in playlists]
+        return None
 
     @classmethod
     def save_playlist_cache(cls, playlists: List[PlayListItem]):
@@ -361,9 +366,7 @@ class FileManager:
             if (not storage) and self.check_file_duplicate(storage_file_path):
                 storage = True
 
-        return NamedTuple(
-            "ExistInfo", [("download", bool), ("storage", bool)]
-        )(download, storage)
+        return self.ExistInfo(download, storage)
 
     @staticmethod
     def check_file_duplicate(file_path: Path) -> bool:
@@ -425,7 +428,7 @@ class FileManager:
                 f"item {source_id} does not have recover file, please update this"
                 " rj id first"
             )
-            return
+            return None
 
         import json
 

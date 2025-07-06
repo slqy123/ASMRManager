@@ -20,7 +20,7 @@ except ImportError:
     )
 
 MPDStatus = NamedTuple(
-    "MPDSatus",
+    "MPDStatus",
     [
         ("playlistlength", int),
         ("state", Literal["play", "pause", "stop"]),
@@ -88,9 +88,9 @@ class MPDPlayer(BasePlayer):
         music_directory = self.music_directory / "default"
         music_directory.mkdir(exist_ok=True)
 
-        for file in music_directory.iterdir():
-            assert file.is_symlink()
-            file.unlink()
+        for old_file in music_directory.iterdir():
+            assert old_file.is_symlink()
+            old_file.unlink()
 
         for music in music_list:
             (music_directory / music.path.name).symlink_to(music.path)

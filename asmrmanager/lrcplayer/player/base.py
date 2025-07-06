@@ -117,7 +117,7 @@ class BasePlayer:
     @property
     def lrc(self) -> LRC | None:
         if (lrc_ := self.current.lrc) is None:
-            return
+            return None
         if self.info.lrc is None:
             self.info.lrc = LRC(lrc_, self.total_time)
         return self.info.lrc

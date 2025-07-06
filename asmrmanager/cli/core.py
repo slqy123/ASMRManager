@@ -296,9 +296,9 @@ def convert2remote_ids(
         if is_remote_source_id(source_id):
             return RemoteSourceID(source_id)
         source_id = LocalSourceID(source_id)
-        res = db.func.get_remote_id(source_id)
-        if res is not None:
-            return RemoteSourceID(SourceID(res))
+        remote_id = db.func.get_remote_id(source_id)
+        if remote_id is not None:
+            return RemoteSourceID(SourceID(remote_id))
         source_name = id2source_name(source_id)
         res = await downloader.downloader.get_search_result(source_name, {})
         works = res["works"]

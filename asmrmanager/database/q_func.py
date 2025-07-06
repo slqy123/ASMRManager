@@ -42,8 +42,10 @@ class QFunc:
         res = self.ss.query(ASMR).filter_by(remote_id=remote_id).one_or_none()
         if res:
             return typing.cast(int, res.id)
+        return None
 
     def get_remote_id(self, local_id: int) -> int | None:
         res = self.ss.query(ASMR).get(local_id)
         if res:
             return int(res.remote_id)
+        return None
