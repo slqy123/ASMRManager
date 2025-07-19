@@ -1,4 +1,6 @@
-from asmrmanager.cli.core import fm
+from asmrmanager.filemanager.manager import FileManager
+
+fm = FileManager.get_fm()
 
 _instance = None
 
