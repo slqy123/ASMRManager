@@ -149,6 +149,7 @@ class AudioConverter:
             universal_newlines=True,
             bufsize=1,
             shell=False,
+            errors="ignore",  # ignore broken metadata
         )
         assert prog.stderr is not None, "Process stderr is None"
         for line in prog.stderr:
