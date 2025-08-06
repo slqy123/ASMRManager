@@ -195,7 +195,7 @@ class ASMRDownloadAPI(ASMRAPI):
 
     async def get_voice_tracks(self, voice_id: RemoteSourceID):
         tracks: list[dict] | dict = await self.get(
-            f"tracks/{voice_id}", params={"v": 1}
+            f"tracks/{voice_id}", params={"v": 2}
         )
         if isinstance(tracks, dict):
             if error_info := tracks.get("error"):
