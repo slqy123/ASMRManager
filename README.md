@@ -112,8 +112,15 @@ Options:
 
 ### 管理
 
-可以对本地作品进行评分，评论（仅本地）。
-也支持使用预定义的SQL脚本进行搜索(仓库提供了一些模板，例如 [search.sql](./asmrmanager/filemanager/resources/sqls.example/search.sql))
+下载的音声作品元数据会存储在本地 SQLite 数据库中，基于此提供了以下功能（仅本地）：
+
+- 对作品进行评分，评论。
+- 使用预定义的SQL脚本进行查询(仓库提供了一些模板，例如 [search.sql](./asmrmanager/filemanager/resources/sqls.example/search.sql))
+
+同时也提供网站以下API接口的CLI实现：
+
+- 管理用户播放列表
+- 对作品标签进行投票
 
 ### 播放
 
