@@ -31,6 +31,7 @@ class ASMRAPI:
         self.proxy = proxy
         self.limit = limit
         self.recommender_uuid: str = ""
+        self.__logined = False
 
     async def login(self) -> None:
         try:
@@ -48,6 +49,7 @@ class ASMRAPI:
                     }
                 )
                 self.recommender_uuid = resp_json["user"]["recommenderUuid"]
+                self.__logined = True
         except ClientConnectorError as err:
             logger.error(f"Login failed, {err}")
 
@@ -217,7 +219,8 @@ class ASMRAPI:
 
     async def __aenter__(self: T) -> T:
         self._session = ClientSession(connector=TCPConnector(limit=self.limit))
-        await self.login()
+        if not self.__logined:
+            await self.login()
         return self
 
     async def __aexit__(self, *_) -> None:
