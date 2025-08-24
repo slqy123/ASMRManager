@@ -186,7 +186,9 @@ class FileManager:
                     logger.info(f"In replace mode, remove {dst_file}")
                     os.remove(dst_file)
 
-                logger.info(f"move {src_file} to {dst_file}")
+                logger.info(
+                    f"move '{src_file.relative_to(self.download_path)}' to storage"
+                )
                 shutil.move(src_file, dst_file)
 
         shutil.rmtree(self.download_path / rj_name)

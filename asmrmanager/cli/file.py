@@ -125,6 +125,14 @@ def recover(source_id: LocalSourceID, regex: str, ignore_filter: bool):
 @click.command()
 @multi_rj_argument("local")
 @click.option(
+    "--no-convert",
+    "-nc",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="do not convert files before storing",
+)
+@click.option(
     "--replace/--no-replace",
     "-r/-nr",
     is_flag=True,
@@ -141,7 +149,12 @@ def recover(source_id: LocalSourceID, regex: str, ignore_filter: bool):
     show_default=True,
     help="store all files",
 )
-def store(source_ids: List[LocalSourceID], replace: bool, all_: bool):
+def store(
+    source_ids: List[LocalSourceID],
+    no_convert: bool,
+    replace: bool,
+    all_: bool,
+):
     """
     store the downloaded files to the storage
     """
@@ -218,6 +231,7 @@ def store(source_ids: List[LocalSourceID], replace: bool, all_: bool):
             {"path": path, "convert": convert, "convert_all": convert_all},
         )
 
+    hook = None if no_convert else before_store_hook
     db = create_database()
     try:
         if all_:
@@ -228,12 +242,12 @@ def store(source_ids: List[LocalSourceID], replace: bool, all_: bool):
             )
             if res is None or res is False:
                 return
-            fm.store_all(replace=replace, hook=before_store_hook)
+            fm.store_all(replace=replace, hook=hook)
             id_to_store = fm.list_("download")
 
         else:
             for rj_id in source_ids:
-                fm.store(rj_id, replace=replace, hook=before_store_hook)
+                fm.store(rj_id, replace=replace, hook=hook)
             id_to_store = source_ids
 
         for id_ in id_to_store:
