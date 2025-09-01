@@ -1,8 +1,11 @@
+import asyncio
 import json
 from pathlib import Path
 from typing import Any
 
 import aioaria2
+
+from asmrmanager.logger import logger
 
 
 class Aria2Downloader:
@@ -40,6 +43,14 @@ class Aria2Downloader:
             "out": filename,
             "dir": str(save_path),
         }
-        await self.client.addUri(
-            [url], options={**self.options, **download_option}
-        )
+        while True:
+            res = await self.client.addUri(
+                [url], options={**self.options, **download_option}
+            )
+            if isinstance(res, str) and len(res) == 16:
+                break
+            else:
+                logger.warning(
+                    f"Wrong response from aria2: {res}, retrying..."
+                )
+                asyncio.sleep(1)
