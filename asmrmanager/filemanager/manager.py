@@ -157,18 +157,7 @@ class FileManager:
             logger.info(f"Execute hook function for: {rj_name}")
             hook(self.download_path / rj_name)
 
-        # if os.path.exists(self.storage_path / rj_name):
-        #     if not exists_ok:
-        #         logger.error(f"the item {rj_name} to store already exists!")
-        #         raise DstItemAlreadyExistsException
-
-        #     logger.info(f"remove item {rj_name} in storage")
-        #     shutil.rmtree(self.storage_path / rj_name)
-
-        logger.info(
-            f"move {self.download_path / rj_name} "
-            f"to {self.storage_path / rj_name}"
-        )
+        logger.info(f"store {rj_name} to storage path")
 
         for root, _, files in os.walk(self.download_path / rj_name):
             dst_root = self.storage_path / Path(root).relative_to(
@@ -181,9 +170,9 @@ class FileManager:
 
                 if dst_file.exists():
                     if not replace:
-                        logger.info(f"file {dst_file} already exists, skip it")
+                        logger.info(f'skip file already exists: "{dst_file}"')
                         continue
-                    logger.info(f"In replace mode, remove {dst_file}")
+                    logger.info(f"In replace mode, remove file: {dst_file}")
                     os.remove(dst_file)
 
                 logger.info(

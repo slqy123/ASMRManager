@@ -10,6 +10,7 @@ from asmrmanager.cli.core import (
     create_database,
     create_general_api,
     fm,
+    markup_path,
     multi_rj_argument,
     rj_argument,
 )
@@ -92,15 +93,10 @@ def recover(source_id: LocalSourceID, regex: str, ignore_filter: bool):
 
         if not recover["should_download"]:
             if not ignore_filter:
-                logger.info(
-                    f"file {rel_path} is filtered out and should not be"
-                    " recovered"
-                )
+                logger.info(f"skip filtered file {rel_path}")
                 continue
             else:
-                logger.warning(
-                    f"recover file {rel_path} since filters are ignored"
-                )
+                logger.info(f"recover filtered file {rel_path}")
 
         url2download.append(
             (
@@ -182,7 +178,7 @@ def store(
 
             if len(file.suffixes) == 1:
                 assert file.with_suffix(f".{to}").exists()
-            logger.info("Removing old file: %s", file)
+            logger.info("Removing old file: %s", markup_path(file))
             file.unlink()
 
         def convert_all(
@@ -206,7 +202,7 @@ def store(
                 )
                 if len(src_paths) == 0:
                     logger.info(
-                        f"No files to convert from {from_} to {to} in {path}"
+                        f"No files to convert from {from_} to {to} in {markup_path(path)}"
                     )
                     return
                 with AudioConverter(
@@ -218,7 +214,9 @@ def store(
                     if src_path.suffix.lower() == f".{to}":
                         continue
                     if src_path.with_suffix(f".{to}").exists():
-                        logger.info("Removing old file: %s", src_path)
+                        logger.info(
+                            "Removing old file: %s", markup_path(src_path)
+                        )
                         src_path.unlink()
 
         code = config.before_store
@@ -400,17 +398,17 @@ def check(list_: bool, offline: bool):
             file_path = fm.get_path(source_id, str(file), prefer="download")
             assert file_path is not None, (
                 f"Unexpected None value for file path = {file_path}"
-                " and source_id = {source_id}"
+                f" and source_id = {source_id}"
             )
             if not (file_path.exists() and file_path.is_file()):
                 if fm.check_exists(f"{id2source_name(source_id)}/{str(file)}"):
-                    logger.warning(
-                        f"file {file_path} seems to be deleted, but another "
-                        "file with same name and different extension exists"
+                    logger.info(
+                        "skipping file, since another file with same name "
+                        f"and different extension exists: {markup_path(file_path)}"
                     )
                 else:
                     logger.error(
-                        f"file {file_path} does not exist or is not a file"
+                        f"file does not exist or is not a file: {markup_path(file_path)}"
                     )
                 continue
 

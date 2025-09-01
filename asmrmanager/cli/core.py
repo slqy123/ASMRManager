@@ -1,7 +1,8 @@
 import functools
-import uuid
-from typing import TYPE_CHECKING, Any, List, Literal, Tuple
 from functools import cache, lru_cache
+from pathlib import Path
+from typing import Any, List, Literal, TYPE_CHECKING, Tuple
+import uuid
 
 import asyncstdlib
 import click
@@ -527,3 +528,21 @@ def pl_preprocess_cb(
     if param.nargs == 1:
         return res[0]
     return res
+
+
+def markup_path(path: Path):
+    from rich.markup import escape
+    from urllib.parse import quote
+
+    path = path.absolute()
+    if path.is_relative_to(fm.download_path):
+        path_show = Path("<download>") / path.relative_to(fm.download_path)
+    elif path.is_relative_to(fm.storage_path):
+        path_show = Path("<storage>") / path.relative_to(fm.storage_path)
+    else:
+        path_show = path
+
+    path_show_str = escape(str(path_show))
+    path_url = "file://" + quote(str(path))
+
+    return f"[link={path_url}][bold blue]{path_show_str}[/bold blue][/link]"
