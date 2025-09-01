@@ -545,4 +545,4 @@ def markup_path(path: Path):
     path_show_str = escape(str(path_show))
     path_url = "file://" + quote(str(path))
 
-    return f"[link={path_url}][bold blue]{path_show_str}[/bold blue][/link]"
+    return f'"[link={path_url}][bold blue]{path_show_str}[/bold blue][/link]"'

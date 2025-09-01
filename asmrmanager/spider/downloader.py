@@ -255,18 +255,17 @@ class ASMRDownloadAPI(ASMRAPI):
 
         file_path = save_path / file_name
         exist_info = self.check_exists(file_path)
-        if exist_info.download and self.replace:
-            logger.info(f"replace mode, delete old file {file_path}")
-            file_path.unlink()
-
         if exist_info.download:
-            logger.warning(
-                f"file {file_path} already exists in download, ignore this"
-                " file"
-            )
-            return
-
-        if exist_info.storage:
+            if self.replace:
+                logger.info(f"replace mode, delete old file {file_path}")
+                file_path.unlink()
+            else:
+                logger.warning(
+                    f"file {file_path} already exists in download, ignore this"
+                    " file"
+                )
+                return
+        elif exist_info.storage:
             logger.warning(
                 f"file {file_path} already exists in storage, ignore this file"
             )
