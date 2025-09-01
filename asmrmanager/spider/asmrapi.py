@@ -1,13 +1,21 @@
 import asyncio
-from typing import Any, Dict, List, TypeVar
+import json
+import time
+from typing import Any, Dict, List, NamedTuple, TypeVar
+from base64 import b64decode
 
 from aiohttp import ClientConnectorError, ClientSession
 from aiohttp.connector import TCPConnector
 
 from asmrmanager.common.types import RemoteSourceID
 from asmrmanager.logger import logger
+from asmrmanager.filemanager.appdirs_ import CACHE_PATH
 
 T = TypeVar("T", bound="ASMRAPI")
+LoginCache = NamedTuple(
+    "LoginCache",
+    [("token", str), ("recommender_uuid", str), ("expire_time", int)],
+)
 
 
 class ASMRAPI:
@@ -33,7 +41,49 @@ class ASMRAPI:
         self.recommender_uuid: str = ""
         self.__logined = False
 
+    @property
+    def login_cache(self) -> LoginCache | None:
+        login_cache_path = CACHE_PATH / "login_cache.json"
+        if not login_cache_path.exists():
+            return None
+        try:
+            with open(login_cache_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return LoginCache(
+                    token=data["token"],
+                    recommender_uuid=data["recommender_uuid"],
+                    expire_time=data["expire_time"],
+                )
+        except Exception as e:
+            logger.error(f"Failed to load login cache: {e}")
+            return None
+
+    @login_cache.setter
+    def login_cache(self, cache: LoginCache) -> None:
+        login_cache_path = CACHE_PATH / "login_cache.json"
+        with open(login_cache_path, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "token": cache.token,
+                    "recommender_uuid": cache.recommender_uuid,
+                    "expire_time": cache.expire_time,
+                },
+                f,
+            )
+
     async def login(self) -> None:
+        login_cache = self.login_cache
+        if login_cache and login_cache.expire_time > time.time():
+            logger.info("Using cached login token.")
+            self.headers.update(
+                {
+                    "Authorization": f"Bearer {login_cache.token}",
+                }
+            )
+            self.recommender_uuid = login_cache.recommender_uuid
+            self.__logined = True
+            return
+
         try:
             async with self._session.post(
                 self.base_api_url + "auth/me",
@@ -50,6 +100,14 @@ class ASMRAPI:
                 )
                 self.recommender_uuid = resp_json["user"]["recommenderUuid"]
                 self.__logined = True
+                expire_time = json.loads(
+                    b64decode(token.split(".")[1]).decode()
+                )["exp"]
+                self.login_cache = LoginCache(
+                    token=token,
+                    recommender_uuid=self.recommender_uuid,
+                    expire_time=expire_time,
+                )
         except ClientConnectorError as err:
             logger.error(f"Login failed, {err}")
 
