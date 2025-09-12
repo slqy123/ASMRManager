@@ -81,6 +81,8 @@ player = 'pygame'
 
 before_store = ''
 
+# 如果使用的是IDM且没有安装在默认路径，请修改此项，否则请忽略
+idm_install_path = ""
 
 # 如使用aria2请配置此项，否则请忽略
 # 如果是在本地使用aria2，运行`aria2c --enable-rpc`，以下保持默认即可

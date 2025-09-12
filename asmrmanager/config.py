@@ -20,6 +20,7 @@ class Config:
     editor: str
     filename_filters: List["Filter"]
     download_method: Literal["aria2", "idm"]
+    idm_install_path: str | None
     aria2_config: "Aria2Config"
     subtitle_config: "SubtitleConfig"
     playlist_aliases: Dict[str, str]
@@ -96,6 +97,7 @@ config = Config(
     editor=_config["editor"],
     filename_filters=filename_filters,
     download_method=_config["download_method"],
+    idm_install_path=_config.get("idm_install_path", None),
     aria2_config=Aria2Config(**_config.get("aria2_config", {})),
     playlist_aliases=_config.get("playlist_aliases", {}),
     player=_config.get("player", "pygame"),

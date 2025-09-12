@@ -6,9 +6,12 @@ Version v1.0.2 | 2021.11.28
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Optional
+from functools import cache
 
 from comtypes import client  # type: ignore
-from comtypes.automation import VT_EMPTY  # type: ignore
+from comtypes.automation import VT_EMPTY
+
+from asmrmanager.config import config
 
 
 def check_folder(*dirs: Path) -> Path:
@@ -16,17 +19,28 @@ def check_folder(*dirs: Path) -> Path:
         if d.exists():
             return d
     raise NotADirectoryError(
-        "Looks like you don't have IDM installed in your system"
+        "Looks like you do not have IDM installed in your system.\n"
+        "If your IDM is not installed in the default path, "
+        "please specify the path manually "
+        "by adding `idm_install_path` in the config file."
     )
 
 
+@cache
 def get_module() -> ModuleType:
     idm_folder_64bit = Path(
         r"C:\Program Files (x86)\Internet Download Manager"
     )
     idm_folder_32bit = Path(r"C:\Program Files\Internet Download Manager")
 
-    idm_folder = check_folder(idm_folder_64bit, idm_folder_32bit)
+    if not config.idm_install_path:
+        idm_folder = check_folder(idm_folder_64bit, idm_folder_32bit)
+    else:
+        idm_folder = Path(config.idm_install_path)
+        if not idm_folder.exists():
+            raise NotADirectoryError(
+                f"Your specified IDM path {idm_folder} is not exist."
+            )
 
     try:
         # Registry path: Computer\HKEY_CLASSES_ROOT\TypeLib\
