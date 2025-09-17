@@ -155,24 +155,37 @@ class ASMRDownloadManager(AsyncManager):
                 work["id"] for work in search_result["works"]
             ]
 
-            if download_all_pages:
+            if all_:
                 await self.get(ids)
-            elif all_:
-                await self.get(ids)
-                return
+            else:
+                # select RJs
+                source_names: List[SourceName] = [
+                    work["source_id"] for work in search_result["works"]
+                ]
+                titles = [work["title"] for work in search_result["works"]]
+                indexes = select_multiple(
+                    [
+                        f"{source_name} | {title}"
+                        for source_name, title in zip(source_names, titles)
+                    ],
+                )
+                if not indexes:
+                    logger.error("Nothing was selected.")
+                else:
+                    await self.get([ids[i] for i in indexes])
 
             if not download_all_pages:
                 break
-            elif total_pages_to_download is None:
-                total_pages_to_download = (
-                    int(search_result["pagination"]["totalCount"])
-                    // int(search_result["pagination"]["pageSize"])
-                    + 1
-                )
-                logger.info(
-                    f"Total pages to download: {total_pages_to_download}"
-                )
             else:
+                if total_pages_to_download is None:
+                    total_pages_to_download = (
+                        int(search_result["pagination"]["totalCount"])
+                        // int(search_result["pagination"]["pageSize"])
+                        + 1
+                    )
+                    logger.info(
+                        f"Total pages to download: {total_pages_to_download}"
+                    )
                 assert (
                     search_result["pagination"]["currentPage"] == params.page
                 )
@@ -183,23 +196,6 @@ class ASMRDownloadManager(AsyncManager):
                     f"Downloading progress: {params.page}/{total_pages_to_download}"
                 )
                 params.page += 1
-
-        # select RJs
-        source_names: List[SourceName] = [
-            work["source_id"] for work in search_result["works"]
-        ]
-        titles = [work["title"] for work in search_result["works"]]
-        indexes = select_multiple(
-            [
-                f"{source_name} | {title}"
-                for source_name, title in zip(source_names, titles)
-            ],
-        )
-        if not indexes:
-            logger.error("Nothing was selected.")
-            return
-
-        await self.get([ids[i] for i in indexes])
 
     async def tag(self, tag_name: str, params: BrowseParams):
         """tag 和 va 一样，都是调用了特殊的search方法"""
