@@ -287,6 +287,11 @@ asmr utils subtitle
 本应用会将下载任务发送到IDM的`主要下载队列`中，你需要打开IDM，点击开始队列才能下载。
 如果想控制同时下载的文件数，可以找到`主要下载队列`，右键`编辑队列`即可修改。
 
+### Windows CMD 中的显示错误问题（选项重复，无高亮显示）
+
+Windows CMD缺少非常多的终端高级特性的支持，如需获得正确的显示效果，推荐使用 Windows Terminal + PowerShell。
+其中 Windows Terminal 为 win11 的默认终端，win10 也可以直接从微软商店安装。
+
 ### 关于`dl search/get`的使用（作品，标签，文件的过滤细节）
 
 命令执行过程中会进行如下的检查与过滤操作：
