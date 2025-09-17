@@ -3,6 +3,7 @@ import json
 import time
 from typing import Any, Dict, List, NamedTuple, TypeVar
 from base64 import b64decode
+import random
 
 from aiohttp import ClientConnectorError, ClientSession
 from aiohttp.connector import TCPConnector
@@ -133,7 +134,7 @@ class ASMRAPI:
                     logger.error(f"Max retries reached for {route}.")
                     exit(-1)
                 retry += 1
-                await asyncio.sleep(3)
+                await asyncio.sleep(2 + random.random() * 6)
         return resp_json
 
     async def post(
