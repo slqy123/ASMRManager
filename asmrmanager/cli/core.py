@@ -136,6 +136,13 @@ def browse_param_options(f):
         show_default=True,
     )
     @click.option(
+        "--page-size",
+        type=int,
+        default=40,
+        help="number of results per page, default is 40",
+        show_default=True,
+    )
+    @click.option(
         "--subtitle/--no-subtitle",
         is_flag=True,
         default=False,
@@ -169,7 +176,7 @@ def browse_param_options(f):
     )
     @functools.wraps(f)
     def wrapper_common_options(*args, **kwargs):
-        keys = ["page", "subtitle", "order", "asc"]
+        keys = ["page", "page_size", "subtitle", "order", "asc"]
         browse_params = BrowseParams(**{k: kwargs.pop(k) for k in keys})
         return f(*args, **kwargs, browse_params=browse_params)
 

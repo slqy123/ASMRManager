@@ -5,6 +5,7 @@ class BrowseParams:
     def __init__(
         self,
         page: int,
+        page_size: int,
         subtitle: bool,
         order: Literal[
             "create_date",
@@ -21,6 +22,7 @@ class BrowseParams:
         asc: bool,
     ):
         self.page = page
+        self.page_size = page_size
         self.subtitle = subtitle
         self.order = order
         self.sort = "asc" if asc else "desc"
@@ -29,6 +31,7 @@ class BrowseParams:
     def params(self):
         return {
             "page": str(self.page),
+            "pageSize": str(self.page_size),
             "subtitle": str(int(self.subtitle)),
             "order": self.order,
             "sort": self.sort,
