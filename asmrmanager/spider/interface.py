@@ -198,12 +198,14 @@ class ASMRDownloadManager(AsyncManager):
 
     async def tag(self, tag_name: str, params: BrowseParams):
         """tag 和 va 一样，都是调用了特殊的search方法"""
+        raise NotImplementedError
         tag_res = await self.downloader.tag(tag_name, params=params.params)
         ids = [work["id"] for work in tag_res["works"]]
         await self.get(ids)
 
     async def va(self, va_name: str, params: BrowseParams):
         """tag 和 va 一样，都是调用了特殊的search方法"""
+        raise NotImplementedError
         va_res = await self.downloader.tag(va_name, params=params.params)
         ids = [work["id"] for work in va_res["works"]]
         await self.get(ids)
