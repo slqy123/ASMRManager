@@ -41,8 +41,7 @@ class AsyncManager:
             async with self.api:
                 return await asyncio.gather(*tasks)
 
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(_run())
+        return asyncio.run(_run())
 
 
 class ASMRDownloadManager(AsyncManager):

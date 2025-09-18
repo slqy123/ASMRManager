@@ -41,6 +41,8 @@ def vtt2lrc(vtt_path: Path, header=True, threshold=DEFAULT_THRESHOLD):
                 text = "\n".join(text)
             case [time, *text] if "-->" in time:
                 text = "\n".join(text)
+            case [author] if "@" in author:
+                continue
             case _:
                 logger.warning(
                     f"Invalid chunk in vtt file {vtt_path}:\n{chunk}"

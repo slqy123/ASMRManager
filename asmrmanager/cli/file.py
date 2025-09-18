@@ -145,11 +145,20 @@ def recover(source_id: LocalSourceID, regex: str, ignore_filter: bool):
     show_default=True,
     help="store all files",
 )
+@click.option(
+    "--check",
+    "-c",
+    type=click.Choice(["none", "offline", "online"], case_sensitive=False),
+    default="none",
+    show_default=True,
+    help="check files before storing",
+)
 def store(
     source_ids: List[LocalSourceID],
     no_convert: bool,
     replace: bool,
     all_: bool,
+    check: Literal["none", "offline", "online"],
 ):
     """
     store the downloaded files to the storage
@@ -240,15 +249,29 @@ def store(
             )
             if res is None or res is False:
                 return
-            fm.store_all(replace=replace, hook=hook)
-            id_to_store = fm.list_("download")
 
+            id_to_store = fm.list_("download")
         else:
-            for rj_id in source_ids:
-                fm.store(rj_id, replace=replace, hook=hook)
-            id_to_store = source_ids
+            id_to_store = []
+            for id_ in source_ids:
+                if not (fm.download_path / id2source_name(id_)).exists():
+                    logger.warning(
+                        "download path for id %s does not exist, skipping",
+                        id_,
+                    )
+                    continue
+                id_to_store.append(id_)
 
         for id_ in id_to_store:
+            if check != "none":
+                success = verify_voices(
+                    id_, offline=True if check != "online" else False
+                )
+                if not success:
+                    logger.error("Stop storing due to check failed")
+                    return
+            fm.store(id_, replace=replace, hook=hook)
+
             res = db.check_exists(id_)
             if not res:
                 logger.error(
@@ -323,6 +346,93 @@ def diff(source_id: LocalSourceID):
     print(tree)
 
 
+def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
+    if res := fm.load_recover(source_id):
+        recovers = res
+    else:
+        logger.error(f"failed to load recover for id {source_id}")
+        return False
+
+    # local_files = fm.get_all_files(source_id)
+    remote_files_should_down = set(
+        [Path(i["path"]) for i in recovers if i["should_download"]]
+    )
+    # should_download_but_missing = remote_files_should_down - local_files
+    should_download_but_missing = set(
+        filter(
+            lambda p: not any(
+                fm.check_exists(f"{id2source_name(source_id)}/{str(p)}")
+            ),
+            remote_files_should_down,
+        )
+    )
+    if len(should_download_but_missing):
+        logger.error(
+            f"source_id {source_id} has missing files:\n"
+            + "\n".join(str(p) for p in should_download_but_missing)
+        )
+        return False
+
+    if offline:
+        return True
+
+    remote_files_should_down_list = [
+        Path(i["path"]) for i in recovers if i["should_download"]
+    ]
+    file_ids = [i.get("fileId") for i in recovers if i["should_download"]]
+    if not all(isinstance(i, int) for i in file_ids):
+        logger.warning(
+            f"source_id {source_id} has missing fileId in recover, "
+            "please update your recover file first"
+        )
+        return False
+    file_ids = typing.cast(List[int], file_ids)
+    # file_ids = [int(i.split("/")[1]) for i in file_ids]
+
+    file_paths: List[Path] = []
+    for file in remote_files_should_down_list:
+        file_path = fm.get_path(source_id, str(file), prefer="download")
+        assert file_path is not None, (
+            f"Unexpected None value for file path = {file_path}"
+            f" and source_id = {source_id}"
+        )
+        if not (file_path.exists() and file_path.is_file()):
+            if fm.check_exists(f"{id2source_name(source_id)}/{str(file)}"):
+                logger.info(
+                    "skipping file, since another file with same name "
+                    f"and different extension exists: {markup_path(file_path)}"
+                )
+            else:
+                logger.error(
+                    f"file does not exist or is not a file: {markup_path(file_path)}"
+                )
+            continue
+
+        file_paths.append(file_path)
+
+    if len(file_ids) == 0:
+        logger.warning(f"no files to verify for source_id: {source_id}")
+        return True
+    api = create_general_api()
+    res = api.run(
+        *[
+            api.verify(file_path, file_id)
+            for file_path, file_id in zip(file_paths, file_ids)
+        ]
+    )
+    if not all(res):
+        logger.error(
+            f"source_id {source_id} has files that failed to verify hash:"
+        )
+        for i, (file_path, file_id) in enumerate(zip(file_paths, file_ids)):
+            if not res[i]:
+                logger.error(f"fileId: {file_id}, {file_path}")
+        return False
+
+    logger.info(f"source_id {source_id} has all files verified successfully")
+    return True
+
+
 @click.command()
 @click.option(
     "--offline",
@@ -347,96 +457,9 @@ def check(list_: bool, offline: bool):
     # TODO: check hash with xxhash3
     source_ids = fm.list_("download")
     for source_id in source_ids:
-        if res := fm.load_recover(source_id):
-            recovers = res
-        else:
-            logger.error(f"failed to load recover for id {source_id}")
-            if list_:
-                print(source_id)
-            continue
-
-        # local_files = fm.get_all_files(source_id)
-        remote_files_should_down = set(
-            [Path(i["path"]) for i in recovers if i["should_download"]]
-        )
-        # should_download_but_missing = remote_files_should_down - local_files
-        should_download_but_missing = set(
-            filter(
-                lambda p: not any(
-                    fm.check_exists(f"{id2source_name(source_id)}/{str(p)}")
-                ),
-                remote_files_should_down,
-            )
-        )
-        if len(should_download_but_missing):
-            logger.error(
-                f"source_id {source_id} has missing files:\n"
-                + "\n".join(str(p) for p in should_download_but_missing)
-            )
-            if list_:
-                print(source_id)
-            continue
-
-        if offline:
-            continue
-
-        remote_files_should_down_list = [
-            Path(i["path"]) for i in recovers if i["should_download"]
-        ]
-        file_ids = [i.get("fileId") for i in recovers if i["should_download"]]
-        if not all(isinstance(i, int) for i in file_ids):
-            logger.warning(
-                f"source_id {source_id} has missing fileId in recover, "
-                "please update your recover file first"
-            )
-            continue
-        file_ids = typing.cast(List[int], file_ids)
-        # file_ids = [int(i.split("/")[1]) for i in file_ids]
-
-        file_paths: List[Path] = []
-        for file in remote_files_should_down_list:
-            file_path = fm.get_path(source_id, str(file), prefer="download")
-            assert file_path is not None, (
-                f"Unexpected None value for file path = {file_path}"
-                f" and source_id = {source_id}"
-            )
-            if not (file_path.exists() and file_path.is_file()):
-                if fm.check_exists(f"{id2source_name(source_id)}/{str(file)}"):
-                    logger.info(
-                        "skipping file, since another file with same name "
-                        f"and different extension exists: {markup_path(file_path)}"
-                    )
-                else:
-                    logger.error(
-                        f"file does not exist or is not a file: {markup_path(file_path)}"
-                    )
-                continue
-
-            file_paths.append(file_path)
-
-        api = create_general_api()
-        res = api.run(
-            *[
-                api.verify(file_path, file_id)
-                for file_path, file_id in zip(file_paths, file_ids)
-            ]
-        )
-        if not all(res):
-            logger.error(
-                f"source_id {source_id} has files that failed to verify hash:"
-            )
-            for i, (file_path, file_id) in enumerate(
-                zip(file_paths, file_ids)
-            ):
-                if not res[i]:
-                    logger.error(f"fileId: {file_id}, {file_path}")
-            if list_:
-                print(source_id)
-            continue
-        else:
-            logger.info(
-                f"source_id {source_id} has all files verified successfully"
-            )
+        success = verify_voices(source_id, offline)
+        if not success and list_:
+            click.echo(source_id)
 
 
 file.add_command(del_)
