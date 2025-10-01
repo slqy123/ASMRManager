@@ -13,7 +13,12 @@ def convert_vtt2lrc(vtt_path: Path):
 
     assert vtt_path.suffix == ".vtt"
     lrc_content = vtt2lrc(vtt_path)
-    if vtt_path.suffixes[-2].lower() in (".mp3", ".m4a", ".wav", ".flac"):
+    if len(vtt_path.suffixes) > 1 and vtt_path.suffixes[-2].lower() in (
+        ".mp3",
+        ".m4a",
+        ".wav",
+        ".flac",
+    ):
         lrc_path = vtt_path.with_suffix("").with_suffix(".lrc")
     else:
         lrc_path = vtt_path.with_suffix(".lrc")
