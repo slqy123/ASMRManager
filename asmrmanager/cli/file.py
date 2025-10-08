@@ -389,8 +389,9 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
     file_ids = typing.cast(List[int], file_ids)
     # file_ids = [int(i.split("/")[1]) for i in file_ids]
 
-    file_paths: List[Path] = []
-    for file in remote_files_should_down_list:
+    file_paths2check: List[Path] = []
+    file_ids2check: List[int] = []
+    for file, file_id in zip(remote_files_should_down_list, file_ids):
         file_path = fm.get_path(source_id, str(file), prefer="download")
         assert file_path is not None, (
             f"Unexpected None value for file path = {file_path}"
@@ -408,23 +409,26 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
                 )
             continue
 
-        file_paths.append(file_path)
+        file_paths2check.append(file_path)
+        file_ids2check.append(file_id)
 
-    if len(file_ids) == 0:
+    if len(file_ids2check) == 0:
         logger.warning(f"no files to verify for source_id: {source_id}")
         return True
     api = create_general_api()
     res = api.run(
         *[
             api.verify(file_path, file_id)
-            for file_path, file_id in zip(file_paths, file_ids)
+            for file_path, file_id in zip(file_paths2check, file_ids2check)
         ]
     )
     if not all(res):
         logger.error(
             f"source_id {source_id} has files that failed to verify hash:"
         )
-        for i, (file_path, file_id) in enumerate(zip(file_paths, file_ids)):
+        for i, (file_path, file_id) in enumerate(
+            zip(file_paths2check, file_ids2check)
+        ):
             if not res[i]:
                 logger.error(f"fileId: {file_id}, {file_path}")
         return False
