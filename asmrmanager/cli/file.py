@@ -43,9 +43,9 @@ def del_(source_id: LocalSourceID):
 
     folders = folder_chooser_multiple(
         rj_path,
-        lambda p: any(
-            [i.suffix != ".info" for i in p.iterdir() if not i.is_dir()]
-        ),
+        lambda p: any([
+            i.suffix != ".info" for i in p.iterdir() if not i.is_dir()
+        ]),
     )
 
     for folder in folders:
@@ -98,12 +98,10 @@ def recover(source_id: LocalSourceID, regex: str, ignore_filter: bool):
             else:
                 logger.info(f"recover filtered file {rel_path}")
 
-        url2download.append(
-            (
-                recover["url"],
-                fm.download_path / source_name / rel_path,
-            )
-        )
+        url2download.append((
+            recover["url"],
+            fm.download_path / source_name / rel_path,
+        ))
 
     from asmrmanager.cli.core import create_downloader_and_database
 
@@ -300,12 +298,12 @@ def diff(source_id: LocalSourceID):
 
     local_files = fm.get_all_files(source_id)
 
-    remote_files_should_down = set(
-        [Path(i["path"]) for i in recovers if i["should_download"]]
-    )
-    remote_files_filterd = set(
-        [Path(i["path"]) for i in recovers if not i["should_download"]]
-    )
+    remote_files_should_down = set([
+        Path(i["path"]) for i in recovers if i["should_download"]
+    ])
+    remote_files_filterd = set([
+        Path(i["path"]) for i in recovers if not i["should_download"]
+    ])
     filtered_but_downloaded = remote_files_filterd & local_files
     should_download_but_missing = remote_files_should_down - local_files
     added_new_files = (
@@ -354,9 +352,9 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
         return False
 
     # local_files = fm.get_all_files(source_id)
-    remote_files_should_down = set(
-        [Path(i["path"]) for i in recovers if i["should_download"]]
-    )
+    remote_files_should_down = set([
+        Path(i["path"]) for i in recovers if i["should_download"]
+    ])
     # should_download_but_missing = remote_files_should_down - local_files
     should_download_but_missing = set(
         filter(
@@ -416,12 +414,10 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
         logger.warning(f"no files to verify for source_id: {source_id}")
         return True
     api = create_general_api()
-    res = api.run(
-        *[
-            api.verify(file_path, file_id)
-            for file_path, file_id in zip(file_paths2check, file_ids2check)
-        ]
-    )
+    res = api.run(*[
+        api.verify(file_path, file_id)
+        for file_path, file_id in zip(file_paths2check, file_ids2check)
+    ])
     if not all(res):
         logger.error(
             f"source_id {source_id} has files that failed to verify hash:"

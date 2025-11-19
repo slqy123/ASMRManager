@@ -8,16 +8,13 @@ from textual.app import App, ComposeResult
 from textual.containers import Center
 from textual.widgets import Footer, Label, ProgressBar
 
+from asmrmanager.common import MUSIC_SUFFIXES
 from asmrmanager.common.vtt2lrc import vtt2lrc
 from asmrmanager.config import config
 from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
 
 from .player.base import Music
-
-# from textual.reactive import reactive
-
-MUSIC_SUFFIXES = (".mp3", ".wav", ".m4a", ".flac")
 
 
 class LRCPlayer(App):

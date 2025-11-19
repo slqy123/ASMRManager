@@ -1,5 +1,6 @@
 import functools
 from functools import cache, lru_cache
+import os
 from pathlib import Path
 from typing import Any, List, Literal, TYPE_CHECKING, Tuple
 import uuid
@@ -21,12 +22,13 @@ from asmrmanager.common.types import LocalSourceID, RemoteSourceID, SourceID
 from asmrmanager.config import config
 from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
-from asmrmanager.spider.asmrapi import ASMRAPI
+# from asmrmanager.spider.asmrapi import ASMRAPI
 
 fm = FileManager.get_fm()
 
 if config.api_channel:
-    ASMRAPI.set_api_channel(config.api_channel)
+    os.environ["ASMR_CUSTOM_API_CHANNEL"] = config.api_channel
+    # ASMRAPI.set_api_channel(config.api_channel)
 
 if TYPE_CHECKING:
     from asmrmanager.database.manage import DataBaseManager
@@ -285,9 +287,9 @@ def convert2local_ids(
             return None
         return LocalSourceID(source_name2id(info["source_id"]))
 
-    return downloader.run(
-        *[convert2local_id(remote_id) for remote_id in source_ids]
-    )
+    return downloader.run(*[
+        convert2local_id(remote_id) for remote_id in source_ids
+    ])
 
 
 def convert2local_id(x):
@@ -320,9 +322,9 @@ def convert2remote_ids(
             )
         return works[0]["id"]
 
-    return downloader.run(
-        *[convert2remote_id(local_id) for local_id in source_ids]
-    )
+    return downloader.run(*[
+        convert2remote_id(local_id) for local_id in source_ids
+    ])
 
 
 def convert2remote_id(x):

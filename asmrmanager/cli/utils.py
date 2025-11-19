@@ -6,8 +6,7 @@ from asmrmanager.cli.core import rj_argument, fm
 from asmrmanager.common.fileconverter import convert_vtt2lrc
 from asmrmanager.common.types import LocalSourceID
 from asmrmanager.logger import logger
-from asmrmanager.lrcplayer.main import MUSIC_SUFFIXES
-from asmrmanager.filemanager.utils import folder_chooser
+from asmrmanager.common import MUSIC_SUFFIXES
 from asmrmanager.common.subtitle import generate_subtitle
 
 
@@ -106,6 +105,7 @@ def subtitle(
     force: bool = False,
 ):
     """generate LRC subtitles for audio files using the Whisper model"""
+    from asmrmanager.filemanager.utils import folder_chooser
 
     rj_path = fm.get_path(source_id)
     if rj_path is None:

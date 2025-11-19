@@ -1,5 +1,5 @@
 from time import time
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, TYPE_CHECKING
 import click
 from click.shell_completion import CompletionItem
 import json
@@ -16,7 +16,9 @@ from asmrmanager.common.rj_parse import is_remote_source_id, source2id
 from asmrmanager.common.types import RemoteSourceID
 from asmrmanager.filemanager.appdirs_ import CACHE_PATH
 from asmrmanager.logger import logger
-from asmrmanager.spider.interface import ASMRTag
+
+if TYPE_CHECKING:
+    from asmrmanager.spider.interface import ASMRTag
 
 
 def get_all_tags() -> list[dict]:

@@ -4,6 +4,7 @@ import time
 from typing import Any, Dict, List, NamedTuple, TypeVar
 from base64 import b64decode
 import random
+import os
 
 from aiohttp import ClientConnectorError, ClientSession
 from aiohttp.connector import TCPConnector
@@ -77,11 +78,9 @@ class ASMRAPI:
         login_cache = self.login_cache
         if login_cache and login_cache.expire_time > time.time():
             logger.info("Using cached login token.")
-            self.headers.update(
-                {
-                    "Authorization": f"Bearer {login_cache.token}",
-                }
-            )
+            self.headers.update({
+                "Authorization": f"Bearer {login_cache.token}",
+            })
             self.recommender_uuid = login_cache.recommender_uuid
             self.__logined = True
             return
@@ -95,11 +94,9 @@ class ASMRAPI:
             ) as resp:
                 resp_json = await resp.json()
                 token = resp_json["token"]
-                self.headers.update(
-                    {
-                        "Authorization": f"Bearer {token}",
-                    }
-                )
+                self.headers.update({
+                    "Authorization": f"Bearer {token}",
+                })
                 self.recommender_uuid = resp_json["user"]["recommenderUuid"]
                 self.__logined = True
                 expire_time = json.loads(
@@ -285,3 +282,7 @@ class ASMRAPI:
 
     async def __aexit__(self, *_) -> None:
         await self._session.close()
+
+
+if api_channel := os.getenv("ASMR_CUSTOM_API_CHANNEL"):
+    ASMRAPI.set_api_channel(api_channel)
