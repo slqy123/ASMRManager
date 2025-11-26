@@ -3,6 +3,7 @@
 from typing import List
 
 import beaupy
+import beaupy._internals as internals
 from beaupy import DefaultKeys
 from yakh.key import Keys
 
@@ -12,6 +13,22 @@ DefaultKeys.up.append(Keys.CTRL_P)
 DefaultKeys.down.append(Keys.CTRL_N)
 DefaultKeys.up.append("k")
 DefaultKeys.down.append("j")
+
+
+def _render_option_select(
+    i: int, cursor_index: int, option: str, cursor_style: str, cursor: str
+) -> str:
+    return (
+        (
+            f"[{cursor_style}]{cursor}[/{cursor_style}] "
+            + internals._wrap_style(option, cursor_style)
+        )
+        if i == cursor_index
+        else " " * (len(internals._replace_emojis(cursor)) + 1) + option
+    )
+
+
+internals._render_option_select = _render_option_select
 
 
 def select(choices: List[str]) -> int:
