@@ -235,18 +235,27 @@ asmr dl get 300015443  # 本项目存储VJ与BJ所使用的ID（"3" + 8位VJ号�
 
 ```shell
 asmr file check
-asmr file check --list | xargs asmr dl get --force   # 重新下载所有不完整的文件，以bash shell为例
+asmr file check --list | xargs asmr dl get --force --replace   # 重新下载所有不完整的文件，以bash shell为例
 ```
 
 将下载的文件转移到存储目录(STORAGE_PATH)，并执行相应文件格式转换(详情见config.toml的before_store字段)
 
 ```shell
-asmr file store --all
+asmr file store --all --check offline
+# --check none，默认值，表示不检查文件完整性直接存储
+# --check offline 只检查本地文件是否存在
+# --check online 同时会向服务器验证hash
 ```
 
 比较本地文件与服务器文件的差异：
 
 ![diff](./assets/diff.png)
+
+打开音声所在文件夹(linux 上调用xdg-open，windows使用explorer.exe)：
+
+```shell
+asmr which --show <ID>
+```
 
 简单的关键词搜索（本地数据库）：
 

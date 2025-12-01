@@ -19,6 +19,7 @@ from asmrmanager.common.output import print_table
 from asmrmanager.common.rj_parse import id2source_name, source_name2id
 from asmrmanager.common.select import select_multiple
 from asmrmanager.common.types import RemoteSourceID, SourceName
+from asmrmanager.common.concurrency import concurrency_limiter
 from asmrmanager.config import Aria2Config
 from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
@@ -451,6 +452,7 @@ class ASMRGeneralManager(AsyncManager):
     ) -> None:
         self.api = ASMRAPI(name, password, proxy, limit)
 
+    @concurrency_limiter(max_concurrent=3, delay=1)
     async def verify(self, file_path: Path, file_id: int) -> bool:
         xxhash_ = xxhash.xxh128_hexdigest(file_path.read_bytes())
         res = await self.api.verify_hash(file_id, xxhash_)
