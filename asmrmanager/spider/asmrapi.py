@@ -1,9 +1,7 @@
-import asyncio
 import json
 import time
 from typing import Any, Dict, List, NamedTuple, TypeVar
 from base64 import b64decode
-import random
 import os
 
 from aiohttp import ClientConnectorError, ClientSession
@@ -12,6 +10,7 @@ from aiohttp.connector import TCPConnector
 from asmrmanager.common.types import RemoteSourceID
 from asmrmanager.logger import logger
 from asmrmanager.filemanager.appdirs_ import CACHE_PATH
+from asmrmanager.spider.utils.retry import RetryError, retry
 
 T = TypeVar("T", bound="ASMRAPI")
 LoginCache = NamedTuple(
@@ -78,9 +77,11 @@ class ASMRAPI:
         login_cache = self.login_cache
         if login_cache and login_cache.expire_time > time.time():
             logger.info("Using cached login token.")
-            self.headers.update({
-                "Authorization": f"Bearer {login_cache.token}",
-            })
+            self.headers.update(
+                {
+                    "Authorization": f"Bearer {login_cache.token}",
+                }
+            )
             self.recommender_uuid = login_cache.recommender_uuid
             self.__logined = True
             return
@@ -94,9 +95,11 @@ class ASMRAPI:
             ) as resp:
                 resp_json = await resp.json()
                 token = resp_json["token"]
-                self.headers.update({
-                    "Authorization": f"Bearer {token}",
-                })
+                self.headers.update(
+                    {
+                        "Authorization": f"Bearer {token}",
+                    }
+                )
                 self.recommender_uuid = resp_json["user"]["recommenderUuid"]
                 self.__logined = True
                 expire_time = json.loads(
@@ -110,10 +113,8 @@ class ASMRAPI:
         except ClientConnectorError as err:
             logger.error(f"Login failed, {err}")
 
-    async def get(
-        self, route: str, params: dict | None = None, max_retry: int = 5
-    ) -> Any:
-        retry = 0
+    @retry()
+    async def get(self, route: str, params: dict | None = None) -> Any:
         resp_json = None
         while not resp_json:
             try:
@@ -127,17 +128,11 @@ class ASMRAPI:
                     return resp_json
             except Exception as e:
                 logger.warning(f"Request {route} failed: {e}")
-                if retry >= max_retry:
-                    logger.error(f"Max retries reached for {route}.")
-                    exit(-1)
-                retry += 1
-                await asyncio.sleep(2 + random.random() * 6)
+                raise RetryError
         return resp_json
 
-    async def post(
-        self, route: str, data: dict | None = None, max_retry: int = 5
-    ) -> Any:
-        retry = 0
+    @retry()
+    async def post(self, route: str, data: dict | None = None) -> Any:
         resp_json = None
         while not resp_json:
             try:
@@ -151,11 +146,7 @@ class ASMRAPI:
                     return resp_json
             except Exception as e:
                 logger.warning(f"Request {route} failed: {e}")
-                if retry >= max_retry:
-                    logger.error(f"Max retries reached for {route}.")
-                    exit(-1)
-                retry += 1
-                await asyncio.sleep(3)
+                raise RetryError
         return resp_json
 
     async def _get_playlists(

@@ -287,9 +287,9 @@ def convert2local_ids(
             return None
         return LocalSourceID(source_name2id(info["source_id"]))
 
-    return downloader.run(*[
-        convert2local_id(remote_id) for remote_id in source_ids
-    ])
+    return downloader.run(
+        *[convert2local_id(remote_id) for remote_id in source_ids]
+    )
 
 
 def convert2local_id(x):
@@ -322,9 +322,9 @@ def convert2remote_ids(
             )
         return works[0]["id"]
 
-    return downloader.run(*[
-        convert2remote_id(local_id) for local_id in source_ids
-    ])
+    return downloader.run(
+        *[convert2remote_id(local_id) for local_id in source_ids]
+    )
 
 
 def convert2remote_id(x):

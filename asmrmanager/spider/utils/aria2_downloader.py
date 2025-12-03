@@ -53,4 +53,4 @@ class Aria2Downloader:
                 logger.warning(
                     f"Wrong response from aria2: {res}, retrying..."
                 )
-                asyncio.sleep(1)
+                await asyncio.sleep(1)

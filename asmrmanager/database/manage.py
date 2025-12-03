@@ -114,9 +114,12 @@ class DataBaseManager:
 
         def tag_strategy_filter(tag: dict) -> bool:
             """true if tag should be accepted and stored in database"""
+            # logger.debug(f"evaluating tag: {tag}")
             upvote: int = tag["upvote"]
             downvote: int = tag["downvote"]
-            voteRank: int = tag["voteRank"]
+            voteRank: int = (
+                tag["voteRank"] if "voteRank" in tag else upvote - downvote
+            )  # voteRank may be missing
             if voteRank != upvote - downvote:
                 logger.warning(
                     f"voteRank is not equal to upvote - downvote: {tag}"

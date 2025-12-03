@@ -21,6 +21,7 @@ from asmrmanager.config import Aria2Config
 from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
 from asmrmanager.spider.asmrapi import ASMRAPI
+from asmrmanager.spider.utils.concurrency import concurrent_rate_limit
 
 T = TypeVar("T", bound="ASMRDownloadAPI")
 
@@ -182,6 +183,7 @@ class ASMRDownloadAPI(ASMRAPI):
             json.dump(recover, f, ensure_ascii=False, indent=4)
 
     @asyncstdlib.lru_cache(None)
+    @concurrent_rate_limit(limit=3, max_rps=3)
     async def get_voice_info(
         self, voice_id: RemoteSourceID
     ) -> Dict[str, Any] | None:
@@ -193,6 +195,7 @@ class ASMRDownloadAPI(ASMRAPI):
             return None
         return voice_info
 
+    @concurrent_rate_limit(limit=3, max_rps=3)
     async def get_voice_tracks(self, voice_id: RemoteSourceID):
         tracks: list[dict] | dict = await self.get(
             f"tracks/{voice_id}", params={"v": 2}
