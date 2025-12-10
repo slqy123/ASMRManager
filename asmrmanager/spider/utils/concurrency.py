@@ -4,7 +4,7 @@ from collections import defaultdict
 import time
 
 
-def concurrent_rate_limit(limit: int = 3, max_rps: float = 3):
+def concurrent_rate_limit(limit: int = 1, max_rps: float = 1):
     """
     A decorator to limit the number of concurrent executions of an async function.
 

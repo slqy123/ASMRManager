@@ -94,6 +94,7 @@ def create_downloader_and_database(
             replace=download_params.replace,
             download_method=config.download_method,
             aria2_config=config.aria2_config,
+            limit=config.api_max_concurrent_requests,
         ),
         db,
     )
@@ -104,7 +105,10 @@ def create_playlist():
     from asmrmanager.spider.interface import ASMRPlayListManager
 
     return ASMRPlayListManager(
-        name=config.username, password=config.password, proxy=config.proxy
+        name=config.username,
+        password=config.password,
+        proxy=config.proxy,
+        limit=config.api_max_concurrent_requests,
     )
 
 
@@ -113,7 +117,10 @@ def create_tags_api():
     from asmrmanager.spider import ASMRTagManager
 
     return ASMRTagManager(
-        name=config.username, password=config.password, proxy=config.proxy
+        name=config.username,
+        password=config.password,
+        proxy=config.proxy,
+        limit=config.api_max_concurrent_requests,
     )
 
 
@@ -122,7 +129,10 @@ def create_general_api():
     from asmrmanager.spider import ASMRGeneralManager
 
     return ASMRGeneralManager(
-        name=config.username, password=config.password, proxy=config.proxy
+        name=config.username,
+        password=config.password,
+        proxy=config.proxy,
+        limit=config.api_max_concurrent_requests,
     )
 
 
@@ -471,7 +481,7 @@ def time_interval_preprocess_cb(
 
 
 def pl_preprocess_cb(
-    ctx: click.Context, param: click.Option, val: str | Tuple
+    ctx: click.Context, param: click.Option, val: str | Tuple[str, ...]
 ) -> List[uuid.UUID]:
     def is_valid_uuid(v: str):
         try:
@@ -486,7 +496,7 @@ def pl_preprocess_cb(
     res = []
 
     # check for valid uuid
-    possible_aliaes = []
+    possible_aliaes: list[str] = []
     for v in val:
         if is_valid_uuid(v):
             res.append(v)

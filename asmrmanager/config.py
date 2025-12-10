@@ -1,9 +1,11 @@
 from dataclasses import dataclass
+import os
 from typing import Dict, List, Literal
 
 import toml
 
 from asmrmanager import CONFIG_PATH
+from asmrmanager.logger import logger
 
 
 @dataclass
@@ -12,6 +14,8 @@ class Config:
     password: str
     proxy: str | None
     api_channel: str | None
+    api_max_concurrent_requests: int
+    api_max_requests_per_second: int
     download_path: str
     storage_path: str
     view_path: str
@@ -89,6 +93,8 @@ config = Config(
     password=_config["password"],
     proxy=_config.get("proxy", None),
     api_channel=_config.get("api_channel", None),
+    api_max_concurrent_requests=_config.get("api_max_concurrent_requests", 4),
+    api_max_requests_per_second=_config.get("api_max_requests_per_second", 4),
     download_path=_config["download_path"],
     storage_path=_config["storage_path"],
     view_path=_config["view_path"],
@@ -105,3 +111,12 @@ config = Config(
     before_store=_config.get("before_store", ""),
     subtitle_config=SubtitleConfig(**_config.get("subtitle_config", {})),
 )
+
+# environment variable override
+if env_concurrency_limit := os.getenv("ASMR_CONCURRENCY_LIMIT"):
+    creq, crps = eval(env_concurrency_limit)
+    assert isinstance(creq, int) and isinstance(crps, int)
+    config.api_max_concurrent_requests = creq
+    config.api_max_requests_per_second = crps
+
+logger.debug(f"Config loaded: {config}")

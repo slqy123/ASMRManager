@@ -59,6 +59,7 @@ class ASMRDownloadManager(AsyncManager):
         replace=False,
         download_method: Literal["aria2", "idm"] = "idm",
         aria2_config: Aria2Config | None = None,
+        limit: int = 4,
     ):
         self.downloader = ASMRDownloadAPI(
             name=name,
@@ -67,6 +68,7 @@ class ASMRDownloadManager(AsyncManager):
             name_should_download=name_should_download or (lambda *_: True),
             json_should_download=json_should_download or (lambda _: True),
             replace=replace,
+            limit=limit,
             download_method=download_method,
             aria2_config=aria2_config,
         )
@@ -452,7 +454,7 @@ class ASMRGeneralManager(AsyncManager):
     ) -> None:
         self.api = ASMRAPI(name, password, proxy, limit)
 
-    @concurrent_rate_limit(limit=3, max_rps=3)
+    @concurrent_rate_limit()
     async def verify(self, file_path: Path, file_id: int) -> bool:
         xxhash_ = xxhash.xxh128_hexdigest(file_path.read_bytes())
         res = await self.api.verify_hash(file_id, xxhash_)

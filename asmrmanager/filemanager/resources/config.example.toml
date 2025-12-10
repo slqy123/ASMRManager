@@ -84,6 +84,10 @@ before_store = ''
 # 如果使用的是IDM且没有安装在默认路径，请修改此项为IDM可执行文件所在的文件夹，否则请忽略
 idm_install_path = ""
 
+# 网站api有请求频率限制，以下参数是较为保守的设置，可以根据具体情况自行调整
+api_max_concurrent_requests = 4  # 最大同时存在的请求数
+api_max_requests_per_second = 4  # 每秒最大请求数(RPS)
+
 # 如使用aria2请配置此项，否则请忽略
 # 如果是在本地使用aria2，运行`aria2c --enable-rpc`，以下保持默认即可
 # 如果使用motrix，且没有更改过默认端口，请将端口(port)改为16800
