@@ -15,7 +15,12 @@ from asmrmanager.spider.utils.retry import RetryError, retry
 T = TypeVar("T", bound="ASMRAPI")
 LoginCache = NamedTuple(
     "LoginCache",
-    [("token", str), ("recommender_uuid", str), ("expire_time", int)],
+    [
+        ("token", str),
+        ("recommender_uuid", str),
+        ("expire_time", int),
+        ("username", str),
+    ],
 )
 
 
@@ -55,6 +60,7 @@ class ASMRAPI:
                     token=data["token"],
                     recommender_uuid=data["recommender_uuid"],
                     expire_time=data["expire_time"],
+                    username=data.get("username", ""),
                 )
         except Exception as e:
             logger.error(f"Failed to load login cache: {e}")
@@ -69,13 +75,18 @@ class ASMRAPI:
                     "token": cache.token,
                     "recommender_uuid": cache.recommender_uuid,
                     "expire_time": cache.expire_time,
+                    "username": cache.username,
                 },
                 f,
             )
 
     async def login(self) -> None:
         login_cache = self.login_cache
-        if login_cache and login_cache.expire_time > time.time():
+        if (
+            login_cache
+            and login_cache.expire_time > time.time()
+            and login_cache.username == self.name
+        ):
             logger.info("Using cached login token.")
             self.headers.update(
                 {
@@ -85,6 +96,7 @@ class ASMRAPI:
             self.recommender_uuid = login_cache.recommender_uuid
             self.__logined = True
             return
+        logger.info("Requesting new login token.")
 
         try:
             async with self._session.post(
@@ -102,13 +114,15 @@ class ASMRAPI:
                 )
                 self.recommender_uuid = resp_json["user"]["recommenderUuid"]
                 self.__logined = True
-                expire_time = json.loads(
-                    b64decode(token.split(".")[1]).decode()
-                )["exp"]
+                jwt_body = token.split(".")[1]
+                if len(jwt_body) % 4 != 0:
+                    jwt_body += "=" * (4 - len(jwt_body) % 4)
+                expire_time = json.loads(b64decode(jwt_body).decode())["exp"]
                 self.login_cache = LoginCache(
                     token=token,
                     recommender_uuid=self.recommender_uuid,
                     expire_time=expire_time,
+                    username=self.name,
                 )
         except ClientConnectorError as err:
             logger.error(f"Login failed, {err}")
