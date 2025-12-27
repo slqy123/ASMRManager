@@ -45,7 +45,7 @@ def update(source_ids: List[RemoteSourceID]):
         logger.error("You must give at least one source id!")
         return
     spider, db = create_downloader_and_database(
-        DownloadParams(False, False, False, True)
+        DownloadParams(False, False, True, True)
     )
     spider.run(spider.update(source_ids))
     db.commit()

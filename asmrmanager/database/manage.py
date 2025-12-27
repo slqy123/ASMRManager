@@ -33,7 +33,6 @@ class DataBaseManager:
         engine: Union[Engine, None] = None,
         tag_filter: Sequence[str] = tuple(),
     ):
-        global create_math_functions_on_connect
         self.engine = engine or get_engine()
         event.listens_for(self.engine, "connect")(
             create_math_functions_on_connect

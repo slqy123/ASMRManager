@@ -104,6 +104,7 @@ secret = ""
 # excat_match: bool = False  # 是否应精确匹配(从头到尾严格匹配)
 # ignore_case: bool = True  # 是否忽略大小写
 # disable_when_nothing_to_download: bool = False  # 若设置为True，当检测到没有任何音频文件需要下载时，将禁用该规则并重新检查
+# disable_order: int = 1  # 仅当disable_when_nothing_to_download为True时生效，控制上述规则的生效顺序，数字越小的规则越先被禁用
 
 # 注意只有满足所有的include规则且不满足所有的exclude规则的文件才会被下载
 
@@ -117,11 +118,24 @@ secret = ""
 # [[filename_filters]]
 # regex = '(声|ボイス|SE)のみ'
 
-# 过滤所有的wav，但是当没有任何音频文件可以下载时（例如：作品只提供wav音频），禁用该规则
+# 过滤所有的wav,flac和m4a文件，但如果没有任何音频文件可下载，则按照disable order顺序从小到大依次解除过滤，直到有音频文件可下载为止
+# 最终效果为：按照 mp3 > m4a > wav > flac 的优先级下载音声所提供的优先级最高的音频文件
 # [[filename_filters]]
-# regex = '.*\.wav$'
-# range = "file"
+# regex                            = '.*\.m4a(\.vtt)?$'
+# range                            = "file"
 # disable_when_nothing_to_download = true
+# disable_order                    = 1
+# [[filename_filters]]
+# regex                            = '.*\.wav(\.vtt)?$'
+# range                            = "file"
+# disable_when_nothing_to_download = true
+# disable_order                    = 2
+# 
+# [[filename_filters]]
+# regex                            = '.*\.flac(\.vtt)?$'
+# range                            = "file"
+# disable_when_nothing_to_download = true
+# disable_order                    = 3
 
 # 过滤包含 "反転" 的wav文件
 # [[filename_filters]]

@@ -54,7 +54,7 @@ class ASMRDownloadManager(AsyncManager):
         id_should_download: Callable[[RemoteSourceID], bool] | None = None,
         json_should_download: Callable[[Dict[str, Any]], bool] | None = None,
         name_should_download: (
-            Callable[[str, Literal["directory", "file"], bool], bool] | None
+            Callable[[str, Literal["directory", "file"]], int] | None
         ) = None,
         replace=False,
         download_method: Literal["aria2", "idm"] = "idm",
@@ -224,13 +224,21 @@ class ASMRDownloadManager(AsyncManager):
             # if not should_down:
             #     logger.info(f"stop download {rj_id_}")
             #     return
-            save_path = fm.storage_path
 
             local_source_id = source_name2id(voice_info["source_id"])
             if local_source_id is None:
                 logger.error(f"Failded to convert {source_id_} to local id.")
                 return
-            voice_path = save_path / id2source_name(local_source_id)
+            voice_path = fm.get_path(
+                local_source_id,
+                prefer="download",
+            )
+            if voice_path is None:
+                logger.error(
+                    "Failed to get the path for source id: %d", local_source_id
+                )
+                return
+            # voice_path = save_path / id2source_name(local_source_id)
             assert voice_path.name == voice_info["source_id"]
             if not voice_path.exists():
                 logger.warning(
@@ -246,7 +254,15 @@ class ASMRDownloadManager(AsyncManager):
                 logger.error(f"Failed to get tracks for {source_id_}.")
                 return
 
-            file_list = self.downloader.get_file_list(tracks, voice_path)
+            file_list_with_order = self.downloader.get_file_list(
+                tracks, voice_path
+            )
+            file_list = self.downloader.apply_filename_filter(
+                file_list_with_order
+            )
+            if file_list is None:
+                logger.error(f"Failed to update {local_source_id}")
+                return
             self.downloader.create_recover_file(file_list, voice_path)
 
         tasks = []
