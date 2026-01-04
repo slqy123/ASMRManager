@@ -1,7 +1,7 @@
 import asyncio
-from functools import wraps
-from collections import defaultdict
 import time
+from collections import defaultdict
+from functools import wraps
 
 
 def concurrent_rate_limit(limit: int = 1, max_rps: float = 1):

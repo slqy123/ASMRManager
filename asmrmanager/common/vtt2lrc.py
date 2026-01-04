@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
 from pathlib import Path
-from asmrmanager.logger import logger
 
 import click
+
+from asmrmanager.logger import logger
 
 
 def parse_time(time_str):

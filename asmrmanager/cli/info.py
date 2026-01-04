@@ -1,14 +1,14 @@
 import click
 
-from asmrmanager.common.rj_parse import id2source_name
-from asmrmanager.config import config
 from asmrmanager.cli.core import (
     convert2remote_id,
     create_database,
     create_downloader_and_database,
     rj_argument,
 )
+from asmrmanager.common.rj_parse import id2source_name
 from asmrmanager.common.types import LocalSourceID, RemoteSourceID
+from asmrmanager.config import config
 from asmrmanager.database.orm_type import ASMRInstance
 from asmrmanager.logger import logger
 

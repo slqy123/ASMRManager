@@ -1,17 +1,17 @@
-from importlib import import_module
 import json
+import typing
+from importlib import import_module
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
     List,
     Literal,
     NamedTuple,
-    TYPE_CHECKING,
     TypeVar,
 )
-import typing
 
 import asyncstdlib
 
@@ -28,8 +28,8 @@ T = TypeVar("T", bound="ASMRDownloadAPI")
 
 
 if TYPE_CHECKING:
-    from .utils.IDMHelper import IDMHelper as _IDMHelper
     from .utils.aria2_downloader import Aria2Downloader as _Aria2Downloader
+    from .utils.IDMHelper import IDMHelper as _IDMHelper
 
 try:
     IDMHelper = typing.cast(

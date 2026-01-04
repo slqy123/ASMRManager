@@ -1,11 +1,10 @@
 import re
-from pathlib import Path
-from typing import List, Tuple, Literal
 import typing
+from pathlib import Path
+from typing import List, Literal, Tuple
 
 import click
 
-from asmrmanager.config import config
 from asmrmanager.cli.core import (
     create_database,
     create_general_api,
@@ -16,6 +15,7 @@ from asmrmanager.cli.core import (
 )
 from asmrmanager.common.rj_parse import id2source_name
 from asmrmanager.common.types import LocalSourceID
+from asmrmanager.config import config
 from asmrmanager.filemanager.exceptions import DstItemAlreadyExistsException
 from asmrmanager.logger import logger
 

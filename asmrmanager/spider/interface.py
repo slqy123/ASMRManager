@@ -1,6 +1,7 @@
 import asyncio
-from pathlib import Path
 import uuid
+from dataclasses import dataclass
+from pathlib import Path
 from typing import (
     Any,
     Awaitable,
@@ -11,21 +12,21 @@ from typing import (
     Tuple,
     TypeVar,
 )
-from dataclasses import dataclass
+
 import xxhash
 
 from asmrmanager.common.browse_params import BrowseParams
 from asmrmanager.common.output import print_table
-from asmrmanager.common.rj_parse import id2source_name, source_name2id
+from asmrmanager.common.rj_parse import source_name2id
 from asmrmanager.common.select import select_multiple
 from asmrmanager.common.types import RemoteSourceID, SourceName
-from asmrmanager.spider.utils.concurrency import concurrent_rate_limit
 from asmrmanager.config import Aria2Config
 from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
 from asmrmanager.spider.asmrapi import ASMRAPI
 from asmrmanager.spider.playlist import ASMRPlayListAPI
 from asmrmanager.spider.tag import ASMRTagAPI
+from asmrmanager.spider.utils.concurrency import concurrent_rate_limit
 
 from .downloader import ASMRDownloadAPI
 

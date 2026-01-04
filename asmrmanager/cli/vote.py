@@ -1,16 +1,16 @@
+import dataclasses
+import json
 from time import time
-from typing import Any, Literal, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Literal, Optional
+
 import click
 from click.shell_completion import CompletionItem
-import json
-import dataclasses
-
 
 from asmrmanager.cli.core import (
     convert2remote_id,
-    rj_argument,
     create_tags_api,
     get_prev_source,
+    rj_argument,
 )
 from asmrmanager.common.rj_parse import is_remote_source_id, source2id
 from asmrmanager.common.types import RemoteSourceID

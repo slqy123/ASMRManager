@@ -1,13 +1,14 @@
-from typing import Literal, Optional, List
 from pathlib import Path
+from typing import List, Literal, Optional
+
 import click
 
-from asmrmanager.cli.core import rj_argument, fm
+from asmrmanager.cli.core import fm, rj_argument
+from asmrmanager.common import MUSIC_SUFFIXES
 from asmrmanager.common.fileconverter import convert_vtt2lrc
+from asmrmanager.common.subtitle import generate_subtitle
 from asmrmanager.common.types import LocalSourceID
 from asmrmanager.logger import logger
-from asmrmanager.common import MUSIC_SUFFIXES
-from asmrmanager.common.subtitle import generate_subtitle
 
 
 @click.group()

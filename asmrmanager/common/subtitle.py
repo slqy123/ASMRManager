@@ -1,15 +1,17 @@
 import os
-from pathlib import Path
 from datetime import timedelta
-from asmrmanager.logger import logger
-from asmrmanager.config import config
+from pathlib import Path
+
 from rich.progress import (
-    Progress,
     BarColumn,
+    Progress,
     TextColumn,
     TimeElapsedColumn,
     TimeRemainingColumn,
 )
+
+from asmrmanager.config import config
+from asmrmanager.logger import logger
 
 
 def format_lrc_timestamp(seconds: float) -> str:

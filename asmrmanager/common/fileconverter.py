@@ -1,8 +1,8 @@
-from pathlib import Path
-from shutil import which
-from typing import Literal, Any
 import asyncio
 import re
+from pathlib import Path
+from shutil import which
+from typing import Any, Literal
 
 from rich.console import Console
 from rich.table import Column
@@ -37,16 +37,16 @@ class AudioConverter:
     def __init__(
         self, title: str, threads: int = 6, refresh_per_second: int = 10
     ):
+        from rich.live import Live
+        from rich.panel import Panel
         from rich.progress import (
+            BarColumn,
             Progress,
             SpinnerColumn,
-            TextColumn,
-            BarColumn,
             TaskProgressColumn,
+            TextColumn,
             TimeRemainingColumn,
         )
-        from rich.panel import Panel
-        from rich.live import Live
 
         if which("ffmpeg") is None:
             raise FileNotFoundError(
@@ -132,7 +132,7 @@ class AudioConverter:
         asyncio.run(_entry())
 
     def __convert(self, src: Path, dst: Path, convert_args: list[str]):
-        from subprocess import Popen, PIPE
+        from subprocess import PIPE, Popen
 
         total_seconds = None
         task_id = None

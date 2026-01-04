@@ -10,9 +10,9 @@ from asmrmanager.logger import logger
 @rj_argument("local")
 def play(ctx: click.Context, source_id: LocalSourceID):
     """play asmr with a simple TUI"""
+    from asmrmanager.common import MUSIC_SUFFIXES
     from asmrmanager.filemanager.utils import folder_chooser
     from asmrmanager.lrcplayer import lrc_play
-    from asmrmanager.common import MUSIC_SUFFIXES
 
     rj_path = fm.get_path(source_id)
     if rj_path is None:

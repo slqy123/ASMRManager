@@ -1,9 +1,9 @@
 import functools
-from functools import cache, lru_cache
 import os
-from pathlib import Path
-from typing import Any, List, Literal, TYPE_CHECKING, Tuple
 import uuid
+from functools import cache, lru_cache
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, List, Literal, Tuple
 
 import asyncstdlib
 import click
@@ -22,6 +22,7 @@ from asmrmanager.common.types import LocalSourceID, RemoteSourceID, SourceID
 from asmrmanager.config import config
 from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
+
 # from asmrmanager.spider.asmrapi import ASMRAPI
 
 fm = FileManager.get_fm()
@@ -550,8 +551,9 @@ def pl_preprocess_cb(
 
 
 def markup_path(path: Path):
-    from rich.markup import escape
     from urllib.parse import quote
+
+    from rich.markup import escape
 
     path = path.absolute()
     if path.is_relative_to(fm.download_path):

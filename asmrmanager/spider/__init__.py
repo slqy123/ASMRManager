@@ -1,5 +1,6 @@
-from .utils.concurrency import concurrent_rate_limit
 from asmrmanager.config import config
+
+from .utils.concurrency import concurrent_rate_limit
 
 # patch concurrent_rate_limit
 concurrent_rate_limit.__defaults__ = (
@@ -8,7 +9,7 @@ concurrent_rate_limit.__defaults__ = (
 )
 
 from .downloader import ASMRAPI
-from .interface import ASMRDownloadManager, ASMRTagManager, ASMRGeneralManager
+from .interface import ASMRDownloadManager, ASMRGeneralManager, ASMRTagManager
 
 __all__ = [
     "ASMRAPI",

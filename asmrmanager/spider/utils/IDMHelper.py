@@ -3,10 +3,10 @@ Python IDM Helper by zackmark29
 Version v1.0.2 | 2021.11.28
 """
 
+from functools import cache
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Optional
-from functools import cache
 
 from comtypes import client  # type: ignore
 from comtypes.automation import VT_EMPTY

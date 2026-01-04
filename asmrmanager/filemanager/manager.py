@@ -14,8 +14,8 @@ import toml
 
 from asmrmanager.common.rj_parse import (
     id2source_name,
-    source_name2id,
     source2id,
+    source_name2id,
 )
 from asmrmanager.common.types import (
     LocalSourceID,

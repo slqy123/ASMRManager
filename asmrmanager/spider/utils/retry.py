@@ -1,8 +1,9 @@
 import asyncio
 import time
-from functools import wraps
-from asmrmanager.logger import logger
 from collections import defaultdict
+from functools import wraps
+
+from asmrmanager.logger import logger
 
 
 class RetryError(Exception):

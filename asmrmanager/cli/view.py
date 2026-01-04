@@ -66,6 +66,7 @@ def add(source_id: LocalSourceID, mode: Literal["link", "zip", "adb", "copy"]):
 def list_(raw: bool):
     """list all files in view path"""
     from sqlalchemy import func
+
     from asmrmanager.common.output import print_table
     from asmrmanager.database.database import ASMR, ASMRs2VAs, VoiceActor
 

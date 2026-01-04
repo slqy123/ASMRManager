@@ -9,8 +9,8 @@ from asmrmanager.cli.core import (
     download_param_options,
     fm,
     interval_preprocess_cb,
-    time_interval_preprocess_cb,
     multi_rj_argument,
+    time_interval_preprocess_cb,
 )
 from asmrmanager.common.browse_params import BrowseParams
 from asmrmanager.common.download_params import DownloadParams
