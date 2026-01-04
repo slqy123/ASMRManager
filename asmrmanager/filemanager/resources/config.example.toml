@@ -1,13 +1,13 @@
-# 账号
-username = "username"
+# 账号 若仅使用下载功能，保持默认的游客账号即可
+username = "guest"
 
 # 密码
-password = "password"
+password = "guest"
 
-# 代理
+# 代理，仅用于API请求，不用于文件下载。推荐使用，不需要可删除或留空
 proxy = "http://localhost:7890"
 
-# api地址
+# api地址，访问 https://as.mr 可获取最新地址
 # api.asmr-100.com, api.asmr-300.com，api.asmr.one均可，请视网络情况修改
 api_channel = 'api.asmr-200.com'
 
@@ -47,7 +47,8 @@ tag_strategy = "common_only"
 # 过滤掉那些你不喜欢的标签
 tag_filter = ["tagname1", "tagname2"]
 
-# 编辑sql用的默认编辑器, 如果需使用powershell脚本例如lvim，
+# 编辑sql用的默认编辑器，若不使用sql可忽略
+# 如果需使用powershell脚本例如lvim，
 # 此处可填入 'pwsh -nop -f /path/to/lvim.ps1'
 editor = "code --wait"
 
@@ -85,12 +86,14 @@ before_store = ''
 idm_install_path = ""
 
 # 网站api有请求频率限制，以下参数是较为保守的设置，可以根据具体情况自行调整
-api_max_concurrent_requests = 4  # 最大同时存在的请求数
-api_max_requests_per_second = 4  # 每秒最大请求数(RPS)
+api_max_concurrent_requests = 3  # 最大同时存在的请求数
+api_max_requests_per_second = 3  # 每秒最大请求数(RPS)
 
 # 如使用aria2请配置此项，否则请忽略
 # 如果是在本地使用aria2，运行`aria2c --enable-rpc`，以下保持默认即可
 # 如果使用motrix，且没有更改过默认端口，请将端口(port)改为16800
+# 若下载频率过高网站可能会返回403，官方版本的aria2对于403的请求会直接fail，
+# 因此推荐使用[aria2pro](https://github.com/P3TERX/Aria2-Pro-Core) 并设置retry-on-403=true
 [aria2_config]
 host = "http://localhost"
 port = 6800
@@ -157,7 +160,7 @@ liked = '__SYS_PLAYLIST_LIKED'   # 我喜欢的 的列表别名
 marked = '__SYS_PLAYLIST_MARKED' # 我标记的 的列表别名
 
 [mpd_config]
-# 此处为MPD客户端配置信息
+# 此处为MPD客户端配置信息，若不使用MPD作为音频播放后端则可忽略
 # 服务端的配置文件将在第一次启动后自动生成在数据目录下
 # 修改服务端的配置时请保证与此处的配置匹配
 bin = "/path/to/mpd"

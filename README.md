@@ -34,7 +34,7 @@
 - 支持网站所支持的所有索引方式(关键词，标签，会社，价格，声优，日期，时长，年龄分级等等)以及排序方式。
 - （仅）支持调用 IDM 或 aria2 下载。
 - 支持高度自定义的过滤规则，可实现对作品的标签，文件名进行过滤，按需下载。
-- 支持音频文件的格式转换。
+- 支持音频文件与字幕文件的格式转换。
 
 ```
 > asmr dl search --help
@@ -154,7 +154,7 @@ pip install ASMRManager[依赖]
 
 ---
 
-之后再运行 `asmr` 命令，会生成示例的配置文件和 sql 文件，此处以 windows 举例：
+之后再运行 `asmr` 命令，会生成示例的[配置文件](./asmrmanager/filemanager/resources/config.example.toml)和 sql 文件，此处以 windows 举例：
 
 ```
 2023-10-22 14:36:21 - INFO - First time to run, copy default sqls to C:\Users\slqy\AppData\Local\asmrmanager\asmrmanager\sqls
