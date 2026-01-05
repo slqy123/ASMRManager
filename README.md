@@ -19,10 +19,11 @@
   - [使用示例](#使用示例)
   - [常见问题与使用提示](#常见问题与使用提示)
     - [IDM 不会自动下载，只能一个一个文件下载](#idm-不会自动下载只能一个一个文件下载)
+    - [Windows CMD 中的显示错误问题（选项重复，无高亮显示）](#windows-cmd-中的显示错误问题选项重复无高亮显示)
     - [关于`dl search/get`的使用（作品，标签，文件的过滤细节）](#关于dl-searchget的使用作品标签文件的过滤细节)
     - [多线程下载相关](#多线程下载相关)
   - [其他](#其他)
-  <!--toc:end-->
+<!--toc:end-->
 
 </details>
 包含下载，管理，播放(命令行 TUI)的 https://asmr.one 的 CLI 管理工具。
@@ -35,82 +36,6 @@
 - （仅）支持调用 IDM 或 aria2 下载。
 - 支持高度自定义的过滤规则，可实现对作品的标签，文件名进行过滤，按需下载。
 - 支持音频文件与字幕文件的格式转换。
-
-```
-> asmr dl search --help
-[03/03/25 22:48:19] INFO     Run program with: dl search --help
-Usage: asmr dl search [OPTIONS] [KEYWORDS]...
-
-  search and download ASMR
-
-  The argument are some keywords to filter the title or id of an ASMR.
-  Specially, you can pass a keyword starts with `!` to exclude works
-  containing this word, eg: `!中文版`
-
-  the [multiple] options means you can add multiple same option such as:
-
-      --tags tag1 --tags tag2 --no-tags tag3
-
-  for options like --rate, --sell, --price, --duration you should give an
-  interval like:
-
-      --rate 3.9:4.7 --sell 1000: --price :200 --duration 10:60
-
-  the interval a:b means a <= x < b, if a or b is not given i.e. a: or :b, it
-  means no lower or upper limit
-
-  for --duration, expressions like `1.5h(1.5 hours)`, `10m(10 minutes)` are
-  allowed, or by default, the unit is minute.
-
-  --force will check the download RJ files again though it is already     in
-  the database, it work just like update
-
-  --replace option will first delte the original file, then add the new file
-  to download queue(i.e. IDM or aria2)
-
-  --order=nsfw will only show the full age ASMRs
-
-  for other --order values, you can refer to the website for explicit meaning
-
-Options:
-  -t, --tags TEXT                 tags to include[multiple]
-  -nt, --no-tags TEXT             tags to exclude[multiple]
-  -v, --vas TEXT                  voice actor(cv) to include[multiple]
-  -nv, --no-vas TEXT              voice actor(cv) to exclude[multiple]
-  -c, --circle TEXT               circle(社团) to include
-  -nc, --no-circle TEXT           circle(社团) to exclude[multiple]
-  -a, --age [general|r15|adult]   age limitation to include[multiple]
-  -na, --no-age [general|r15|adult]
-                                  age limitation to exclude[multiple]
-  -l, --lang [JPN|ENG|CHI_HANS|CHI_HANT|CHI|KO_KR|SPA|ITA|GER|FRE]
-                                  language to include[multiple]
-  -nl, --no-lang [JPN|ENG|CHI_HANS|CHI_HANT|CHI|KO_KR|SPA|ITA|GER|FRE]
-                                  language to exclude[multiple]
-  -r, --rate TEXT                 rating interval
-  -s, --sell TEXT                 selling interval
-  -pr, --price TEXT               pirce interval
-  -d, --duration TEXT             duration interval
-  --all / --select                download all RJs  [default: select]
-  -p, --page INTEGER              page of the search result, speicify to 0 if
-                                  you want to download all pages  [default: 1]
-  --subtitle / --no-subtitle      if the ASMR has subtitle(中文字幕)  [default:
-                                  no-subtitle]
-  -o, --order [create_date|rating|release|dl_count|price|rate_average_2dp|review_count|id|nsfw|random]
-                                  ordering of the search result  [default:
-                                  release]
-  --asc / --desc                  ascending or descending
-  --force / --check-db            force download even if the RJ id exists in
-                                  database,or by default, RJ already in the
-                                  database will be skipped
-  --replace / --no-replace        replace the file if it exists  [default: no-
-                                  replace]
-  --check-name / --ignore-name    check and filter out asmr by filenames,
-                                  rules are in the config file  [default:
-                                  check-name]
-  --check-tag / --ignore-tag      check and filter out asmr by tags, rules are
-                                  in the config file  [default: check-tag]
-  -h, --help                      Show this message and exit.
-```
 
 ### 管理
 
@@ -126,7 +51,7 @@ Options:
 
 ### 播放
 
-非常简陋的终端播放界面，支持歌词显示，按照歌词信息快进，切换歌曲，支持以pygame(sdl)或mpd做为后端<del>，可以预见的将来应该会完善一下(但感觉够用了应该不会再加啥功能了)</del>，且不会再添加更多功能。如需更高级的播放功能，请使用第三方播放器，配合`asmr view add` 命令使用。
+非常简陋的终端播放界面，支持歌词显示，按照歌词信息快进，切换歌曲<del>，可以预见的将来应该会完善一下(但感觉够用了应该不会再加啥功能了)</del>，且不会再添加更多功能。如需更高级的播放功能，请使用第三方播放器，配合`asmr view add` 命令使用。
 ![tui-screenshot](./assets/tui-screenshot.png)
 
 ## 使用方法
@@ -141,11 +66,11 @@ Options:
 pip install ASMRManager[依赖]
 ```
 
-可选则的依赖项有 `idm`，`aria2`，`tui`，`pygame`，`mpd`，`subtitle`，`all`，多个依赖使用逗号分隔，其中`all`为安装所有依赖。
+可选则的依赖项有 `idm`，`aria2`，`player`，`tui`，`subtitle`，`all`，多个依赖使用逗号分隔，其中`all`为安装所有依赖。
 具体功能如下：
 
 - 下载：`idm` 或 `aria2` 二选一，`idm` 为 windows 平台专用，`aria2` 为跨平台。
-- 播放：`pygame` 或 `mpd` 二选一。
+- 播放： `player` 使用内置的命令行播放器，使用 `sounddevice` 库作为后端。
 - 其他：`tui` 为可视化命令行界面。`subtitle` 使用faster-whisper生成字幕文件。
 
 其中，idm 与 aria2 至少安装其一，以实现最基础的下载功能，其余选项可随意按需添加。
@@ -161,9 +86,9 @@ pip install ASMRManager[依赖]
 2023-10-22 14:36:21 - INFO - An example config file has been copied to C:\Users\slqy\AppData\Local\asmrmanager\asmrmanager\config.toml, please modify it and run this command again
 ```
 
-之后按照说明修改 `config.toml` 文件，如果使用 sql 的话，也可以对 sql 文件夹进行修改。
+之后按照说明修改 `config.toml` 文件即可。
 
-若有不明白的地方可使用 sqlite 数据库工具查看目录下的 data.db 文件。
+如果使用 sql 的话，也可以对 sql 文件夹进行修改。若有不明白的地方可使用 sqlite 数据库工具查看目录下的 data.db 文件。
 
 完成后使用 `asmr -h` 查看各命令的使用说明，对于子命令不清楚的同样可以查看帮助，例如 `asmr dl -h`。
 常用的命令有：

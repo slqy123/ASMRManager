@@ -1,3 +1,15 @@
+# [快速开始]：
+# - 如果只使用下载功能，使用IDM且IDM安装在C盘，则无需任何配置，直接使用即可，下载文件将保存在用户目录下的下载文件夹(详见download_path)
+# - 如果IDM未安装在C盘，则修改idm_install_path 为IDMan.exe所在文件夹
+# - 你需要在下载任务添加后手动打开IDM，找到主要下载队列并点击开始队列才能下载
+# ----------
+# [配置说明]
+# - 每个配置选项都有文档说明，其中可能包含以下两种标签：
+# - [可选]：该选项是可选的，如果用不到相关功能可以直接跳过
+# - [高级]：该选项是高级选项，如果你不知道它的作用则无需修改
+# - 无标签：该选项是可选的，但强烈推荐进行配置
+
+
 # 账号 若仅使用下载功能，保持默认的游客账号即可
 username = "guest"
 
@@ -5,23 +17,27 @@ username = "guest"
 password = "guest"
 
 # 代理，仅用于API请求，不用于文件下载。推荐使用，不需要可删除或留空
-proxy = "http://localhost:7890"
+proxy = ""
+# proxy = "http://localhost:7890"
 
+# [高级]
 # api地址，访问 https://as.mr 可获取最新地址
 # api.asmr-100.com, api.asmr-300.com，api.asmr.one均可，请视网络情况修改
 api_channel = 'api.asmr-200.com'
 
 # 下载文件的临时存放位置
-download_path = "/path/to/some/place"
+download_path = "~/Downloads/asmr"
 
 # 文件最终存储位置
 # 使用review或file store后，如果文件在download_path，将自动移至storage_path
-storage_path = "/path/to/some/place"
+storage_path = "~/Music/asmr"
 
+# [可选]
 # 使用asmr view 的时候会在这个位置创建一个软链接或压缩文件，方便查找。
 # 如不使用 view 方法可以设为空
-view_path = "/path/to/some/place"
+view_path = "~/Desktop/asmr"
 
+# [高级]
 # 标签接受策略，具体说明参考官方频道：https://t.me/asmr_one_chan/73
 # 可选项有：
 # 1. common_only：默认值，只接受普通标签
@@ -44,21 +60,21 @@ view_path = "/path/to/some/place"
 # 默认会过滤除普通标签外的所有标签
 tag_strategy = "common_only"
 
+# [可选]
 # 过滤掉那些你不喜欢的标签
 tag_filter = ["tagname1", "tagname2"]
 
+# [可选]
 # 编辑sql用的默认编辑器，若不使用sql可忽略
 # 如果需使用powershell脚本例如lvim，
 # 此处可填入 'pwsh -nop -f /path/to/lvim.ps1'
 editor = "code --wait"
 
+# [可选]
 # 下载所用的工具，可选则idm或aria2，请注意需安装对应的依赖项
 download_method = "idm"
 
-# 使用的播放器，可选则pygame或mpd
-# 若使用mpd请确保已安装mpd依赖并配置好mpd_config
-player = 'pygame'
-
+# [高级]
 # asmr file store 前执行的脚本，若不需要可直接删除或留空，
 # 使用 Python 语法编写，运行时动态执行，并提供以下全局资源以供调用：
 
@@ -82,16 +98,19 @@ player = 'pygame'
 
 before_store = ''
 
+# [可选]
 # 如果使用的是IDM且没有安装在默认路径，请修改此项为IDM可执行文件所在的文件夹，否则请忽略
 idm_install_path = ""
 
+# [高级]
 # 网站api有请求频率限制，以下参数是较为保守的设置，可以根据具体情况自行调整
 api_max_concurrent_requests = 3  # 最大同时存在的请求数
 api_max_requests_per_second = 3  # 每秒最大请求数(RPS)
 
+# [可选]
 # 如使用aria2请配置此项，否则请忽略
 # 如果是在本地使用aria2，运行`aria2c --enable-rpc`，以下保持默认即可
-# 如果使用motrix，且没有更改过默认端口，请将端口(port)改为16800
+# 如果使用motrix/imfile，且没有更改过默认端口，请将端口(port)改为16800
 # 若下载频率过高网站可能会返回403，官方版本的aria2对于403的请求会直接fail，
 # 因此推荐使用[aria2pro](https://github.com/P3TERX/Aria2-Pro-Core) 并设置retry-on-403=true
 [aria2_config]
@@ -99,6 +118,7 @@ host = "http://localhost"
 port = 6800
 secret = ""
 
+# [高级]
 # 文件和文件夹的过滤规则
 # 可选参数和默认值如下：
 
@@ -149,6 +169,7 @@ secret = ""
 # [[filename_filters]]
 # regex = "壁紙|桌布|壁纸"
 
+# [可选]
 [playlist_aliases]
 # 这里可以自定义列表的别名
 # 左侧为别名，右侧为对应uuid或列表的名字，例如
@@ -159,15 +180,7 @@ secret = ""
 liked = '__SYS_PLAYLIST_LIKED'   # 我喜欢的 的列表别名
 marked = '__SYS_PLAYLIST_MARKED' # 我标记的 的列表别名
 
-[mpd_config]
-# 此处为MPD客户端配置信息，若不使用MPD作为音频播放后端则可忽略
-# 服务端的配置文件将在第一次启动后自动生成在数据目录下
-# 修改服务端的配置时请保证与此处的配置匹配
-bin = "/path/to/mpd"
-host = "localhost"
-port = 6600
-# music_directory = ''  # 默认为生成数据目录下的 mpd/music
-
+# [可选]
 [subtitle_config]
 # 这里是faster-whisper的运行参数设置
 # 如无相关需求或未安装[subtitle]依赖，则可以忽略

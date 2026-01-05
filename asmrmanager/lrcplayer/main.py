@@ -25,6 +25,7 @@ class LRCPlayer(App):
         ("k", "backward", "快退"),
         ("l", "next_voice", "下一首"),
         ("h", "prev_voice", "上一首"),
+        ("q", "quit", "退出"),
     ]
     LRC_PREV = 1
     LRC_NEXT = 1
@@ -33,16 +34,39 @@ class LRCPlayer(App):
     def __init__(self, episodes: List[Music], *args, **kwargs):
         episodes = sorted(episodes, key=lambda x: x.path)
         self.episodes = episodes
-        # logger.debug(self.episodes)
         match config.player:
             case "pygame":
+                logger.warning(
+                    "pygame backend is deprecated "
+                    "and will not be supported in future versions."
+                )
+                logger.info(
+                    "Consider using sounddevice backend instead"
+                    " by installing `player` dependency"
+                    " and removing the `player` field"
+                    " in your config file"
+                )
                 from .player.pygameplayer import PyGamePlayer
 
                 self.player = PyGamePlayer(episodes)
             case "mpd":
+                logger.warning(
+                    "MPD backend is deprecated "
+                    "and will not be supported in future versions."
+                )
+                logger.info(
+                    "Consider using sounddevice backend instead"
+                    " by installing `player` dependency"
+                    " and removing the `player` field"
+                    " in your config file"
+                )
                 from .player.mpdplayer import MPDPlayer
 
                 self.player = MPDPlayer(episodes)
+            case "sounddevice":
+                from .player.sdplayer import SoundDevicePlayer
+
+                self.player = SoundDevicePlayer(episodes)
             case _:
                 logger.error(f"player {config.player} not supported")
                 assert False
