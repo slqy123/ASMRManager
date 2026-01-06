@@ -64,13 +64,9 @@ def create_downloader_and_database(
         download_params = DownloadParams(False, False, True, True)
 
     def id_should_download(source_id: RemoteSourceID):
-        # TODO update this function with LocalSourceID
-        return not db.check_exists(source_id)
-        # return False
-        # local_source_id = convert2local_id(source_id)
-        # if local_source_id is None:
-        #     return False
-        # return fm.get_location(local_source_id) is None
+        if not (info := db.check_exists(source_id)):
+            return True
+        return fm.get_location(info.id) is None
 
     return (
         ASMRDownloadManager(

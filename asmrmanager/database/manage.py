@@ -158,14 +158,14 @@ class DataBaseManager:
         # check for tag filter
         tags = [t["name"] for t in info["tags"]]
 
-        if self.tag_filter.intersection(tags):
+        if filtered_tags := self.tag_filter.intersection(tags):
             if not check:
                 logger.warning(
                     f"Continue to download {asmr.id} though it has tags:"
-                    f" {tags}"
+                    f" {filtered_tags}"
                 )
                 return True
-            logger.info(f"ignore {asmr.id} since it has tags: {tags}")
+            logger.info(f"ignore {asmr.id} since it has tags: {filtered_tags}")
             return False
         return True
 

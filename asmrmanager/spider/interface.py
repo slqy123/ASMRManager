@@ -43,7 +43,26 @@ class AsyncManager:
             async with self.api:
                 return await asyncio.gather(*tasks)
 
-        return asyncio.run(_run())
+        if asyncio._get_running_loop() is None:
+            return asyncio.run(_run())
+        else:
+            logger.warning(
+                "Run task in new thread, "
+                "this behaviour is unexpected but it works."
+            )
+            import threading
+
+            result: list[T] | None = None
+
+            def _run_threading():
+                nonlocal result
+                result = asyncio.run(_run())
+
+            thread = threading.Thread(target=_run_threading)
+            thread.start()
+            thread.join()
+            assert result is not None
+            return result
 
 
 class ASMRDownloadManager(AsyncManager):
