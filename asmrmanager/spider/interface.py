@@ -80,6 +80,7 @@ class ASMRDownloadManager(AsyncManager):
         download_method: Literal["aria2", "idm"] = "idm",
         aria2_config: Aria2Config | None = None,
         limit: int = 4,
+        fetch_cover: bool = False,
     ):
         self.downloader = ASMRDownloadAPI(
             name=name,
@@ -91,6 +92,7 @@ class ASMRDownloadManager(AsyncManager):
             limit=limit,
             download_method=download_method,
             aria2_config=aria2_config,
+            fetch_cover=fetch_cover,
         )
         super().__init__(self.downloader)
         self.id_should_download = id_should_download or (lambda _: True)

@@ -92,6 +92,7 @@ def create_downloader_and_database(
             download_method=config.download_method,
             aria2_config=config.aria2_config,
             limit=config.api_max_concurrent_requests,
+            fetch_cover=config.fetch_cover,
         ),
         db,
     )

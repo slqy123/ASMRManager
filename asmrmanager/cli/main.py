@@ -43,9 +43,12 @@ def main():
 
 
 try:
-    from trogon import tui  # type: ignore
+    import importlib.util
 
-    main = tui()(main)  # type: ignore
+    if importlib.util.find_spec("trogon"):
+        from trogon import tui  # type: ignore
+
+        main = tui()(main)  # type: ignore
 except ImportError:
     pass
 

@@ -21,6 +21,7 @@ class Config:
     view_path: str
     tag_strategy: Literal["common_only", "accept_all", "except_rejected"] | str
     tag_filter: List[str]
+    fetch_cover: bool
     editor: str
     filename_filters: List["Filter"]
     download_method: Literal["aria2", "idm"]
@@ -101,6 +102,7 @@ config = Config(
     view_path=_config["view_path"],
     tag_strategy=_config.get("tag_strategy", "common_only"),
     tag_filter=_config["tag_filter"],
+    fetch_cover=_config.get("fetch_cover", False),
     editor=_config["editor"],
     filename_filters=filename_filters,
     download_method=_config["download_method"],

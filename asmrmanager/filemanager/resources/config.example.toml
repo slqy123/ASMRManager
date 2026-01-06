@@ -65,6 +65,11 @@ tag_strategy = "common_only"
 tag_filter = ["tagname1", "tagname2"]
 
 # [可选]
+# 是否获取封面图，封面图将保存为作品根目录下的cover.jpg
+# 大多数音乐播放器会自动识别cover.jpg并将其作为封面显示
+fetch_cover = false
+
+# [可选]
 # 编辑sql用的默认编辑器，若不使用sql可忽略
 # 如果需使用powershell脚本例如lvim，
 # 此处可填入 'pwsh -nop -f /path/to/lvim.ps1'

@@ -99,6 +99,7 @@ class ASMRDownloadAPI(ASMRAPI):
         limit: int = 3,
         download_method: Literal["aria2", "idm"] = "idm",
         aria2_config: Aria2Config | None = None,
+        fetch_cover: bool = False,
     ):
         # self._session: Optional[ClientSession] = None  # for __aenter__
         super().__init__(name, password, proxy, limit)
@@ -106,6 +107,7 @@ class ASMRDownloadAPI(ASMRAPI):
         self.json_should_download = json_should_download
         self.name_should_download = name_should_download
         self.replace = replace
+        self.fetch_cover = fetch_cover
         self.download_file = (
             self.download_by_idm
             if download_method == "idm"
@@ -213,6 +215,8 @@ class ASMRDownloadAPI(ASMRAPI):
         logger.debug("final file list: %s", file_list)
 
         self.create_recover_file(file_list, voice_path)
+        if self.fetch_cover:
+            await self.download_cover(voice_id, voice_path)
         await self.create_dir_and_download(file_list)
 
     def create_recover_file(
@@ -239,6 +243,7 @@ class ASMRDownloadAPI(ASMRAPI):
     async def get_voice_info(
         self, voice_id: RemoteSourceID
     ) -> Dict[str, Any] | None:
+        logger.debug("Get voice info: %d", voice_id)
         voice_info = await self.get(f"work/{voice_id}")
         assert isinstance(voice_info, dict)
         # logger.debug(f"get voice info: {voice_info}")
@@ -343,17 +348,29 @@ class ASMRDownloadAPI(ASMRAPI):
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(voice_info, f, ensure_ascii=False, indent=4)
 
+    async def download_cover(
+        self, source_id: RemoteSourceID, save_path: Path
+    ) -> None:
+        cover_url = self.base_api_url + f"cover/{source_id}.jpg?type=main"
+        save_path.mkdir(parents=True, exist_ok=True)
+
+        try:
+            await self.process_download(cover_url, save_path, "cover.jpg")
+        except ModuleNotFoundError as e:
+            logger.critical(
+                f"Module not found: {e}, please read the install part of"
+                " the README.md to install the corresponding module"
+            )
+            exit(-1)
+        except Exception as e:
+            logger.error(f"Unknow download error: {e}")
+            logger.error("Failed to download cover: %d", source_id)
+
     async def create_dir_and_download(self, file_list: List[FileInfo]) -> None:
         for file_info in file_list:
             file_path = file_info.path
             if not file_info.should_download:
                 logger.info(f"filter file {file_path}")
-                # with open(
-                #     file_path.with_suffix(file_path.suffix + ".info"),
-                #     "w",
-                #     encoding="utf-8",
-                # ) as f:
-                #     f.write(file["mediaDownloadUrl"])
                 continue
             file_path.parent.mkdir(parents=True, exist_ok=True)
             try:
