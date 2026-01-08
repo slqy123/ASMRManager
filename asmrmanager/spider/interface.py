@@ -13,6 +13,7 @@ from typing import (
     TypeVar,
 )
 
+import click
 import xxhash
 
 from asmrmanager.common.browse_params import BrowseParams
@@ -125,6 +126,8 @@ class ASMRDownloadManager(AsyncManager):
         duration: Tuple[str | None, str | None],
         params: BrowseParams,
         all_: bool,
+        preview: bool,
+        json: bool,
     ):
         total_pages_to_download = None
         download_all_pages = False
@@ -175,13 +178,8 @@ class ASMRDownloadManager(AsyncManager):
                 search_result = await self.downloader.list(
                     params=params.params
                 )
-            ids: List[RemoteSourceID] = [
-                work["id"] for work in search_result["works"]
-            ]
 
-            if all_:
-                await self.get(ids)
-            else:
+            if not all_:
                 # select RJs
                 source_names: List[SourceName] = [
                     work["source_id"] for work in search_result["works"]
@@ -194,9 +192,32 @@ class ASMRDownloadManager(AsyncManager):
                     ],
                 )
                 if not indexes:
-                    logger.error("Nothing was selected.")
-                else:
-                    await self.get([ids[i] for i in indexes])
+                    logger.warning("Nothing was selected.")
+            else:
+                indexes = range(len(search_result["works"]))
+
+            if not indexes:
+                pass
+            elif json:
+                from json import dumps as json_dumps
+
+                click.echo(
+                    json_dumps(
+                        [search_result["works"][i] for i in indexes],
+                        ensure_ascii=False,
+                    )
+                )
+            elif preview:
+                preview_results = [search_result["works"][i] for i in indexes]
+                print_table(
+                    titles=["id", "title", "circle_name"],
+                    rows=[
+                        (r["id"], r["title"], r["name"])
+                        for r in preview_results
+                    ],
+                )
+            else:
+                await self.get([search_result["works"][i] for i in indexes])
 
             if not download_all_pages:
                 break

@@ -23,7 +23,13 @@ def query(keyword: str, limit: int, raw: bool):
     set limit to 0 if you want to get all results.
     """
     from asmrmanager.common.output import print_table
-    from asmrmanager.database.database import ASMR, ASMRs2Tags, Tag
+    from asmrmanager.database.database import (
+        ASMR,
+        ASMRs2Tags,
+        Tag,
+        ASMRs2VAs,
+        VoiceActor,
+    )
 
     db = create_database()
     res_query = (
@@ -38,10 +44,14 @@ def query(keyword: str, limit: int, raw: bool):
         )
         .join(ASMRs2Tags, ASMRs2Tags.asmr_id == ASMR.id)
         .join(Tag, Tag.id == ASMRs2Tags.tag_id)
+        .join(ASMRs2VAs, ASMRs2VAs.asmr_id == ASMR.id)
+        .join(VoiceActor, VoiceActor.id == ASMRs2VAs.actor_id)
         .filter(
             ASMR.circle_name.contains(keyword)
             | ASMR.title.contains(keyword)
             | Tag.name.contains(keyword)
+            | ASMR.comment.contains(keyword)
+            | VoiceActor.name.contains(keyword)
         )
         .group_by(ASMR.id)
     )

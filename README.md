@@ -146,6 +146,14 @@ asmr dl search --tags 治愈 --sell 5000: --page 0 --all  # --page 0 会遍历�
 asmr dl search --circle Yostar --age general --subtitle
 ```
 
+预览搜索结果（不下载）
+```shell
+asmr dl search --preview --all  # 返回表格
+# 也可以返回可解析的json数据，自定义下载规则，例如：
+asmr dl search --json --all | jq '.[].id' | awk '$1 % 2 == 0' | xargs asmr dl get
+# 将下载所有RJ号为偶数的作品
+```
+
 根据RJ/VJ/BJ号下载（下述输入格式适用于一切需要输入单个或多个ID的场合）：
 
 ```shell

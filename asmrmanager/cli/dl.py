@@ -211,6 +211,20 @@ def check(source_ids: List[LocalSourceID]):
     show_default=True,
     help="download all RJs",
 )
+@click.option(
+    "--preview",
+    type=bool,
+    is_flag=True,
+    default=False,
+    help="preview search results without downloading",
+)
+@click.option(
+    "--json",
+    type=bool,
+    is_flag=True,
+    default=False,
+    help="export search results to json without downloading"
+)
 @browse_param_options
 @download_param_options
 def search(
@@ -232,6 +246,8 @@ def search(
     browse_params: BrowseParams,
     download_params: DownloadParams,
     all_: bool,
+    preview: bool,
+    json: bool,
 ):
     """
     search and download ASMR
@@ -254,6 +270,12 @@ def search(
     for --duration, expressions like `1.5h(1.5 hours)`, `10m(10 minutes)` are allowed,
     or by default, the unit is `minute`.
     """
+    if (preview or json) and browse_params.page == 0:
+        logger.error(
+            "--preview and --json can not be used together with --page=0"
+        )
+        return
+
     spider, db = create_downloader_and_database(
         download_params=download_params
     )
@@ -282,6 +304,8 @@ def search(
             duration=duration,
             params=browse_params,
             all_=all_,
+            preview=preview,
+            json=json,
         )
     )
     db.commit()
