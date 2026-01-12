@@ -119,12 +119,12 @@ class DataBaseManager:
             voteRank: int = (
                 tag["voteRank"] if "voteRank" in tag else upvote - downvote
             )  # voteRank may be missing
-            if voteRank != upvote - downvote:
+            myVote: int = tag["myVote"]
+            voteStatus: int = tag["voteStatus"]
+            if voteRank != upvote - downvote and voteStatus != 1 :
                 logger.warning(
                     f"voteRank is not equal to upvote - downvote: {tag}"
                 )
-            myVote: int = tag["myVote"]
-            voteStatus: int = tag["voteStatus"]
 
             common_only = voteStatus == 1
             accept_all = True

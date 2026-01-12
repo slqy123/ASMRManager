@@ -217,7 +217,7 @@ class ASMRDownloadManager(AsyncManager):
                     ],
                 )
             else:
-                await self.get([search_result["works"][i] for i in indexes])
+                await self.get([search_result["works"][i]["id"] for i in indexes])
 
             if not download_all_pages:
                 break
