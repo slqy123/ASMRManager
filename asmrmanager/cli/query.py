@@ -1,6 +1,6 @@
 import click
 
-from asmrmanager.cli.core import create_database
+from asmrmanager.cli.core import create_database, fm
 
 
 @click.command()
@@ -26,8 +26,8 @@ def query(keyword: str, limit: int, raw: bool):
     from asmrmanager.database.database import (
         ASMR,
         ASMRs2Tags,
-        Tag,
         ASMRs2VAs,
+        Tag,
         VoiceActor,
     )
 
@@ -72,4 +72,9 @@ def query(keyword: str, limit: int, raw: bool):
         "star",
     ]
 
-    print_table(titles=titles, rows=res, raw=raw)
+    print_table(
+        titles=titles,
+        rows=res,
+        raw=raw,
+        image_paths=[str(fm.get_cover_path(row[0])) for row in res],
+    )

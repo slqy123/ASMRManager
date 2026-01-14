@@ -121,7 +121,7 @@ class DataBaseManager:
             )  # voteRank may be missing
             myVote: int = tag["myVote"]
             voteStatus: int = tag["voteStatus"]
-            if voteRank != upvote - downvote and voteStatus != 1 :
+            if voteRank != upvote - downvote and voteStatus != 1:
                 logger.warning(
                     f"voteRank is not equal to upvote - downvote: {tag}"
                 )

@@ -22,6 +22,7 @@ class Config:
     tag_strategy: Literal["common_only", "accept_all", "except_rejected"] | str
     tag_filter: List[str]
     fetch_cover: bool
+    display_cover: bool
     editor: str
     filename_filters: List["Filter"]
     download_method: Literal["aria2", "idm"]
@@ -103,6 +104,7 @@ config = Config(
     tag_strategy=_config.get("tag_strategy", "common_only"),
     tag_filter=_config["tag_filter"],
     fetch_cover=_config.get("fetch_cover", False),
+    display_cover=_config.get("display_cover", False),
     editor=_config["editor"],
     filename_filters=filename_filters,
     download_method=_config["download_method"],
@@ -121,5 +123,8 @@ if env_concurrency_limit := os.getenv("ASMR_CONCURRENCY_LIMIT"):
     assert isinstance(creq, int) and isinstance(crps, int)
     config.api_max_concurrent_requests = creq
     config.api_max_requests_per_second = crps
+
+if os.getenv("ASMR_DISABLE_COVER") == "1":
+    config.display_cover = False
 
 logger.debug(f"Config loaded: {config}")

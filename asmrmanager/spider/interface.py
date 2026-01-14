@@ -17,7 +17,7 @@ import click
 import xxhash
 
 from asmrmanager.common.browse_params import BrowseParams
-from asmrmanager.common.output import print_table
+from asmrmanager.common.output import print_table, support_image
 from asmrmanager.common.rj_parse import source_name2id
 from asmrmanager.common.select import select_multiple
 from asmrmanager.common.types import RemoteSourceID, SourceName
@@ -64,6 +64,21 @@ class AsyncManager:
             thread.join()
             assert result is not None
             return result
+
+    async def get_cover_path(self, work: Any):
+        remote_id, source_name = work["id"], work["source_id"]
+        path = fm.get_cover_path(source_name2id(source_name))
+        if path.name != "akarin.jpg":
+            logger.debug("Using cached cover for %s", source_name)
+            return str(path)
+        save_path = fm.CACHE_PATH.joinpath("covers").joinpath(
+            f"{source_name}.jpg"
+        )
+        save_path.parent.mkdir(exist_ok=True, parents=True)
+        image_data = await self.api.get_cover(remote_id)
+        with save_path.open("wb") as f:
+            f.write(image_data)
+        return str(save_path)
 
 
 class ASMRDownloadManager(AsyncManager):
@@ -209,15 +224,25 @@ class ASMRDownloadManager(AsyncManager):
                 )
             elif preview:
                 preview_results = [search_result["works"][i] for i in indexes]
+                if not support_image():
+                    cover_paths = None
+                else:
+                    cover_paths = await asyncio.gather(
+                        *[self.get_cover_path(r) for r in preview_results]
+                    )
                 print_table(
                     titles=["id", "title", "circle_name"],
                     rows=[
                         (r["id"], r["title"], r["name"])
                         for r in preview_results
                     ],
+                    image_paths=cover_paths,
                 )
+
             else:
-                await self.get([search_result["works"][i]["id"] for i in indexes])
+                await self.get(
+                    [search_result["works"][i]["id"] for i in indexes]
+                )
 
             if not download_all_pages:
                 break
@@ -447,6 +472,11 @@ class ASMRPlayListManager(AsyncManager):
                     works,
                 )
             ),
+            image_paths=[
+                *await asyncio.gather(*[self.get_cover_path(w) for w in works])
+            ]
+            if support_image()
+            else None,
         )
 
 

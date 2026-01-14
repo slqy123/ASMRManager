@@ -351,19 +351,13 @@ class ASMRDownloadAPI(ASMRAPI):
     async def download_cover(
         self, source_id: RemoteSourceID, save_path: Path
     ) -> None:
-        cover_url = self.base_api_url + f"cover/{source_id}.jpg?type=main"
         save_path.mkdir(parents=True, exist_ok=True)
 
         try:
-            await self.process_download(cover_url, save_path, "cover.jpg")
-        except ModuleNotFoundError as e:
-            logger.critical(
-                f"Module not found: {e}, please read the install part of"
-                " the README.md to install the corresponding module"
-            )
-            exit(-1)
-        except Exception as e:
-            logger.error(f"Unknow download error: {e}")
+            image_data = await self.get_cover(source_id)
+            with save_path.joinpath("cover.jpg").open("wb") as f:
+                f.write(image_data)
+        except Exception as _:
             logger.error("Failed to download cover: %d", source_id)
 
     async def create_dir_and_download(self, file_list: List[FileInfo]) -> None:

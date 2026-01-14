@@ -223,7 +223,7 @@ def check(source_ids: List[LocalSourceID]):
     type=bool,
     is_flag=True,
     default=False,
-    help="export search results to json without downloading"
+    help="export search results to json without downloading",
 )
 @browse_param_options
 @download_param_options

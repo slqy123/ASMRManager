@@ -136,6 +136,7 @@ class FileManager:
         self.view_path_exists = (
             True if os.path.exists(self.view_path) else False
         )
+        self.default_cover = Path(__file__).parent / "resources" / "akarin.jpg"
 
     def could_store(self):
         return self.storage_path_exists and self.download_path_exists
@@ -446,6 +447,14 @@ class FileManager:
             ]
         )
         return l1 | l2
+
+    def get_cover_path(self, source_id: LocalSourceID) -> Path:
+        cache_cover = self.CACHE_PATH.joinpath("covers").joinpath(
+            f"{id2source_name(source_id)}.jpg"
+        )
+        if cache_cover.exists():
+            return cache_cover
+        return self.get_path(source_id, "cover.jpg") or self.default_cover
 
     @classmethod
     def get_fm(cls):

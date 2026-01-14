@@ -87,7 +87,7 @@ class ASMRAPI:
             and login_cache.expire_time > time.time()
             and login_cache.username == self.name
         ):
-            logger.info("Using cached login token.")
+            logger.debug("Using cached login token.")
             self.headers.update(
                 {
                     "Authorization": f"Bearer {login_cache.token}",
@@ -268,6 +268,32 @@ class ASMRAPI:
                 "processorName": "Native",
             },
         )
+
+    @retry()
+    async def binary_get(
+        self, route: str, params: dict | None = None
+    ) -> bytes:
+        content = None
+        while not content:
+            try:
+                async with self._session.get(
+                    self.base_api_url + route,
+                    headers=self.headers,
+                    proxy=self.proxy,
+                    params=params,
+                ) as resp:
+                    content = await resp.content.read()
+                    return content
+            except Exception as e:
+                logger.warning(f"Request {route} failed: {e}")
+                raise RetryError
+        return content
+
+    async def get_cover(self, source_id: RemoteSourceID):
+        image_data = await self.binary_get(
+            f"cover/{source_id}.jpg", params={"type": "main"}
+        )
+        return image_data
 
     async def list(self, params: dict) -> Dict[str, Any]:
         return await self.get("works", params=params)

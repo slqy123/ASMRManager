@@ -57,6 +57,7 @@ idm = ["comtypes>=1.2.0"]
 tui = ["trogon>=0.4.0"]
 player = ["sounddevice>=0.5.3", "soundfile>=0.13.1"]
 subtitle = ["faster-whisper>=1.1.1", "ctranslate2>=4.6.0"]
+image = ["textual-image>=0.8.5"]
 dev = [
   "pyinstrument>=4.6.2",
   "viztracer>=0.16.3",
@@ -64,10 +65,10 @@ dev = [
   "mypy>=1.15.0",
 ]
 
-all = ['asmrmanager[aria2,idm,tui,player,subtitle]']
+all = ['asmrmanager[aria2,idm,tui,player,subtitle,image]']
 
 [tool.ruff]
 line-length = 79
 
 [tool.ruff.lint]
-ignore = ['E402']
+ignore = ['E402', 'E731']

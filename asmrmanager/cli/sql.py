@@ -5,7 +5,7 @@ import click
 from click.shell_completion import CompletionItem
 
 from asmrmanager.cli.core import fm
-from asmrmanager.common.output import print_table
+from asmrmanager.common.output import print_table, support_image
 from asmrmanager.config import config
 from asmrmanager.logger import logger
 
@@ -36,6 +36,8 @@ def sql(sql_name: str, save: bool):
     """
     execute a sql statement by sql file name in `sqls` directory
     and print the results on your terminal
+
+    for cover support, you must name the first column as `id`
     """
     sql_path = fm.DATA_PATH / "sqls" / sql_name
     sql_path = sql_path.with_suffix(".sql")
@@ -67,8 +69,15 @@ def sql(sql_name: str, save: bool):
     db = create_database()
     res = db.execute(temp_file_path.read_text(encoding="utf8"))
     rows = res.fetchall()
-    titles = res.keys()
-    print_table(titles, rows)
+    titles = list(res.keys())
+    if titles[0] == "id" and support_image():
+        print_table(
+            titles,
+            rows,
+            image_paths=[str(fm.get_cover_path(row[0])) for row in rows],
+        )
+    else:
+        print_table(titles, rows)
 
     if save:
         sql_path.write_text(

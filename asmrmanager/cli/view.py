@@ -8,6 +8,7 @@ from asmrmanager.cli.core import (
     id2source_name,
     rj_argument,
 )
+from asmrmanager.common.output import support_image
 from asmrmanager.common.types import LocalSourceID
 from asmrmanager.filemanager.exceptions import SrcNotExistsException
 from asmrmanager.logger import logger
@@ -98,6 +99,9 @@ def list_(raw: bool):
             for id_, title, actors in res
         ],
         raw=raw,
+        image_paths=[str(fm.get_cover_path(id_)) for id_, *_ in res]
+        if support_image()
+        else None,
     )
 
 

@@ -6,6 +6,7 @@ from asmrmanager.cli.core import (
     create_downloader_and_database,
     rj_argument,
 )
+from asmrmanager.common.output import support_image
 from asmrmanager.common.rj_parse import id2source_name
 from asmrmanager.common.types import LocalSourceID, RemoteSourceID
 from asmrmanager.config import config
@@ -16,6 +17,7 @@ from asmrmanager.logger import logger
 def print_asmr_info(asmr: ASMRInstance):
     from rich.console import Console
     from rich.markdown import Markdown
+    from rich.table import Table
 
     template = """
 **{title}**
@@ -45,9 +47,27 @@ def print_asmr_info(asmr: ASMRInstance):
     cvs = "\n".join([f"  - {c}" for c in asmr.vas])
     if res.get("tags"):
         del res["tags"]
-    s = template.format(tags=tags, cvs=cvs, **res)
+    s = template.format(tags=tags, cvs=cvs, **res).strip()
+
     console = Console()
-    console.print(Markdown(s))
+    if not support_image():
+        console.print(Markdown(s))
+        return
+    from textual_image.renderable import Image
+
+    downloader, _ = create_downloader_and_database()
+    (image_path,) = downloader.run(
+        downloader.get_cover_path(
+            {"id": asmr.remote_id, "source_id": id2source_name(asmr.id)}
+        )
+    )
+    header, contents = s.split("\n", maxsplit=1)
+    grid = Table.grid(padding=2)
+    grid.add_column(ratio=1, vertical="middle")
+    grid.add_column(ratio=1)
+    grid.add_row(Image(image_path), Markdown(contents))
+    console.print(Markdown(header))
+    console.print(grid)
 
 
 def info_from_web(source_id: RemoteSourceID):
@@ -66,7 +86,7 @@ def info_from_web(source_id: RemoteSourceID):
     res.held = False
     res.stored = False
     res.comment = ""
-    print_asmr_info(res)
+    return res
 
 
 @click.command()
@@ -110,7 +130,6 @@ def info(source_id: LocalSourceID, rand: bool, web: bool):
             logger.error(f"cannot convert {source_id} to remote id")
             return
         # logger.debug(f"converted {source_id} to {remote_source_id}")
-        info_from_web(remote_source_id)
-        return
+        v_info = info_from_web(remote_source_id)
 
     print_asmr_info(v_info)

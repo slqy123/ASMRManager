@@ -66,12 +66,12 @@
 pip install ASMRManager[依赖]
 ```
 
-可选则的依赖项有 `idm`，`aria2`，`player`，`tui`，`subtitle`，`all`，多个依赖使用逗号分隔，其中`all`为安装所有依赖。
+可选则的依赖项有 `idm`，`aria2`，`player`，`tui`，`subtitle`，`image`，`all`，多个依赖使用逗号分隔，其中`all`为安装所有依赖。
 具体功能如下：
 
 - 下载：`idm` 或 `aria2` 二选一，`idm` 为 windows 平台专用，`aria2` 为跨平台。
 - 播放： `player` 使用内置的命令行播放器，使用 `sounddevice` 库作为后端。
-- 其他：`tui` 为可视化命令行界面。`subtitle` 使用faster-whisper生成字幕文件。
+- 其他：`tui` 为可视化命令行界面。`image`提供在支持图像显示协议终端渲染作品封面的功能。`subtitle` 使用faster-whisper生成字幕文件。
 
 其中，idm 与 aria2 至少安装其一，以实现最基础的下载功能，其余选项可随意按需添加。
 
