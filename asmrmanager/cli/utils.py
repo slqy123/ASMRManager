@@ -6,8 +6,9 @@ import click
 from asmrmanager.cli.core import fm, rj_argument
 from asmrmanager.common import MUSIC_SUFFIXES
 from asmrmanager.common.fileconverter import convert_vtt2lrc
+from asmrmanager.common.rj_parse import id2source_name
 from asmrmanager.common.subtitle import generate_subtitle
-from asmrmanager.common.types import LocalSourceID
+from asmrmanager.common.types import LocalSourceID, RemoteSourceID
 from asmrmanager.logger import logger
 
 
@@ -20,7 +21,7 @@ def utils():
 
 @click.command()
 def migrate():
-    "mirate the database to the latest version(2.0.0+)"
+    "migrate the database to the latest version(2.0.0+)"
     from sqlalchemy.sql import text
 
     from asmrmanager.cli.core import create_database
@@ -153,6 +154,40 @@ def subtitle(
         return
 
 
+@click.command("fetch-all-covers")
+def fetch_all_covers():
+    """
+    fetch all covers for works in storage path
+    """
+    from asmrmanager.cli.core import create_downloader_and_database
+    from asmrmanager.database.database import ASMR
+    from asmrmanager.spider.utils.concurrency import concurrent_rate_limit
+
+    downloader, db = create_downloader_and_database()
+    tasks = []
+
+    @concurrent_rate_limit(4, 8)
+    async def download_cover(remote_id: RemoteSourceID, save_path: Path):
+        image_data: bytes = await downloader.api.get_cover(remote_id)
+        with open(save_path / "cover.jpg", "wb") as f:
+            f.write(image_data)
+        logger.info("Successfully write cover to %s", save_path)
+
+    for local_id, remote_id in db.query(ASMR.id, ASMR.remote_id).all():
+        # print(local_id, remote_id)
+        if fm.get_path(local_id, "cover.jpg") is None:
+            save_path = fm.storage_path / id2source_name(local_id)
+            if not save_path.exists():
+                logger.debug(
+                    "%s not found in storage", id2source_name(local_id)
+                )
+                continue
+            tasks.append(download_cover(remote_id, save_path))
+
+    downloader.run(*tasks)
+
+
 utils.add_command(migrate)
 utils.add_command(convert)
 utils.add_command(subtitle)
+utils.add_command(fetch_all_covers)
