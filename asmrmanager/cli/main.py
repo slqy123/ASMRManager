@@ -46,9 +46,13 @@ try:
     import importlib.util
 
     if importlib.util.find_spec("trogon"):
-        from trogon import tui  # type: ignore
-
-        main = tui()(main)  # type: ignore
+        @click.command("tui", help="Open Textual TUI.")
+        @click.pass_context
+        def tui(ctx: click.Context):
+            from trogon import Trogon  # type: ignore
+            if ctx.parent is not None:
+                Trogon(ctx.parent.command, click_context=ctx).run()
+        main.add_command(tui)
 except ImportError:
     pass
 
