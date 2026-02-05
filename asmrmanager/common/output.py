@@ -64,7 +64,7 @@ def print_table(
     rows,
     raw=False,
     image_paths: list[str] | None = None,
-    image_size=(8, 3),
+    image_size=(16, 6),
 ):
     if raw or not support_image():
         _print_table(titles, rows, raw)

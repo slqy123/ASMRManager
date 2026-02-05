@@ -153,12 +153,21 @@ def recover(source_id: LocalSourceID, regex: str, ignore_filter: bool):
     show_default=True,
     help="check files before storing",
 )
+@click.option(
+    "--on-error",
+    "-e",
+    type=click.Choice(["abort", "skip"], case_sensitive=False),
+    default="abort",
+    show_default=True,
+    help="what to do when a check failed"
+)
 def store(
     source_ids: List[LocalSourceID],
     no_convert: bool,
     replace: bool,
     all_: bool,
     check: Literal["none", "offline", "online"],
+    on_error: Literal["abort", "skip"]
 ):
     """
     store the downloaded files to the storage
@@ -269,7 +278,12 @@ def store(
                 )
                 if not success:
                     logger.error("Stop storing due to check failed")
-                    return
+                    if on_error == "abort":
+                        return
+                    elif on_error == "skip":
+                        continue
+                    else:
+                        assert False
             fm.store(id_, replace=replace, hook=hook)
 
             res = db.check_exists(id_)
@@ -353,7 +367,11 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
         logger.error(f"failed to load recover for id {source_id}")
         return False
 
-    # local_files = fm.get_all_files(source_id)
+    local_files = fm.get_all_files(source_id)
+    for p in local_files:
+        if p.suffix == ".aria2":
+            logger.error(f"Aria2 control file found: {p}")
+            return False
     remote_files_should_down = set(
         [Path(i["path"]) for i in recovers if i["should_download"]]
     )
@@ -375,6 +393,7 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
 
     if offline:
         return True
+    logger.info(f"Start hash verification: {source_id}")
 
     remote_files_should_down_list = [
         Path(i["path"]) for i in recovers if i["should_download"]
@@ -454,12 +473,24 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
     show_default=True,
     help="only list source id (pipe it to `dl get --force` to redownload them)",
 )
-def check(list_: bool, offline: bool):
+@click.option(
+    "--all",
+    "-a",
+    "all_",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="check all files in download path"
+    
+)
+@multi_rj_argument(convert="local")
+def check(source_ids: list[LocalSourceID], list_: bool, offline: bool, all_: bool):
     """
     check for download path for files to be downloaded correctly without missing or fail.
     """
-    # TODO: check hash with xxhash3
-    source_ids = fm.list_("download")
+    if all_:
+        source_ids = list(fm.list_("download"))
+
     for source_id in source_ids:
         success = verify_voices(source_id, offline)
         if not success and list_:
