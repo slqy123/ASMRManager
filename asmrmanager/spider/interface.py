@@ -97,6 +97,7 @@ class ASMRDownloadManager(AsyncManager):
         aria2_config: Aria2Config | None = None,
         limit: int = 4,
         fetch_cover: bool = False,
+        tagger: Literal["tag", "tagw"] = "tag",
     ):
         self.downloader = ASMRDownloadAPI(
             name=name,
@@ -112,6 +113,7 @@ class ASMRDownloadManager(AsyncManager):
         )
         super().__init__(self.downloader)
         self.id_should_download = id_should_download or (lambda _: True)
+        self.tagger = tagger
 
     async def get(self, ids: List[RemoteSourceID]):
         tasks = []
@@ -152,8 +154,8 @@ class ASMRDownloadManager(AsyncManager):
 
         filters = []
 
-        filters += [f"$tag:{t}$" for t in tags]
-        filters += [f"$-tag:{nt}$" for nt in no_tags]
+        filters += [f"${self.tagger}:{t}$" for t in tags]
+        filters += [f"$-{self.tagger}:{nt}$" for nt in no_tags]
 
         filters += [f"$va:{va}$" for va in vas]
         filters += [f"$-va:{nva}$" for nva in no_vas]

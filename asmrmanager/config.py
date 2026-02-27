@@ -19,6 +19,7 @@ class Config:
     download_path: str
     storage_path: str
     view_path: str
+    default_tagger: Literal["tag", "tagw"]
     tag_strategy: Literal["common_only", "accept_all", "except_rejected"] | str
     tag_filter: List[str]
     fetch_cover: bool
@@ -101,6 +102,7 @@ config = Config(
     download_path=_config["download_path"],
     storage_path=_config["storage_path"],
     view_path=_config["view_path"],
+    default_tagger=_config.get("default_tagger", "tag"),
     tag_strategy=_config.get("tag_strategy", "common_only"),
     tag_filter=_config["tag_filter"],
     fetch_cover=_config.get("fetch_cover", False),
@@ -126,5 +128,8 @@ if env_concurrency_limit := os.getenv("ASMR_CONCURRENCY_LIMIT"):
 
 if os.getenv("ASMR_DISABLE_COVER") == "1":
     config.display_cover = False
+
+if (__tagger:=os.getenv("ASMR_DEFAULT_TAGGER")) in ("tag", "tagw"):
+    config.default_tagger = __tagger
 
 logger.debug(f"Config loaded: {config}")

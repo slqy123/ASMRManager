@@ -96,6 +96,7 @@ class AudioConverter:
     ):
         self.tasks_total = len(src)
         self.tasks_done = 0
+        self.update_total_progress()
 
         match dst.lower():
             case "mp3":

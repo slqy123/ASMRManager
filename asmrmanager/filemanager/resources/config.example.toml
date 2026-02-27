@@ -37,6 +37,13 @@ storage_path = "~/Music/asmr"
 # 如不使用 view 方法可以设为空
 view_path = "~/Desktop/asmr"
 
+# [可选]
+# 默认标签搜索策略，可选值为 tag 或 tagw
+# 默认 tag 将排除用户添加的低愿力标签
+# 如果你希望搜索它们可以使用 tagw
+# 详见：https://t.me/asmr_one_chan/79
+default_tagger = "tag"
+
 # [高级]
 # 标签接受策略，具体说明参考官方频道：https://t.me/asmr_one_chan/73
 # 可选项有：
@@ -56,6 +63,8 @@ view_path = "~/Desktop/asmr"
 # 因此，如果你特别讨厌某个标签，那么对于包含该标签的作品，即使票数并不多，也可以考虑接受该标签，这样在下一步的tag_filter中就可以过滤掉这个作品。
 # 例如下面的设置，将对于特定的标签只需分数大于2即考虑接受，而一般标签需要分数大于5：
 # tag_strategy = "common_only or (voteRank >= 5 or (tag['name'] in ['tagname1', 'tagname2'] and voteRank >= 2))"
+#
+# 请注意当default_tagger = "tag" 时，将不会搜到低愿力标签，即voteStatus != 0
 
 # 默认会过滤除普通标签外的所有标签
 tag_strategy = "common_only"
