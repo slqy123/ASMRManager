@@ -1,4 +1,4 @@
-import os
+import subprocess
 
 import click
 
@@ -22,9 +22,9 @@ def which(source_id: LocalSourceID, show: bool):
         import sys
 
         if sys.platform == "win32":
-            os.system(f'explorer.exe "{path}"')
+            subprocess.Popen(["explorer.exe", path], start_new_session=True)
         elif sys.platform.startswith("linux"):
-            os.system(f'xdg-open "{path}"')
+            subprocess.Popen(["xdg-open", path], start_new_session=True)
         else:
             logger.error(
                 "option --show is for windows and XDG based linux desktop environment only, if you are using other platform, using"
