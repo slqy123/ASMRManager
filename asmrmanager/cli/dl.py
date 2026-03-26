@@ -283,8 +283,10 @@ def search(
         spider.search(
             " ".join(
                 map(
-                    lambda t: (t := t.strip())
-                    and ("-" + t[1:] if t.startswith("!") else t),
+                    lambda t: (
+                        (t := t.strip())
+                        and ("-" + t[1:] if t.startswith("!") else t)
+                    ),
                     keywords,
                 )
             ),

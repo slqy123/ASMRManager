@@ -149,8 +149,10 @@ class ASMRDownloadAPI(ASMRAPI):
                 )
             if any(
                 map(
-                    lambda f: 1 <= f.download_order <= download_order
-                    and f.path.suffix.lower() in MUSIC_SUFFIXES,
+                    lambda f: (
+                        1 <= f.download_order <= download_order
+                        and f.path.suffix.lower() in MUSIC_SUFFIXES
+                    ),
                     file_list_with_order,
                 )
             ):

@@ -438,7 +438,9 @@ def multi_rj_argument(convert: Literal[False, "local", "remote"] = False):
 SEPARATOR = ":"
 
 
-def interval_preprocess_cb(ctx: click.Context, opt: click.Parameter, val: str):
+def interval_preprocess_cb(
+    _ctx: click.Context, _opt: click.Parameter, val: str
+):
     """
     input must be numeric or None,
     and it returns a float/int/str/None value tuple
@@ -471,9 +473,11 @@ def time_interval_preprocess_cb(
 ):
     return tuple(
         map(
-            lambda x: str(x) + "m"
-            if (x is not None) and (not isinstance(x, str))
-            else x,
+            lambda x: (
+                str(x) + "m"
+                if (x is not None) and (not isinstance(x, str))
+                else x
+            ),
             interval_preprocess_cb(ctx, opt, val),
         )
     )

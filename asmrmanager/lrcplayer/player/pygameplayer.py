@@ -5,7 +5,7 @@ from .base import BasePlayer, Music
 
 try:
     with contextlib.redirect_stdout(None):
-        from pygame import mixer
+        from pygame import mixer  # type: ignore
 except ImportError:
     raise ImportError(
         "pygame is not installed, please install asmrmanager with pygame"

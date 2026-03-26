@@ -25,8 +25,20 @@ class SQLName(click.ParamType):
 
 @click.command()
 @click.argument("sql_name", type=SQLName())
-@click.option("--edit", '-e', is_flag=True, default=False, help="whether to open an editor")
-@click.option("--raw", '-r', is_flag=True, default=False, help="output sql results as json")
+@click.option(
+    "--edit",
+    "-e",
+    is_flag=True,
+    default=False,
+    help="whether to open an editor",
+)
+@click.option(
+    "--raw",
+    "-r",
+    is_flag=True,
+    default=False,
+    help="output sql results as json",
+)
 @click.option(
     "--save/--no-save",
     "-s/-ns",
@@ -55,7 +67,7 @@ def sql(sql_name: str, save: bool, edit: bool, raw: bool):
     temp_file_path.write_text(
         sql_path.read_text(encoding="utf8"), encoding="utf8"
     )
-    if edit: 
+    if edit:
         run(f'{config.editor} "{temp_file_path}"', shell=True)
     # db_path = temp_file_path.with_name('data.db')
     # print(db_path, temp_file_path)

@@ -159,7 +159,7 @@ def recover(source_id: LocalSourceID, regex: str, ignore_filter: bool):
     type=click.Choice(["abort", "skip"], case_sensitive=False),
     default="abort",
     show_default=True,
-    help="what to do when a check failed"
+    help="what to do when a check failed",
 )
 def store(
     source_ids: List[LocalSourceID],
@@ -167,7 +167,7 @@ def store(
     replace: bool,
     all_: bool,
     check: Literal["none", "offline", "online"],
-    on_error: Literal["abort", "skip"]
+    on_error: Literal["abort", "skip"],
 ):
     """
     store the downloaded files to the storage
@@ -213,8 +213,9 @@ def store(
             else:
                 src_paths = list(
                     filter(
-                        lambda p: not p.is_dir()
-                        and p.suffix.lower() != f".{to}",
+                        lambda p: (
+                            not p.is_dir() and p.suffix.lower() != f".{to}"
+                        ),
                         path.rglob(f"*.{from_}", case_sensitive=False),
                     )
                 )
@@ -378,8 +379,10 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
     # should_download_but_missing = remote_files_should_down - local_files
     should_download_but_missing = set(
         filter(
-            lambda p: not any(
-                fm.check_exists(f"{id2source_name(source_id)}/{str(p)}")
+            lambda p: (
+                not any(
+                    fm.check_exists(f"{id2source_name(source_id)}/{str(p)}")
+                )
             ),
             remote_files_should_down,
         )
@@ -480,11 +483,12 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
     is_flag=True,
     default=False,
     show_default=True,
-    help="check all files in download path"
-    
+    help="check all files in download path",
 )
 @multi_rj_argument(convert="local")
-def check(source_ids: list[LocalSourceID], list_: bool, offline: bool, all_: bool):
+def check(
+    source_ids: list[LocalSourceID], list_: bool, offline: bool, all_: bool
+):
     """
     check for download path for files to be downloaded correctly without missing or fail.
     """

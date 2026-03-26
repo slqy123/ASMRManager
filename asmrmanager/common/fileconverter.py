@@ -123,8 +123,9 @@ class AudioConverter:
                         x, x.with_suffix(f".{dst}"), convert_args
                     ),
                     filter(
-                        lambda p: not p.is_dir()
-                        and p.suffix.lower() != f".{dst}",
+                        lambda p: (
+                            not p.is_dir() and p.suffix.lower() != f".{dst}"
+                        ),
                         src,
                     ),
                 )

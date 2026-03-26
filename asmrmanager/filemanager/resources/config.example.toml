@@ -92,7 +92,7 @@ display_cover = false
 editor = "code --wait"
 
 # [可选]
-# 下载所用的工具，可选则idm或aria2，请注意需安装对应的依赖项
+# 下载所用的工具，可选择idm或aria2，请注意需安装对应的依赖项
 download_method = "idm"
 
 # [高级]

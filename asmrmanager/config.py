@@ -31,7 +31,7 @@ class Config:
     aria2_config: "Aria2Config"
     subtitle_config: "SubtitleConfig"
     playlist_aliases: Dict[str, str]
-    player: Literal["mpd", "pygame"]
+    player: Literal["mpd", "pygame", "sounddevice"]
     mpd_config: "MPDConfig"
     before_store: str = ""
 
@@ -129,7 +129,7 @@ if env_concurrency_limit := os.getenv("ASMR_CONCURRENCY_LIMIT"):
 if os.getenv("ASMR_DISABLE_COVER") == "1":
     config.display_cover = False
 
-if (__tagger:=os.getenv("ASMR_DEFAULT_TAGGER")) in ("tag", "tagw"):
+if (__tagger := os.getenv("ASMR_DEFAULT_TAGGER")) in ("tag", "tagw"):
     config.default_tagger = __tagger
 
 logger.debug(f"Config loaded: {config}")

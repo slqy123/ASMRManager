@@ -73,9 +73,11 @@ def convert(
 
         src_paths = list(
             filter(
-                lambda p: not p.is_dir()
-                and p.suffix.lower() in [".flac", ".wav", ".m4a"]
-                and p.suffix.lower() != f".{mode}",
+                lambda p: (
+                    not p.is_dir()
+                    and p.suffix.lower() in [".flac", ".wav", ".m4a"]
+                    and p.suffix.lower() != f".{mode}"
+                ),
                 path.rglob("*.*"),
             )
         )
