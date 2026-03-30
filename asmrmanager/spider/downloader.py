@@ -217,7 +217,7 @@ class ASMRDownloadAPI(ASMRAPI):
         logger.debug("final file list: %s", file_list)
 
         self.create_recover_file(file_list, voice_path)
-        if self.fetch_cover and all(f.path != 'cover.jpg' for f in file_list):
+        if self.fetch_cover and all(str(f.path.relative_to(voice_path)) != 'cover.jpg' for f in file_list):
             await self.download_cover(voice_id, voice_path)
         await self.create_dir_and_download(file_list)
 
@@ -354,6 +354,8 @@ class ASMRDownloadAPI(ASMRAPI):
         self, source_id: RemoteSourceID, save_path: Path
     ) -> None:
         save_path.mkdir(parents=True, exist_ok=True)
+
+        logger.info("downloading cover!!!!!!!")
 
         try:
             image_data = await self.get_cover(source_id)
