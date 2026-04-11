@@ -164,6 +164,13 @@ asmr dl get 100000029  # 对于BJ与VJ，网站为了兼容RJ所使用的特殊I
 asmr dl get 300015443  # 本项目存储VJ与BJ所使用的ID（"3" + 8位VJ号，BJ则为"4" + 8位BJ号）
 ```
 
+终端图片显示(需安装image依赖且终端支持)：
+```shell
+asmr dl search --circle 'CANDY VOICE' --preview --page-size 2 --all
+asmr info 1524462
+```
+![preview](./assets/tui-image.png)
+
 检查下载目录下文件是否下载完全（默认会计算hash并向服务器验证，较为耗时。可使用 --offline 跳过）
 
 ```shell
