@@ -355,7 +355,7 @@ class ASMRDownloadAPI(ASMRAPI):
     ) -> None:
         save_path.mkdir(parents=True, exist_ok=True)
 
-        logger.info("downloading cover!!!!!!!")
+        logger.debug("downloading cover")
 
         try:
             image_data = await self.get_cover(source_id)
