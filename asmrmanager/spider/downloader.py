@@ -202,7 +202,7 @@ class ASMRDownloadAPI(ASMRAPI):
 
         voice_path = save_path / voice_info["source_id"]
         if voice_path.exists():
-            logger.warning(f"path {voice_path} already exists.")
+            logger.warning("path already exists: %s", voice_path)
 
         voice_path.mkdir(parents=True, exist_ok=True)
         self.create_info_file(voice_info, voice_path=voice_path)
@@ -324,23 +324,18 @@ class ASMRDownloadAPI(ASMRAPI):
         exist_info = self.check_exists(file_path)
         if exist_info.download:
             if self.replace:
-                logger.info(f"replace mode, delete old file {file_path}")
+                logger.info("delete old file %s (replace mode)", file_path)
                 file_path.unlink()
             else:
-                logger.warning(
-                    f"file {file_path} already exists in download, ignore this"
-                    " file"
-                )
+                logger.warning("file already exists in download, ignore it: %s", file_path)
                 return
         elif exist_info.storage:
-            logger.warning(
-                f"file {file_path} already exists in storage, ignore this file"
-            )
+            logger.warning("file already exists in storage, ignore it: %s", file_path)
             return
 
-        logger.info(f"Downloading {file_path}")
+        logger.info("Downloading %s", file_path)
         if not await self.download_file(url, save_path, file_name):
-            logger.error(f"Download {file_path} failed")
+            logger.error("Download failed: %s", file_path)
             return
 
     def create_info_file(self, voice_info: Dict[str, Any], voice_path: Path):
@@ -349,7 +344,7 @@ class ASMRDownloadAPI(ASMRAPI):
         # recv_rj_name = voice_info['original_workno']
         json_path = voice_path / f"{source_name}.json"
         if json_path.exists():
-            logger.info(f"Path {json_path} already exists, update it...")
+            logger.info("update %s (already exists)", json_path)
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(voice_info, f, ensure_ascii=False, indent=4)
 
@@ -371,7 +366,7 @@ class ASMRDownloadAPI(ASMRAPI):
         for file_info in file_list:
             file_path = file_info.path
             if not file_info.should_download:
-                logger.info(f"filter file {file_path}")
+                logger.info("filter %s", file_path)
                 continue
             file_path.parent.mkdir(parents=True, exist_ok=True)
             try:

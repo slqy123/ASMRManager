@@ -145,12 +145,19 @@ class DataBaseManager:
                 },
             )
             if not res:
-                logger.info(
+                logger.debug(
                     f"tag {tag['name']} ({upvote}/{downvote}, common={common_only}) is filtered"
                 )
             return res
 
-        info["tags"] = list(filter(tag_strategy_filter, info["tags"]))
+        new_tags = list(filter(tag_strategy_filter, info["tags"]))
+        pre_filtered_tags = [t for t in info["tags"] if t not in new_tags]
+        if pre_filtered_tags:
+            logger.info(
+                "filtered tags: %s",
+                ", ".join(t["name"] for t in pre_filtered_tags),
+            )
+        info["tags"] = new_tags
         asmr = self.parse_info(info)
 
         self.session.merge(asmr)

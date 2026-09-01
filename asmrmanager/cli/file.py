@@ -9,7 +9,6 @@ from asmrmanager.cli.core import (
     create_database,
     create_general_api,
     fm,
-    markup_path,
     multi_rj_argument,
     rj_argument,
 )
@@ -93,10 +92,10 @@ def recover(source_id: LocalSourceID, regex: str, ignore_filter: bool):
 
         if not recover["should_download"]:
             if not ignore_filter:
-                logger.info(f"skip filtered file {rel_path}")
+                logger.info("skip filtered file %s", rel_path)
                 continue
             else:
-                logger.info(f"recover filtered file {rel_path}")
+                logger.info("recover filtered file %s", rel_path)
 
         url2download.append(
             (
@@ -183,20 +182,20 @@ def store(
             file: Path, to: Literal["mp3", "flac", "m4a", "wav", "lrc"]
         ):
             if file.suffix.lower() == f".{to}":
-                logger.debug(f"{file} already in {to} format, skipping")
+                logger.debug("skip %s, already in %s format", file, to)
                 return
             if to == "lrc":
                 assert file.suffix.lower() == ".vtt"
-                logger.debug(f"converting {file} to lrc")
+                logger.debug("converting %s to lrc", file)
                 convert_vtt2lrc(file)
             else:
-                logger.debug(f"converting {file} to {to}")
+                logger.debug("converting %s to %s", file, to)
                 with AudioConverter(f"Audio conversion to {to}") as converter:
                     converter.convert(file, dst=to)
 
             if len(file.suffixes) == 1:
                 assert file.with_suffix(f".{to}").exists()
-            logger.info("Removing old file: %s", markup_path(file))
+            logger.info("Removing old file: %s", file)
             file.unlink()
 
         def convert_all(
@@ -221,7 +220,10 @@ def store(
                 )
                 if len(src_paths) == 0:
                     logger.info(
-                        f"No files to convert from {from_} to {to} in {markup_path(path)}"
+                        "No files to convert from %s to %s in %s",
+                        from_,
+                        to,
+                        path,
                     )
                     return
                 with AudioConverter(
@@ -234,7 +236,7 @@ def store(
                         continue
                     if src_path.with_suffix(f".{to}").exists():
                         logger.info(
-                            "Removing old file: %s", markup_path(src_path)
+                            "Removing old file: %s", src_path
                         )
                         src_path.unlink()
 
@@ -371,7 +373,7 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
     local_files = fm.get_all_files(source_id)
     for p in local_files:
         if p.suffix == ".aria2":
-            logger.error(f"Aria2 control file found: {p}")
+            logger.error("Aria2 control file found: %s", p)
             return False
     remote_files_should_down = set(
         [Path(i["path"]) for i in recovers if i["should_download"]]
@@ -422,12 +424,12 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
         if not (file_path.exists() and file_path.is_file()):
             if fm.check_exists(f"{id2source_name(source_id)}/{str(file)}"):
                 logger.info(
-                    "skipping file, since another file with same name "
-                    f"and different extension exists: {markup_path(file_path)}"
+                    "skip %s, same name with different extension exists",
+                    file_path,
                 )
             else:
                 logger.error(
-                    f"file does not exist or is not a file: {markup_path(file_path)}"
+                    "file does not exist or is not a file: %s", file_path
                 )
             continue
 
@@ -452,7 +454,7 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
             zip(file_paths2check, file_ids2check)
         ):
             if not res[i]:
-                logger.error(f"fileId: {file_id}, {file_path}")
+                logger.error("file failed to verify (id %s): %s", file_id, file_path)
         return False
 
     logger.info(f"source_id {source_id} has all files verified successfully")

@@ -46,7 +46,7 @@ def add(source_id: LocalSourceID, mode: Literal["link", "zip", "adb", "copy"]):
             if not dst.exists():
                 break
             i += 1
-        logger.warning(f"{rj_name} already exists, use {dst} instead")
+        logger.warning("%s already exists, use %s instead", rj_name, dst)
         # raise DstItemAlreadyExistsException
 
     src = folder_chooser(src)

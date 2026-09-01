@@ -73,7 +73,7 @@ class FileManager:
             Path(__file__).parent / "resources" / "sqls.example",
             dst_path,
         )
-        logger.info(f"First time to run, copy default sqls to {dst_path}")
+        logger.info("First time to run, copy default sqls to %s", dst_path)
 
     @classmethod
     def init_mpd(cls):
@@ -151,7 +151,7 @@ class FileManager:
         assert self.could_store()
         rj_name = id2source_name(source_id)
         if not os.path.exists(self.download_path / rj_name):
-            logger.warning(f"item {rj_name} does not exists, skip it")
+            logger.warning("item %s does not exist, skip it", rj_name)
             return
 
         if hook is not None:
@@ -171,9 +171,9 @@ class FileManager:
 
                 if dst_file.exists():
                     if not replace:
-                        logger.info(f'skip file already exists: "{dst_file}"')
+                        logger.info("skip %s, file already exists", dst_file)
                         continue
-                    logger.info(f"In replace mode, remove file: {dst_file}")
+                    logger.info("remove file %s (replace mode)", dst_file)
                     os.remove(dst_file)
 
                 logger.info(
@@ -212,7 +212,7 @@ class FileManager:
             if not (self.download_path / file).is_dir():
                 continue
             if source2id(file) is None:
-                logger.warning(f"Ignore invalid file {file} in download path")
+                logger.warning("invalid file found in download path: %s", file)
                 continue
             source_id = source_name2id(SourceName(file))
             self.store(source_id, replace=replace, hook=hook)
@@ -257,13 +257,13 @@ class FileManager:
 
         for path in related_files:
             if path.is_symlink():
-                logger.info(f"remove symlink {path}")
+                logger.info("remove symlink %s", path)
                 path.unlink(missing_ok=True)
             elif path.is_dir():
-                logger.info(f"remove directory {path}")
+                logger.info("remove directory %s", path)
                 shutil.rmtree(path)
             elif path.suffix == ".zip":
-                logger.info(f"remove zip file {path}")
+                logger.info("remove zip file %s", path)
                 os.remove(path)
 
     def list_(
@@ -388,7 +388,7 @@ class FileManager:
                     file_name + lyrics_format
                 )
                 if another_file_path.exists():
-                    logger.info(f"Detected {file_path} for same lyrics exists")
+                    logger.info("skip %s, same lyrics exists", file_path)
                     return True
 
         # match file_path.suffix.lower():
@@ -414,7 +414,7 @@ class FileManager:
         recover_path = self.get_path(
             source_id, rel=".recover", prefer="download"
         )
-        logger.debug(f"recover path: {recover_path}")
+        logger.debug("recover path: %s", recover_path)
         if recover_path is None:
             logger.error(
                 f"item {source_id} does not have recover file, please update this"

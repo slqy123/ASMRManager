@@ -69,17 +69,17 @@ def check(source_ids: List[LocalSourceID]):
 
         src = fm.get_location(source_id)
         if src is None:
-            logger.warning(f"Not found: {source_name}, add to download")
+            logger.warning("%s not found, add to download", source_name)
             dl_queue.append(source_name)
             continue
 
         if src == "download" and asmr.stored:
-            logger.info(f"Already stored: {source_name}, move to storage path")
+            logger.info("move %s to storage (already stored)", source_name)
             fm.store(source_id)
             continue
 
         if src == "storage" and not asmr.stored:
-            logger.info(f"Already in storage: {source_name}, update database")
+            logger.info("update database for %s (already in storage)", source_name)
             asmr.stored = True
             continue
 
