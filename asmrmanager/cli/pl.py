@@ -1,11 +1,10 @@
 # playlist manager
 import uuid
-from typing import List
+from typing import Literal
 
 import click
 import toml
 from click.shell_completion import CompletionItem
-from typing_extensions import Literal
 
 from asmrmanager.cli.core import (
     create_playlist,
@@ -21,8 +20,8 @@ class PLID(click.ParamType):
 
     def shell_complete(
         self, ctx: "click.Context", param: "click.Parameter", incomplete: str
-    ) -> List["CompletionItem"]:
-        playlists: List[PlayListItem] = [
+    ) -> list["CompletionItem"]:
+        playlists: list[PlayListItem] = [
             PlayListItem(**i)
             for i in toml.load(fm.CACHE_PATH / "playlist.cache")["playlists"]
         ]
@@ -63,7 +62,7 @@ def list_(num: int, raw: bool):
 @click.command()
 @click.argument("pl_id", type=PLID(), callback=pl_preprocess_cb)
 @multi_rj_argument("remote")
-def add(source_ids: List[RemoteSourceID], pl_id: uuid.UUID):
+def add(source_ids: list[RemoteSourceID], pl_id: uuid.UUID):
     """add a playlist"""
     pl = create_playlist()
     pl.run(pl.add(source_ids, pl_id))
@@ -71,7 +70,7 @@ def add(source_ids: List[RemoteSourceID], pl_id: uuid.UUID):
 
 @click.command("rm")
 @click.argument("pl_ids", type=PLID(), nargs=-1, callback=pl_preprocess_cb)
-def remove(pl_ids: List[uuid.UUID]):
+def remove(pl_ids: list[uuid.UUID]):
     """remove a playlist"""
     pl = create_playlist()
     pl.run(pl.remove(pl_ids))

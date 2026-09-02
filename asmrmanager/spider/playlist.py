@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, List, Tuple
+from typing import Any
 
 from asmrmanager.common.rj_parse import SourceID
 from asmrmanager.common.types import PRIVACY, PlayListItem, RemoteSourceID
@@ -15,7 +15,7 @@ class ASMRPlayListAPI(ASMRAPI):
 
     async def get_playlists(
         self, page: int = 1, page_size: int = 12, filter_by: str = "all"
-    ) -> Tuple[List[PlayListItem], int]:
+    ) -> tuple[list[PlayListItem], int]:
         """return a list of playlists and the total"""
         resp = await self._get_playlists(page, page_size, filter_by)
         return (
@@ -32,7 +32,7 @@ class ASMRPlayListAPI(ASMRAPI):
         return await self._create_playlist(name, desc, privacy.value)
 
     async def add_works_to_playlist(
-        self, source_ids: List[RemoteSourceID], pl_id: uuid.UUID
+        self, source_ids: list[RemoteSourceID], pl_id: uuid.UUID
     ):
         return await self._add_works_to_playlist(source_ids, str(pl_id))
 
@@ -41,11 +41,11 @@ class ASMRPlayListAPI(ASMRAPI):
 
     async def show_works_in_playlist(
         self, pl_id: uuid.UUID, page: int = 1, page_size: int = 12
-    ) -> Tuple[List[Any], int]:
+    ) -> tuple[list[Any], int]:
         resp = await self._show_works_in_playlist(str(pl_id), page, page_size)
         return resp["works"], resp["pagination"]["totalCount"]
 
-    def process_playlists(self, playlists: List[Any]) -> List[PlayListItem]:
+    def process_playlists(self, playlists: list[Any]) -> list[PlayListItem]:
         res = []
         for item in playlists:
             res.append(

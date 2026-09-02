@@ -28,9 +28,7 @@ def name_should_download(
 
         regex_match = bool(match_method(filter_.regex, name, flag))
 
-        if regex_match ^ (filter_.type == "include"):
-            return False
-        return True
+        return not regex_match ^ (filter_.type == "include")
 
     filter_status = []
     for filter_ in config.filename_filters:

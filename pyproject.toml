@@ -71,4 +71,4 @@ all = ['asmrmanager[aria2,idm,tui,player,subtitle,image]']
 line-length = 79
 
 [tool.ruff.lint]
-ignore = ['E402', 'E731']
+ignore = ['E402', 'E731', 'BLE001']

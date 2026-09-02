@@ -1,6 +1,7 @@
 # a simple wrapper for beaupy.select
 
-from typing import List
+
+import sys
 
 import beaupy
 import beaupy._internals as internals
@@ -31,19 +32,19 @@ def _render_option_select(
 internals._render_option_select = _render_option_select
 
 
-def select(choices: List[str]) -> int:
+def select(choices: list[str]) -> int:
     res = beaupy.select(choices, return_index=True)  # type: ignore
     if res is None:
         logger.warning("Selection canceled!")
-        exit(-1)
+        sys.exit(-1)
     return res
 
 
-def select_multiple(choices: List[str]) -> List[int]:
+def select_multiple(choices: list[str]) -> list[int]:
     res = beaupy.select_multiple(choices, return_indices=True)  # type: ignore
     if res is None:
         logger.warning("Selection canceled!")
-        exit(-1)
+        sys.exit(-1)
     return res
 
 
@@ -51,5 +52,5 @@ def confirm(question: str) -> bool:
     res = beaupy.confirm(question)
     if res is None:
         logger.warning("Selection canceled!")
-        exit(-1)
+        sys.exit(-1)
     return res

@@ -1,15 +1,12 @@
 import asyncio
+import builtins
 import uuid
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import (
     Any,
-    Awaitable,
-    Callable,
-    Dict,
-    List,
     Literal,
-    Tuple,
     TypeVar,
 )
 
@@ -39,7 +36,7 @@ class AsyncManager:
     def __init__(self, api: ASMRAPI) -> None:
         self.api = api
 
-    def run(self, *tasks: Awaitable[T]) -> List[T]:
+    def run(self, *tasks: Awaitable[T]) -> list[T]:
         async def _run():
             async with self.api:
                 return await asyncio.gather(*tasks)
@@ -88,7 +85,7 @@ class ASMRDownloadManager(AsyncManager):
         password: str,
         proxy: str | None,
         id_should_download: Callable[[RemoteSourceID], bool] | None = None,
-        json_should_download: Callable[[Dict[str, Any]], bool] | None = None,
+        json_should_download: Callable[[dict[str, Any]], bool] | None = None,
         name_should_download: (
             Callable[[str, Literal["directory", "file"]], int] | None
         ) = None,
@@ -115,7 +112,7 @@ class ASMRDownloadManager(AsyncManager):
         self.id_should_download = id_should_download or (lambda _: True)
         self.tagger = tagger
 
-    async def get(self, ids: List[RemoteSourceID]):
+    async def get(self, ids: list[RemoteSourceID]):
         tasks = []
         for id_ in ids:
             if not self.id_should_download(id_):
@@ -127,20 +124,20 @@ class ASMRDownloadManager(AsyncManager):
     async def search(
         self,
         text: str,
-        tags: Tuple[str],
-        vas: Tuple[str],
+        tags: tuple[str],
+        vas: tuple[str],
         circle: str | None,
         age: str | None,
         lang: str | None,
-        no_tags: Tuple[str],
-        no_vas: Tuple[str],
-        no_age: Tuple[str],
-        no_circle: Tuple[str],
-        no_lang: Tuple[str],
-        rate: Tuple[float | None, float | None],
-        sell: Tuple[int | None, int | None],
-        price: Tuple[int | None, int | None],
-        duration: Tuple[str | None, str | None],
+        no_tags: tuple[str],
+        no_vas: tuple[str],
+        no_age: tuple[str],
+        no_circle: tuple[str],
+        no_lang: tuple[str],
+        rate: tuple[float | None, float | None],
+        sell: tuple[int | None, int | None],
+        price: tuple[int | None, int | None],
+        duration: tuple[str | None, str | None],
         params: BrowseParams,
         all_: bool,
         preview: bool,
@@ -198,7 +195,7 @@ class ASMRDownloadManager(AsyncManager):
 
             if not all_:
                 # select RJs
-                source_names: List[SourceName] = [
+                source_names: list[SourceName] = [
                     work["source_id"] for work in search_result["works"]
                 ]
                 titles = [work["title"] for work in search_result["works"]]
@@ -283,7 +280,7 @@ class ASMRDownloadManager(AsyncManager):
         ids = [work["id"] for work in va_res["works"]]
         await self.get(ids)
 
-    async def update(self, ids: List[RemoteSourceID]):
+    async def update(self, ids: list[RemoteSourceID]):
         async def update_one(source_id_: RemoteSourceID):
             voice_info = await self.downloader.get_voice_info(source_id_)
             if voice_info is None:
@@ -387,7 +384,7 @@ class ASMRPlayListManager(AsyncManager):
 
         fm.save_playlist_cache(playlists)
 
-    async def remove(self, pl_ids: List[uuid.UUID]):
+    async def remove(self, pl_ids: builtins.list[uuid.UUID]):
         res = await asyncio.gather(*map(self.playlist.delete_playlist, pl_ids))
 
         if not isinstance(res, list):
@@ -422,7 +419,7 @@ class ASMRPlayListManager(AsyncManager):
         logger.info("Updating local playlist cache...")
         await self.list()
 
-    async def add(self, source_ids: List[RemoteSourceID], pl_id: uuid.UUID):
+    async def add(self, source_ids: builtins.list[RemoteSourceID], pl_id: uuid.UUID):
         res = await self.playlist.add_works_to_playlist(source_ids, pl_id)
         if not isinstance(res, dict):
             logger.error(
@@ -460,9 +457,7 @@ class ASMRPlayListManager(AsyncManager):
         ]
         print_table(
             titles=titles,
-            rows=list(
-                map(
-                    lambda w: (
+            rows=[(
                         w["source_id"],
                         w["title"],
                         w["circle"]["name"],
@@ -470,10 +465,7 @@ class ASMRPlayListManager(AsyncManager):
                         w["has_subtitle"],
                         w["dl_count"],
                         ",".join([va["name"] for va in w["vas"]]),
-                    ),
-                    works,
-                )
-            ),
+                    ) for w in works],
             image_paths=[
                 *await asyncio.gather(*[self.get_cover_path(w) for w in works])
             ]

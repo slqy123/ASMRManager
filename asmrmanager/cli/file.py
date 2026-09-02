@@ -1,7 +1,7 @@
 import re
 import typing
 from pathlib import Path
-from typing import List, Literal, Tuple
+from typing import Literal
 
 import click
 
@@ -43,7 +43,7 @@ def del_(source_id: LocalSourceID):
     folders = folder_chooser_multiple(
         rj_path,
         lambda p: any(
-            [i.suffix != ".info" for i in p.iterdir() if not i.is_dir()]
+            i.suffix != ".info" for i in p.iterdir() if not i.is_dir()
         ),
     )
 
@@ -68,7 +68,7 @@ def del_(source_id: LocalSourceID):
 def recover(source_id: LocalSourceID, regex: str, ignore_filter: bool):
     """recover a file from recover file"""
 
-    url2download: List[Tuple[str, Path]] = []
+    url2download: list[tuple[str, Path]] = []
 
     res = fm.load_recover(source_id)
     if res is None:
@@ -161,7 +161,7 @@ def recover(source_id: LocalSourceID, regex: str, ignore_filter: bool):
     help="what to do when a check failed",
 )
 def store(
-    source_ids: List[LocalSourceID],
+    source_ids: list[LocalSourceID],
     no_convert: bool,
     replace: bool,
     all_: bool,
@@ -245,7 +245,7 @@ def store(
         if not code.strip():
             return
 
-        exec(
+        exec(  # noqa: S102
             code,
             {"path": path, "convert": convert, "convert_all": convert_all},
         )
@@ -277,7 +277,7 @@ def store(
         for id_ in id_to_store:
             if check != "none":
                 success = verify_voices(
-                    id_, offline=True if check != "online" else False
+                    id_, offline=check != "online"
                 )
                 if not success:
                     logger.error("Stop storing due to check failed")
@@ -317,12 +317,12 @@ def diff(source_id: LocalSourceID):
 
     local_files = fm.get_all_files(source_id)
 
-    remote_files_should_down = set(
-        [Path(i["path"]) for i in recovers if i["should_download"]]
-    )
-    remote_files_filterd = set(
-        [Path(i["path"]) for i in recovers if not i["should_download"]]
-    )
+    remote_files_should_down = {
+        Path(i["path"]) for i in recovers if i["should_download"]
+    }
+    remote_files_filterd = {
+        Path(i["path"]) for i in recovers if not i["should_download"]
+    }
     filtered_but_downloaded = remote_files_filterd & local_files
     should_download_but_missing = remote_files_should_down - local_files
     added_new_files = (
@@ -375,15 +375,15 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
         if p.suffix == ".aria2":
             logger.error("Aria2 control file found: %s", p)
             return False
-    remote_files_should_down = set(
-        [Path(i["path"]) for i in recovers if i["should_download"]]
-    )
+    remote_files_should_down = {
+        Path(i["path"]) for i in recovers if i["should_download"]
+    }
     # should_download_but_missing = remote_files_should_down - local_files
     should_download_but_missing = set(
         filter(
             lambda p: (
                 not any(
-                    fm.check_exists(f"{id2source_name(source_id)}/{str(p)}")
+                    fm.check_exists(f"{id2source_name(source_id)}/{p!s}")
                 )
             ),
             remote_files_should_down,
@@ -410,11 +410,11 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
             "please update your recover file first"
         )
         return False
-    file_ids = typing.cast(List[int], file_ids)
+    file_ids = typing.cast(list[int], file_ids)
     # file_ids = [int(i.split("/")[1]) for i in file_ids]
 
-    file_paths2check: List[Path] = []
-    file_ids2check: List[int] = []
+    file_paths2check: list[Path] = []
+    file_ids2check: list[int] = []
     for file, file_id in zip(remote_files_should_down_list, file_ids):
         file_path = fm.get_path(source_id, str(file), prefer="download")
         assert file_path is not None, (
@@ -422,7 +422,7 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
             f" and source_id = {source_id}"
         )
         if not (file_path.exists() and file_path.is_file()):
-            if fm.check_exists(f"{id2source_name(source_id)}/{str(file)}"):
+            if fm.check_exists(f"{id2source_name(source_id)}/{file!s}"):
                 logger.info(
                     "skip %s, same name with different extension exists",
                     file_path,

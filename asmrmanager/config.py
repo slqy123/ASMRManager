@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass
-from typing import Dict, List, Literal
+from typing import Literal
 
 import toml
 
@@ -21,16 +21,16 @@ class Config:
     view_path: str
     default_tagger: Literal["tag", "tagw"]
     tag_strategy: Literal["common_only", "accept_all", "except_rejected"] | str
-    tag_filter: List[str]
+    tag_filter: list[str]
     fetch_cover: bool
     display_cover: bool
     editor: str
-    filename_filters: List["Filter"]
+    filename_filters: list["Filter"]
     download_method: Literal["aria2", "idm"]
     idm_install_path: str | None
     aria2_config: "Aria2Config"
     subtitle_config: "SubtitleConfig"
-    playlist_aliases: Dict[str, str]
+    playlist_aliases: dict[str, str]
     player: Literal["mpd", "pygame", "sounddevice"]
     mpd_config: "MPDConfig"
     before_store: str = ""
@@ -75,12 +75,10 @@ class SubtitleConfig:
 _config = toml.load(CONFIG_PATH / "config.toml")
 
 _filename_filters: list = _config.get("filename_filters", [])
-filename_filters = list(
-    map(
-        lambda x: Filter(**x) if isinstance(x, dict) else Filter(x),
-        _filename_filters,
-    )
-)
+filename_filters = [
+    Filter(**x) if isinstance(x, dict) else Filter(x)
+    for x in _filename_filters
+]
 # _aria2_config: dict = _config.get("aria2_config", {})
 # aria2_config = Aria2Config(**_aria2_config)
 

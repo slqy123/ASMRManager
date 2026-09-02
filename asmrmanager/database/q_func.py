@@ -25,7 +25,7 @@ class QFunc:
     def get_tag_id(self, name: str) -> int | None:
         res = self.ss.query(Tag).filter(Tag.name == name).one_or_none()
         if res:
-            return getattr(res, "id")
+            return res.id
         return None
 
     def get_tag_name(self, tid: int):

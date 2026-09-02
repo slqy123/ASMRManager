@@ -7,7 +7,9 @@ from asmrmanager.logger import logger
 
 
 def parse_time(time_str):
-    dt = datetime.strptime(time_str.strip(), "%H:%M:%S.%f")
+    dt = datetime.strptime(  # noqa: DTZ007
+        time_str.strip(), "%H:%M:%S.%f"
+    )
     return dt
 
 

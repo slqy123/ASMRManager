@@ -2,7 +2,8 @@ import asyncio
 import re
 from pathlib import Path
 from shutil import which
-from typing import Any, Literal
+from types import TracebackType
+from typing import Literal, Self
 
 from rich.console import Console
 from rich.table import Column
@@ -84,11 +85,16 @@ class AudioConverter:
         else:
             self.panel.subtitle = "Progress: [green bold]?[/green bold]/?"
 
-    def __enter__(self) -> "AudioConverter":
+    def __enter__(self) -> Self:
         self.live.__enter__()
         return self
 
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         self.live.__exit__(exc_type, exc_val, exc_tb)
 
     def convert(
@@ -118,17 +124,14 @@ class AudioConverter:
                     )
 
             await asyncio.gather(
-                *map(
-                    lambda x: thread(
+                *(thread(
                         x, x.with_suffix(f".{dst}"), convert_args
-                    ),
-                    filter(
+                    ) for x in filter(
                         lambda p: (
                             not p.is_dir() and p.suffix.lower() != f".{dst}"
                         ),
                         src,
-                    ),
-                )
+                    ))
             )
 
         asyncio.run(_entry())

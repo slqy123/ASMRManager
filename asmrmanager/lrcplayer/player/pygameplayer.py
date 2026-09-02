@@ -1,5 +1,4 @@
 import contextlib
-from typing import List
 
 from .base import BasePlayer, Music
 
@@ -14,7 +13,7 @@ except ImportError:
 
 
 class PyGamePlayer(BasePlayer):
-    def __init__(self, music_list: List[Music]) -> None:
+    def __init__(self, music_list: list[Music]) -> None:
         super().__init__(music_list)
         if mixer.get_init() is None:
             mixer.init()

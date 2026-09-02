@@ -68,7 +68,7 @@ def sql(sql_name: str, save: bool, edit: bool, raw: bool):
         sql_path.read_text(encoding="utf8"), encoding="utf8"
     )
     if edit:
-        run(f'{config.editor} "{temp_file_path}"', shell=True)
+        run(f'{config.editor} "{temp_file_path}"', shell=True, check=False)
     # db_path = temp_file_path.with_name('data.db')
     # print(db_path, temp_file_path)
     # run(

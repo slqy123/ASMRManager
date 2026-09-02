@@ -2,7 +2,6 @@ import bisect
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import List, Tuple
 
 import pylrc
 from chardet import detect
@@ -11,7 +10,7 @@ from chardet import detect
 @dataclass
 class LyricsData:
     progress: int
-    lyrics: List[str]
+    lyrics: list[str]
 
 
 class LRC:
@@ -28,7 +27,7 @@ class LRC:
         self.total_time = total_time
 
     @staticmethod
-    def parse_lrc(lrc_str: str) -> List[Tuple[int, str]]:
+    def parse_lrc(lrc_str: str) -> list[tuple[int, str]]:
         lrc = pylrc.parse(lrc_str)
         res = [
             (int(line.time * 1000), line.text)
@@ -37,7 +36,7 @@ class LRC:
         ]
         return sorted(res, key=lambda x: x[0])
 
-    @lru_cache(maxsize=128)
+    @lru_cache(maxsize=128)  # noqa: B019
     def index(self, t: int):
         return bisect.bisect_left(self.lrc, t, key=lambda x: x[0]) - 1
 
@@ -62,7 +61,7 @@ class LRC:
                 else:
                     return 0
 
-    def get_lyrics(self, t: int, prev: int = 1, next: int = 1) -> List[str]:
+    def get_lyrics(self, t: int, prev: int = 1, next: int = 1) -> list[str]:
         index = self.index(t)
         return [
             self.lrc[i][1] if i >= 0 and i < self.len_ else ""

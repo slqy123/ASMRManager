@@ -15,9 +15,7 @@ def support_image():
 
     from textual_image.renderable import HalfcellImage, Image, UnicodeImage
 
-    if Image in (HalfcellImage, UnicodeImage):
-        return False
-    return True
+    return Image not in (HalfcellImage, UnicodeImage)
 
 
 def _print_table(

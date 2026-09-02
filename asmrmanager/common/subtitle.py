@@ -20,7 +20,7 @@ def format_lrc_timestamp(seconds: float) -> str:
     remaining_seconds = total_seconds % 60
 
     secs = int(remaining_seconds)
-    hundredths = int(round((remaining_seconds - secs) * 100))
+    hundredths = round((remaining_seconds - secs) * 100)
 
     if hundredths >= 100:
         secs += 1

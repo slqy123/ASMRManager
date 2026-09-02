@@ -1,7 +1,7 @@
 import os
 from collections import Counter
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, List, Tuple
 
 from asmrmanager.common.select import select, select_multiple
 
@@ -10,7 +10,7 @@ def folder_chooser(
     folder: Path, path_filter: Callable[[Path, dict], bool] = lambda *_: True
 ) -> Path:
     assert folder.is_dir()
-    choices: List[Tuple[Path, str]] = []
+    choices: list[tuple[Path, str]] = []
     for root, _, files in os.walk(folder):
         if len(files) == 0:
             continue
@@ -26,9 +26,9 @@ def folder_chooser(
 
 def folder_chooser_multiple(
     folder: Path, path_filter: Callable[[Path, dict], bool] = lambda *_: True
-) -> List[Path]:
+) -> list[Path]:
     assert folder.is_dir()
-    choices: List[Tuple[Path, str]] = []
+    choices: list[tuple[Path, str]] = []
     for root, _, files in os.walk(folder):
         if len(files) == 0:
             continue

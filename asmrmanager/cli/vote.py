@@ -1,5 +1,6 @@
 import dataclasses
 import json
+import sys
 from time import time
 from typing import TYPE_CHECKING, Any, Literal, Optional
 
@@ -51,19 +52,19 @@ def get_prev_id():
             "No previous source id available,"
             " please first run a command with source id"
         )
-        exit(-1)
+        sys.exit(-1)
 
     source_id = source2id(source)
     if source_id is None:
         logger.error(f"Invalid input source id: {source}")
-        exit(-1)
+        sys.exit(-1)
 
     if not is_remote_source_id(source_id):
         source_id = convert2remote_id(source_id)
 
     if source_id is None:
         logger.error("failed to convert to remote source id")
-        exit(-1)
+        sys.exit(-1)
 
     return RemoteSourceID(source_id)
 
@@ -83,9 +84,7 @@ def get_prev_tags(source_id: RemoteSourceID):
             json.dump(
                 {
                     "id": source_id,
-                    "tags": list(
-                        map(lambda t: dataclasses.asdict(t), _prev_tags)
-                    ),
+                    "tags": [dataclasses.asdict(t) for t in _prev_tags],
                 },
                 f,
                 ensure_ascii=False,
@@ -117,8 +116,7 @@ class TagType(click.ParamType):
                 if tag["name"] == value or tag["id"] == value:
                     logger.info(f"Selected tag_id={tag['id']}: {tag['name']}")
                     return tag["id"]
-            else:
-                self.fail(f"Invalid tag name: {value}")
+            self.fail(f"Invalid tag name: {value}")
 
     def shell_complete(
         self, ctx: "click.Context", param: "click.Parameter", incomplete: str
@@ -140,7 +138,7 @@ class TagType(click.ParamType):
             return [
                 CompletionItem(i["id"], help=i["name"])
                 for i in all_tags
-                if i["id"] not in map(lambda t: t["id"], prev_tags)
+                if i["id"] not in (t["id"] for t in prev_tags)
             ]
         else:
             assert False, "Invalid mode"
@@ -158,13 +156,13 @@ def choose_tag_interactively(mode: Literal["all", "prev", "new"]) -> int:
         prev_tags = get_prev_tags(prev_id)
         tags = list(
             filter(
-                lambda t: t["id"] not in map(lambda t: t["id"], prev_tags),
+                lambda t: t["id"] not in (t["id"] for t in prev_tags),
                 all_tags,
             )
         )
     from asmrmanager.common.select import select
 
-    index = select(list(map(lambda t: f"{t['name']}\t{t['id']}", tags)))
+    index = select([f"{t['name']}\t{t['id']}" for t in tags])
     logger.info(f"Selected tag_id={tags[index]['id']}: {tags[index]['name']}")
     return tags[index]["id"]
 
@@ -212,7 +210,6 @@ def vote_add(source_id: RemoteSourceID, tag: int | None):
 @click.group("vote")
 def vote():
     """vote tags for a work"""
-    pass
 
 
 vote.add_command(vote_up)

@@ -1,4 +1,3 @@
-from typing import List, Tuple
 
 import click
 
@@ -27,7 +26,7 @@ def dl():
 @click.command()
 @multi_rj_argument("remote")
 @download_param_options
-def get(source_ids: List[RemoteSourceID], download_params: DownloadParams):
+def get(source_ids: list[RemoteSourceID], download_params: DownloadParams):
     """get ASMR by RJ/VJ/BJ ids"""
     if not source_ids:
         logger.error("You must give at least one source id!")
@@ -39,7 +38,7 @@ def get(source_ids: List[RemoteSourceID], download_params: DownloadParams):
 
 @click.command()
 @multi_rj_argument("remote")
-def update(source_ids: List[RemoteSourceID]):
+def update(source_ids: list[RemoteSourceID]):
     """update metadata, including recover file and description file"""
     if not source_ids:
         logger.error("You must give at least one source id!")
@@ -53,7 +52,7 @@ def update(source_ids: List[RemoteSourceID]):
 
 @click.command()
 @multi_rj_argument("local")
-def check(source_ids: List[LocalSourceID]):
+def check(source_ids: list[LocalSourceID]):
     """check for existence of the file and its store field"""
     db = create_database()
     dl_queue = []
@@ -228,21 +227,21 @@ def check(source_ids: List[LocalSourceID]):
 @browse_param_options
 @download_param_options
 def search(
-    keywords: Tuple[str],
-    tags: Tuple[str],
-    vas: Tuple[str],
+    keywords: tuple[str],
+    tags: tuple[str],
+    vas: tuple[str],
     circle: str | None,
     age: str | None,
     lang: str | None,
-    no_tags: Tuple[str],
-    no_vas: Tuple[str],
-    no_circle: Tuple[str],
-    no_age: Tuple[str],
-    no_lang: Tuple[str],
-    rate: Tuple[float | None, float | None],
-    sell: Tuple[int | None, int | None],
-    price: Tuple[int | None, int | None],
-    duration: Tuple[str | None, str | None],
+    no_tags: tuple[str],
+    no_vas: tuple[str],
+    no_circle: tuple[str],
+    no_age: tuple[str],
+    no_lang: tuple[str],
+    rate: tuple[float | None, float | None],
+    sell: tuple[int | None, int | None],
+    price: tuple[int | None, int | None],
+    duration: tuple[str | None, str | None],
     browse_params: BrowseParams,
     download_params: DownloadParams,
     all_: bool,
@@ -282,13 +281,12 @@ def search(
     spider.run(
         spider.search(
             " ".join(
-                map(
-                    lambda t: (
-                        (t := t.strip())
-                        and ("-" + t[1:] if t.startswith("!") else t)
-                    ),
-                    keywords,
+                (
+                    "-" + k[1:]
+                    if (k := t.strip()).startswith("!")
+                    else k
                 )
+                for t in keywords
             ),
             tags=tags,
             vas=vas,

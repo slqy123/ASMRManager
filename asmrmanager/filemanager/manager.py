@@ -1,13 +1,11 @@
 import os
 import shutil
+import sys
+from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import (
-    Callable,
-    Iterable,
-    List,
     Literal,
     NamedTuple,
-    Set,
 )
 
 import toml
@@ -41,9 +39,9 @@ class FileManager:
     CACHE_PATH = CACHE_PATH
     __instance = None
 
-    ExistInfo = NamedTuple(
-        "ExistInfo", [("download", bool), ("storage", bool)]
-    )
+    class ExistInfo(NamedTuple):
+        download: bool
+        storage: bool
 
     @classmethod
     def init_config(cls):
@@ -60,7 +58,7 @@ class FileManager:
             f"An example config file has been copied to {dst_path}, please"
             " modify it and run this command again"
         )
-        exit(0)
+        sys.exit(0)
 
     @classmethod
     def init_sqls(cls):
@@ -91,8 +89,7 @@ class FileManager:
         conf["music_directory"].mkdir(parents=True, exist_ok=True)
 
         with open(cls.CONFIG_PATH / "mpd.conf", "w") as f:
-            for k, v in conf.items():
-                f.write(f'{k} "{v}"\n')
+            f.writelines(f'{k} "{v}"\n' for k, v in conf.items())
 
         logger.info(
             "First time to run, genertate default mpd config to"
@@ -100,7 +97,7 @@ class FileManager:
         )
 
     @classmethod
-    def get_playlist_cache(cls) -> List[PlayListItem] | None:
+    def get_playlist_cache(cls) -> list[PlayListItem] | None:
         cls.CACHE_PATH.mkdir(parents=True, exist_ok=True)
         dst_path = cls.CACHE_PATH / "playlist.cache"
         if dst_path.exists():
@@ -109,7 +106,7 @@ class FileManager:
         return None
 
     @classmethod
-    def save_playlist_cache(cls, playlists: List[PlayListItem]):
+    def save_playlist_cache(cls, playlists: list[PlayListItem]):
         cls.CACHE_PATH.mkdir(parents=True, exist_ok=True)
         dst_path = cls.CACHE_PATH / "playlist.cache"
         toml.dump(
@@ -128,13 +125,13 @@ class FileManager:
         self.view_path = Path(view_path).expanduser()
 
         self.storage_path_exists = (
-            True if os.path.exists(self.storage_path) else False
+            bool(os.path.exists(self.storage_path))
         )
         self.download_path_exists = (
-            True if os.path.exists(self.download_path) else False
+            bool(os.path.exists(self.download_path))
         )
         self.view_path_exists = (
-            True if os.path.exists(self.view_path) else False
+            bool(os.path.exists(self.view_path))
         )
         self.default_cover = Path(__file__).parent / "resources" / "akarin.jpg"
 
@@ -294,7 +291,7 @@ class FileManager:
         self,
         source_id: LocalSourceID,
         prefer: Literal["storage", "download"] = "storage",
-    ) -> Literal["download", "storage", None]:
+    ) -> Literal["download", "storage"] | None:
         source_name = id2source_name(source_id)
         storage_exists = (self.storage_path / source_name).exists()
         download_exists = (self.download_path / source_name).exists()
@@ -409,7 +406,7 @@ class FileManager:
 
     def load_recover(
         self, source_id: LocalSourceID
-    ) -> List[RecoverRecord] | None:
+    ) -> list[RecoverRecord] | None:
         """load recover file of source ID(choose download path first)"""
         recover_path = self.get_path(
             source_id, rel=".recover", prefer="download"
@@ -424,28 +421,24 @@ class FileManager:
 
         import json
 
-        recovers: List[RecoverRecord] = json.loads(
+        recovers: list[RecoverRecord] = json.loads(
             recover_path.read_text(encoding="utf8")
         )
         return recovers
 
-    def get_all_files(self, source_id: LocalSourceID) -> Set[Path]:
+    def get_all_files(self, source_id: LocalSourceID) -> set[Path]:
         """get all files of source ID both in download and storage path"""
         source_name = id2source_name(source_id)
-        l1 = set(
-            [
-                i.relative_to(self.download_path / source_name)
-                for i in (self.download_path / source_name).rglob("*")
-                if not i.is_dir()
-            ]
-        )
-        l2 = set(
-            [
-                i.relative_to(self.storage_path / source_name)
-                for i in (self.storage_path / source_name).rglob("*")
-                if not i.is_dir()
-            ]
-        )
+        l1 = {
+            i.relative_to(self.download_path / source_name)
+            for i in (self.download_path / source_name).rglob("*")
+            if not i.is_dir()
+        }
+        l2 = {
+            i.relative_to(self.storage_path / source_name)
+            for i in (self.storage_path / source_name).rglob("*")
+            if not i.is_dir()
+        }
         return l1 | l2
 
     def get_cover_path(self, source_id: LocalSourceID) -> Path:

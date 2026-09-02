@@ -1,4 +1,4 @@
-from typing import Iterable, List
+from collections.abc import Iterable
 
 from .types import LocalSourceID, SourceID, SourceName
 
@@ -53,7 +53,7 @@ def id2source_name(source_id: LocalSourceID) -> SourceName:
     return SourceName(f"{prefix}{source}")
 
 
-def ids2source_names(source_ids: Iterable[LocalSourceID]) -> List[SourceName]:
+def ids2source_names(source_ids: Iterable[LocalSourceID]) -> list[SourceName]:
     return [id2source_name(id_) for id_ in source_ids]
 
 

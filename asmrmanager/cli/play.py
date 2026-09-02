@@ -1,3 +1,5 @@
+import sys
+
 import click
 
 from asmrmanager.cli.core import fm, rj_argument
@@ -31,6 +33,6 @@ def play(ctx: click.Context, source_id: LocalSourceID):
             f"No music files{MUSIC_SUFFIXES} found, please check your local"
             " file."
         )
-        exit(-1)
+        sys.exit(-1)
 
     ctx.invoke(lrc_play, path=path)

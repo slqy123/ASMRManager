@@ -1,8 +1,9 @@
 import functools
 import os
+import sys
 import uuid
 from functools import cache, lru_cache
-from typing import TYPE_CHECKING, Any, List, Literal, Tuple
+from typing import TYPE_CHECKING, Any, Literal
 
 import asyncstdlib
 import click
@@ -41,20 +42,20 @@ def create_database(
 ):  # skip_check is only used for migration
     from asmrmanager.database.manage import DataBaseManager
 
-    db = DataBaseManager(tag_filter=config.tag_filter or tuple())
+    db = DataBaseManager(tag_filter=config.tag_filter or ())
     if not skip_check and not db.check_db_updated():
         logger.error(
             "Your database is out dated, Please update your database schema"
             " with asmr utils migrate!"
         )
-        exit(-1)
+        sys.exit(-1)
     return db
 
 
 @cache
 def create_downloader_and_database(
     download_params: DownloadParams | None = None,
-) -> Tuple["ASMRDownloadManager", "DataBaseManager"]:
+) -> tuple["ASMRDownloadManager", "DataBaseManager"]:
     from asmrmanager.spider import ASMRDownloadManager
 
     db = create_database()
@@ -277,8 +278,8 @@ def save_source(rj: str):
 
 
 def convert2local_ids(
-    source_ids: List[SourceID],
-) -> List[LocalSourceID | None]:
+    source_ids: list[SourceID],
+) -> list[LocalSourceID | None]:
     downloader, db = create_downloader_and_database()
 
     @asyncstdlib.lru_cache(None)
@@ -305,8 +306,8 @@ def convert2local_id(x):
 
 
 def convert2remote_ids(
-    source_ids: List[SourceID],
-) -> List[RemoteSourceID | None]:
+    source_ids: list[SourceID],
+) -> list[RemoteSourceID | None]:
     downloader, db = create_downloader_and_database()
 
     @asyncstdlib.lru_cache(None)
@@ -354,12 +355,12 @@ def rj_argument(convert: Literal[False, "local", "remote"] = False):
                     "No previous source id available,"
                     " please first run a command with source id"
                 )
-                exit(-1)
+                sys.exit(-1)
 
             source_id = source2id(source)
             if source_id is None:
                 logger.error(f"Invalid input source id: {source}")
-                exit(-1)
+                sys.exit(-1)
             if convert == "local" and not is_local_source_id(source_id):
                 source_id = convert2local_id(source_id)
             elif convert == "remote" and not is_remote_source_id(source_id):
@@ -367,7 +368,7 @@ def rj_argument(convert: Literal[False, "local", "remote"] = False):
 
             if source_id is None:
                 logger.error(f"failed to convert to {convert} source id")
-                exit(-1)
+                sys.exit(-1)
 
             save_source(source)
             kwargs["source_id"] = source_id
@@ -386,9 +387,9 @@ def multi_rj_argument(convert: Literal[False, "local", "remote"] = False):
         @click.argument("source_ids", nargs=-1)
         @functools.wraps(f)
         def __(*args, **kwargs):
-            sources: Tuple[str] = kwargs["source_ids"]
+            sources: tuple[str] = kwargs["source_ids"]
             del kwargs["source_ids"]
-            source_ids: List[Any] = []
+            source_ids: list[Any] = []
             for source in sources:
                 source_id = source2id(source)
                 if source_id is None:
@@ -408,12 +409,12 @@ def multi_rj_argument(convert: Literal[False, "local", "remote"] = False):
                         "No previous source id available,"
                         " please first run a command with source id"
                     )
-                    exit(-1)
+                    sys.exit(-1)
 
                 source_id = source2id(source)
                 if source_id is None:
                     logger.error(f"Invalid input source id: {source}")
-                    exit(-1)
+                    sys.exit(-1)
 
                 if convert == "local":
                     source_id = convert2local_id(source_id)
@@ -422,7 +423,7 @@ def multi_rj_argument(convert: Literal[False, "local", "remote"] = False):
 
                 if source_id is None:
                     logger.error(f"failed to convert to {convert} source id")
-                    exit(-1)
+                    sys.exit(-1)
                 source_ids.append(source_id)
             elif len(source_ids) == 1:
                 save_source(str(source_ids[0]))
@@ -471,20 +472,17 @@ def time_interval_preprocess_cb(
     ctx: click.Context, opt: click.Parameter, val: str
 ):
     return tuple(
-        map(
-            lambda x: (
+        (
                 str(x) + "m"
                 if (x is not None) and (not isinstance(x, str))
                 else x
-            ),
-            interval_preprocess_cb(ctx, opt, val),
-        )
+            ) for x in interval_preprocess_cb(ctx, opt, val)
     )
 
 
 def pl_preprocess_cb(
-    ctx: click.Context, param: click.Option, val: str | Tuple[str, ...]
-) -> List[uuid.UUID]:
+    ctx: click.Context, param: click.Option, val: str | tuple[str, ...]
+) -> list[uuid.UUID]:
     def is_valid_uuid(v: str):
         try:
             uuid.UUID(v)

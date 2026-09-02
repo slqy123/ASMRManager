@@ -1,3 +1,5 @@
+import sys
+
 import click
 
 from asmrmanager.cli.core import (
@@ -76,7 +78,7 @@ def info_from_web(source_id: RemoteSourceID):
         downloader.downloader.get_voice_info(source_id)
     )
     if rj_info is None:
-        exit(1)
+        sys.exit(1)
 
     # logger.debug(rj_info)
 

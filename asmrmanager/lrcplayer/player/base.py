@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, NamedTuple
+from typing import NamedTuple
 
 from mutagen._file import File as MutagenFile
 
@@ -18,7 +18,9 @@ from ..lrcparse import LRC, LyricsData
 #     ],
 # )
 
-Music = NamedTuple("Music", [("path", Path), ("lrc", Path | None)])
+class Music(NamedTuple):
+    path: Path
+    lrc: Path | None
 
 
 @dataclass
@@ -30,11 +32,11 @@ class MusicInfo:
 class BasePlayer:
     STEP_TIME = 15
 
-    def __init__(self, music_list: List[Music]) -> None:
+    def __init__(self, music_list: list[Music]) -> None:
         self.music_list = music_list
         self.music_list_len = len(music_list)
         self._index = 0
-        self._music_info_list: List[MusicInfo | None] = [
+        self._music_info_list: list[MusicInfo | None] = [
             None for _ in range(self.music_list_len)
         ]
 

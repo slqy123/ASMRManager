@@ -25,5 +25,5 @@ class ASMRTagAPI(ASMRAPI):
         action: Literal["up", "down"],
     ):
         return await self._vote_tag(
-            tag_id, source_id, True if action == "up" else False
+            tag_id, source_id, action == "up"
         )

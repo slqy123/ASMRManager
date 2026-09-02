@@ -1,6 +1,8 @@
 import math
-from datetime import date
-from typing import Any, Dict, Sequence, Union, cast
+import sys
+from collections.abc import Sequence
+from datetime import UTC, date, datetime
+from typing import Any, cast
 
 import sqlalchemy.orm
 from sqlalchemy import event, text
@@ -30,8 +32,8 @@ def create_math_functions_on_connect(dbapi_connection, connection_record):
 class DataBaseManager:
     def __init__(
         self,
-        engine: Union[Engine, None] = None,
-        tag_filter: Sequence[str] = tuple(),
+        engine: Engine | None = None,
+        tag_filter: Sequence[str] = (),
     ):
         self.engine = engine or get_engine()
         event.listens_for(self.engine, "connect")(
@@ -54,7 +56,7 @@ class DataBaseManager:
 
     def check_exists(
         self, source_id: LocalSourceID | RemoteSourceID
-    ) -> Union[ASMRInstance, None]:
+    ) -> ASMRInstance | None:
         return (
             self.session.query(ASMR).get(source_id)
             or self.session.query(ASMR)
@@ -63,7 +65,7 @@ class DataBaseManager:
         )
 
     @classmethod
-    def parse_info(cls, info: Dict[str, Any]) -> ASMRInstance:
+    def parse_info(cls, info: dict[str, Any]) -> ASMRInstance:
         source = info.get("source_id")
         assert isinstance(source, str)
         source_id = source2id(source)
@@ -95,13 +97,13 @@ class DataBaseManager:
                 tag.en_name = tag_info["i18n"]["en-us"]["name"]
             else:
                 # assert tag.id == 10000
-                assert getattr(tag, "id") == 10000
+                assert tag.id == 10000
             asmr.tags.append(tag)
         return asmr
 
     def add_info(
         self,
-        info: Dict[str, Any],
+        info: dict[str, Any],
         check: bool = True,
         tag_strategy: str = "common_only",
     ) -> bool:
@@ -185,18 +187,18 @@ class DataBaseManager:
     ):
         if not (asmr := self.check_exists(source_id)):
             logger.error("Incorrect RJ ID, no item in database!")
-            exit(-1)
+            sys.exit(-1)
 
         asmr.count += 1
 
         if star is not None:
             if (not isinstance(star, int)) or star < 1 or star > 5:
                 logger.error("Your star should be a integer between 1 and 5")
-                exit(-1)
+                sys.exit(-1)
             asmr.star = star
 
         if comment is not None:
-            comment = f"{date.today()}: {comment}\n"
+            comment = f"{datetime.now(UTC).astimezone().date()}: {comment}\n"
             asmr.comment += comment
 
         if update_stored:
@@ -212,7 +214,7 @@ class DataBaseManager:
 
         asmr.held = True
         if comment is not None:
-            comment = f"{date.today()}: {comment}\n"
+            comment = f"{datetime.now(UTC).astimezone().date()}: {comment}\n"
             asmr.comment += comment
 
     def execute(self, sql: str) -> ResultProxy | Result:

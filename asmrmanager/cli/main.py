@@ -21,14 +21,14 @@ from asmrmanager.cli.vote import vote
 from asmrmanager.cli.which import which
 from asmrmanager.logger import logger
 
-CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
 sys.stderr.reconfigure(encoding="utf-8")  # type: ignore
 
 
 class OrderedGroup(click.Group):
     def __init__(self, name=None, commands=None, **attrs):
-        super(OrderedGroup, self).__init__(name, commands, **attrs)
+        super().__init__(name, commands, **attrs)
         #: the registered subcommands by their exported names.
         self.commands: Any = commands or collections.OrderedDict()
 

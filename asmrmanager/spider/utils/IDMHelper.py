@@ -6,7 +6,7 @@ Version v1.0.2 | 2021.11.28
 from functools import cache
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Optional
+from typing import Any
 
 from comtypes import client  # type: ignore
 from comtypes.automation import VT_EMPTY
@@ -73,12 +73,12 @@ class IDMHelper:
         output_folder: str,
         output_file_name: str,
         flag: int,
-        referer: Optional[str] = None,
-        cookies: Optional[str] = None,
-        post_data: Optional[str] = None,
-        user_name: Optional[str] = None,
-        password: Optional[str] = None,
-        user_agent: Optional[str] = None,
+        referer: str | None = None,
+        cookies: str | None = None,
+        post_data: str | None = None,
+        user_name: str | None = None,
+        password: str | None = None,
+        user_agent: str | None = None,
     ) -> None:
         # common
         self.url = url

@@ -1,5 +1,6 @@
+import sys
 from pathlib import Path
-from typing import List, Literal, Optional
+from typing import Literal
 
 import click
 
@@ -29,7 +30,7 @@ def migrate():
     db = create_database(skip_check=True)
     if db.check_db_updated():
         logger.error("Database already updated")
-        exit(-1)
+        sys.exit(-1)
     db.session.execute(text("ALTER TABLE asmr ADD COLUMN remote_id integer;"))
     db.session.execute(text("UPDATE asmr SET remote_id = id;"))
     db.session.commit()
@@ -58,7 +59,7 @@ def convert(
     path = fm.get_path(source_id, prefer=dst)
     if path is None:
         logger.error("Source not found")
-        exit(-1)
+        sys.exit(-1)
     if mode == "lrc":
         for vtt_path in path.rglob("*.vtt"):
             convert_vtt2lrc(vtt_path)
@@ -105,7 +106,7 @@ def convert(
 )
 def subtitle(
     source_id: LocalSourceID,
-    output: Optional[Path],
+    output: Path | None,
     force: bool = False,
 ):
     """generate LRC subtitles for audio files using the Whisper model"""
@@ -128,11 +129,11 @@ def subtitle(
             f"No music files{MUSIC_SUFFIXES} found, please check your local"
             " file."
         )
-        exit(-1)
+        sys.exit(-1)
 
     assert path.is_dir()
 
-    audio_paths: List[Path] = []
+    audio_paths: list[Path] = []
     for file in path.iterdir():
         if file.is_dir():
             continue
@@ -171,7 +172,7 @@ def fetch_all_covers():
     @concurrent_rate_limit(4, 8)
     async def download_cover(remote_id: RemoteSourceID, save_path: Path):
         image_data: bytes = await downloader.api.get_cover(remote_id)
-        with open(save_path / "cover.jpg", "wb") as f:
+        with open(save_path / "cover.jpg", "wb") as f:  # noqa: ASYNC230
             f.write(image_data)
         logger.info("Successfully write cover to %s", save_path)
 

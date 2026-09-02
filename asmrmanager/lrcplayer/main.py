@@ -1,7 +1,7 @@
 import time
 from pathlib import Path
 from time import monotonic
-from typing import List
+from typing import ClassVar
 
 import click
 from textual.app import App, ComposeResult
@@ -19,7 +19,7 @@ from .player.base import Music
 
 class LRCPlayer(App):
     CSS_PATH = "main.css"
-    BINDINGS = [
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("space", "pause", "暂停"),
         ("j", "forward", "快进"),
         ("k", "backward", "快退"),
@@ -31,7 +31,7 @@ class LRCPlayer(App):
     LRC_NEXT = 1
     OPERATION_FREQ = 0.05
 
-    def __init__(self, episodes: List[Music], *args, **kwargs):
+    def __init__(self, episodes: list[Music], *args, **kwargs):
         episodes = sorted(episodes, key=lambda x: x.path)
         self.episodes = episodes
         match config.player:
@@ -171,7 +171,7 @@ def main(path: Path):
         FileManager.init_mpd()
 
     # 每个元素是一个元组，包含了文件名和歌词文件名，如果没有歌词则为None
-    episodes: List[Music] = []
+    episodes: list[Music] = []
     assert path.is_dir()
 
     for file in path.iterdir():

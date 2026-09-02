@@ -3,7 +3,7 @@ import os
 import time
 from pathlib import Path
 from subprocess import run
-from typing import Any, List, Literal, NamedTuple
+from typing import Any, Literal, NamedTuple
 
 from asmrmanager.config import config
 from asmrmanager.filemanager.manager import FileManager
@@ -19,16 +19,12 @@ except ImportError:
         " dependency."
     )
 
-MPDStatus = NamedTuple(
-    "MPDStatus",
-    [
-        ("playlistlength", int),
-        ("state", Literal["play", "pause", "stop"]),
-        ("song", int),
-        ("total_time", int),
-        ("pos", int),
-    ],
-)
+class MPDStatus(NamedTuple):
+    playlistlength: int
+    state: Literal["play", "pause", "stop"]
+    song: int
+    total_time: int
+    pos: int
 
 import threading
 
@@ -75,7 +71,7 @@ class MPDPlayer(BasePlayer):
             total_time=int(float(self.__status.get("duration", 0)) * 1000),
         )
 
-    def __init__(self, music_list: List[Music]) -> None:
+    def __init__(self, music_list: list[Music]) -> None:
         super().__init__(music_list)
 
         # d = uuid.uuid1()
@@ -137,7 +133,7 @@ class MPDPlayer(BasePlayer):
     def pos(self, pos: int) -> None:
         if self._status.state == "stop":
             return
-        self.client.seekcur((pos / 1000))
+        self.client.seekcur(pos / 1000)
         # self.__update_status()
         # self.client.pause()
         # self.client.pause()
