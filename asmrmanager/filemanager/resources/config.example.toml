@@ -33,7 +33,7 @@ download_path = "~/Downloads/asmr"
 storage_path = "~/Music/asmr"
 
 # [可选]
-# 使用asmr view 的时候会在这个位置创建一个软链接或压缩文件，方便查找。
+# 使用asmr view 的时候会在这个位置创建一个副本、软链接或压缩文件，方便查找。
 # 如不使用 view 方法可以设为空
 view_path = "~/Desktop/asmr"
 

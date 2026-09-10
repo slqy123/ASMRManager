@@ -22,19 +22,34 @@ def view():
 @click.command()
 @rj_argument("local")
 @click.option(
-    "--mode",
-    "-m",
-    type=click.Choice(["link", "zip", "adb", "copy"]),
-    default="zip",
-    show_default=True,
+    "--zip",
+    "mode",
+    flag_value="zip",
+    help="zip the chosen folder to view path",
 )
-def add(source_id: LocalSourceID, mode: Literal["link", "zip", "adb", "copy"]):
-    """add an ASMR to view path (use zip by default)"""
+@click.option(
+    "--link",
+    "mode",
+    flag_value="link",
+    help="symlink the chosen folder to view path",
+)
+@click.option(
+    "--no-cover",
+    is_flag=True,
+    default=False,
+    help="do not copy cover.jpg",
+)
+def add(
+    source_id: LocalSourceID,
+    mode: Literal["zip", "link"] | None,
+    no_cover: bool,
+):
+    """add an ASMR to view path (use copy by default)"""
     from asmrmanager.cli.core import fm
     from asmrmanager.filemanager.utils import folder_chooser
 
-    src = fm.get_path(source_id)
-    if src is None:
+    root = fm.get_path(source_id)
+    if root is None:
         raise SrcNotExistsException
 
     rj_name = id2source_name(source_id)
@@ -49,17 +64,26 @@ def add(source_id: LocalSourceID, mode: Literal["link", "zip", "adb", "copy"]):
         logger.warning("%s already exists, use %s instead", rj_name, dst)
         # raise DstItemAlreadyExistsException
 
-    src = folder_chooser(src)
+    src = folder_chooser(root)
+    ignore: set[str] = set()
+    if src == root:
+        ignore = {".recover", f"{rj_name}.json"}
+        if no_cover:
+            ignore.add("cover.jpg")
 
     match mode:
         case "zip":
-            fm.zip_file(src, dst)
+            fm.zip_file(src, dst, ignore)
         case "link":
-            fm.link(src, dst)
-        case "copy":
-            fm._copy(src, dst, depth=1)
-        case "adb":
-            raise NotImplementedError
+            if ignore:
+                dst.mkdir(parents=True)
+                for child in src.iterdir():
+                    if child.name not in ignore:
+                        fm.link(child, dst / child.name)
+            else:
+                fm.link(src, dst)
+        case _:
+            fm._copy(src, dst, depth=1, ignore=ignore)
 
 
 @click.command("list")

@@ -97,7 +97,7 @@ pip install ASMRManager[依赖]
 - `info` 搜索某个 RJID 的具体信息
 - `file check` 检查下载目录下的文件是否按照规则被正确下载，并验证文件完整性
 - `file store` 将下载文件转移到存储目录(STORAGE_PATH)，并执行相应文件格式转换(详情见config.toml的before_store字段)
-- `view` 将选择文件并移动到 VIEW_PATH
+- `view` 选择文件并复制到 VIEW_PATH
 - `pl add` 将某个音声添加到用户的云端播放列表(配合 `pl create` 使用)
 - `pl vote up/down/add` 对相关标签进行投票，或添加新标签
 - `review` 为某个作品评分并评论(本地)

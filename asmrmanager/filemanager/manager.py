@@ -231,7 +231,12 @@ class FileManager:
             os.symlink(src, dst)
 
     @staticmethod
-    def _copy(src: Path, dst: Path, depth: int = -1):
+    def _copy(
+        src: Path,
+        dst: Path,
+        depth: int = -1,
+        ignore: set[str] | None = None,
+    ):
         if src.is_file():
             shutil.copyfile(src, dst)
             return
@@ -242,7 +247,11 @@ class FileManager:
         dst.mkdir(parents=True, exist_ok=True)
 
         for subfile in src.iterdir():
-            FileManager._copy(subfile, dst / subfile.name, depth - 1)
+            if subfile.name in (ignore or ()):
+                continue
+            FileManager._copy(
+                subfile, dst / subfile.name, depth - 1, ignore
+            )
 
     def remove_view(self, source_id: LocalSourceID):
         assert self.could_view()
@@ -282,10 +291,10 @@ class FileManager:
                 continue
             yield LocalSourceID(rj_id)
 
-    def zip_file(self, src: Path, dst: Path):
+    def zip_file(self, src: Path, dst: Path, ignore: set[str] | None = None):
         from asmrmanager.filemanager.file_zipper import zip_chosen_folder
 
-        zip_chosen_folder(src, dst)
+        zip_chosen_folder(src, dst, ignore)
 
     def get_location(
         self,
