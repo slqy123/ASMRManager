@@ -148,7 +148,7 @@ class FileManager:
         assert self.could_store()
         rj_name = id2source_name(source_id)
         if not os.path.exists(self.download_path / rj_name):
-            logger.warning("item %s does not exist, skip it", rj_name)
+            logger.debug("item %s does not exist in download path, skip it", rj_name)
             return
 
         if hook is not None:
