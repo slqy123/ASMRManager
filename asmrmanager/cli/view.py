@@ -1,5 +1,3 @@
-from typing import Literal
-
 import click
 
 from asmrmanager.cli.core import (
@@ -22,28 +20,12 @@ def view():
 @click.command()
 @rj_argument("local")
 @click.option(
-    "--zip",
-    "mode",
-    flag_value="zip",
-    help="zip the chosen folder to view path",
-)
-@click.option(
-    "--link",
-    "mode",
-    flag_value="link",
-    help="symlink the chosen folder to view path",
-)
-@click.option(
     "--no-cover",
     is_flag=True,
     default=False,
     help="do not copy cover.jpg",
 )
-def add(
-    source_id: LocalSourceID,
-    mode: Literal["zip", "link"] | None,
-    no_cover: bool,
-):
+def add(source_id: LocalSourceID, no_cover: bool):
     """add an ASMR to view path (use copy by default)"""
     from asmrmanager.cli.core import fm
     from asmrmanager.filemanager.utils import folder_chooser
@@ -68,22 +50,13 @@ def add(
     ignore: set[str] = set()
     if src == root:
         ignore = {".recover", f"{rj_name}.json"}
-        if no_cover:
-            ignore.add("cover.jpg")
+    if no_cover:
+        ignore.add("cover.jpg")
 
-    match mode:
-        case "zip":
-            fm.zip_file(src, dst, ignore)
-        case "link":
-            if ignore:
-                dst.mkdir(parents=True)
-                for child in src.iterdir():
-                    if child.name not in ignore:
-                        fm.link(child, dst / child.name)
-            else:
-                fm.link(src, dst)
-        case _:
-            fm._copy(src, dst, depth=1, ignore=ignore)
+    fm._copy(src, dst, depth=1, ignore=ignore)
+    cover = root / "cover.jpg"
+    if not no_cover and src != root and cover.is_file():
+        fm._copy(cover, dst / cover.name)
 
 
 @click.command("list")
