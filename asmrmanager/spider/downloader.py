@@ -171,6 +171,37 @@ class ASMRDownloader:
             await self.download_cover(voice_id, voice_path)
         await self.create_dir_and_download(file_list)
 
+    async def update(self, voice_id: RemoteSourceID) -> None:
+        voice_info = await self.api.get_voice_info(voice_id, refresh=True)
+        if voice_info is None:
+            raise DownloadError(f"Failed to get info for work {voice_id}.")
+
+        local_source_id = source_name2id(voice_info["source_id"])
+        if local_source_id is None:
+            raise DownloadError(f"Failed to convert {voice_id} to local id.")
+        voice_path = fm.get_path(local_source_id, prefer="download")
+        if voice_path is None:
+            raise DownloadError(
+                f"Failed to get the path for source id {local_source_id}."
+            )
+        assert voice_path.name == voice_info["source_id"]
+        if not voice_path.exists():
+            logger.warning(
+                "There are no such files in your storage path for"
+                f" RJ{voice_id}"
+            )
+
+        voice_path.mkdir(parents=True, exist_ok=True)
+        self.create_info_file(voice_info, voice_path)
+
+        tracks = await self.api.get_voice_tracks(voice_id)
+        if tracks is None:
+            raise DownloadError(f"Failed to get tracks for work {voice_id}.")
+
+        file_list_with_order = self.get_file_list(tracks, voice_path)
+        file_list = self.apply_filename_filter(file_list_with_order)
+        self.create_recover_file(file_list, voice_path)
+
     def create_recover_file(
         self,
         file_list: list[FileInfo],

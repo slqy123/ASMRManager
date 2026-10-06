@@ -18,7 +18,7 @@ from asmrmanager.logger import logger
 from asmrmanager.spider.asmrapi import ASMRAPI, APIError
 from asmrmanager.spider.auth import AuthenticationError
 
-from .downloader import ASMRDownloader, BackendError, DownloadError
+from .downloader import ASMRDownloader, BackendError
 
 fm = FileManager.get_fm()
 
@@ -220,51 +220,7 @@ class ASMRDownloadManager(AsyncManager):
         await self.get(ids)
 
     async def update(self, ids: list[RemoteSourceID]) -> list[RemoteSourceID]:
-        async def update_one(source_id_: RemoteSourceID) -> None:
-            voice_info = await self.api.get_voice_info(source_id_, refresh=True)
-            if voice_info is None:
-                raise DownloadError(f"Failed to get info for work {source_id_}.")
-
-            # should_down = self.spider.json_should_download(voice_info)
-            # if not should_down:
-            #     logger.info(f"stop download {rj_id_}")
-            #     return
-
-            local_source_id = source_name2id(voice_info["source_id"])
-            if local_source_id is None:
-                raise DownloadError(f"Failed to convert {source_id_} to local id.")
-            voice_path = fm.get_path(
-                local_source_id,
-                prefer="download",
-            )
-            if voice_path is None:
-                raise DownloadError(
-                    f"Failed to get the path for source id {local_source_id}."
-                )
-            # voice_path = save_path / id2source_name(local_source_id)
-            assert voice_path.name == voice_info["source_id"]
-            if not voice_path.exists():
-                logger.warning(
-                    "There are no such files in your storage path for"
-                    f" RJ{source_id_}"
-                )
-
-            voice_path.mkdir(parents=True, exist_ok=True)
-            self.downloader.create_info_file(voice_info, voice_path)
-
-            tracks = await self.api.get_voice_tracks(source_id_)
-            if tracks is None:
-                raise DownloadError(f"Failed to get tracks for work {source_id_}.")
-
-            file_list_with_order = self.downloader.get_file_list(
-                tracks, voice_path
-            )
-            file_list = self.downloader.apply_filename_filter(
-                file_list_with_order
-            )
-            self.downloader.create_recover_file(file_list, voice_path)
-
-        return await self._process_works(ids, update_one)
+        return await self._process_works(ids, self.downloader.update)
 
     async def get_recommendations(self, page: int = 1) -> list[RemoteSourceID]:
         res = await self.api.get_recommendations(page)
