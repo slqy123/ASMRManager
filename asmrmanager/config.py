@@ -127,7 +127,7 @@ if env_concurrency_limit := os.getenv("ASMR_CONCURRENCY_LIMIT"):
             "ASMR_CONCURRENCY_LIMIT must be a pair of integers."
         ) from None
     if (
-        not isinstance(limits, tuple)
+        not isinstance(limits, (tuple, list))
         or len(limits) != 2
         or any(type(value) is not int for value in limits)
         or limits[0] <= 0

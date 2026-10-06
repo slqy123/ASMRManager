@@ -1,5 +1,4 @@
 import asyncio
-import json
 import math
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -119,4 +118,4 @@ class HTTPTransport:
                     content = await response.read()
         if binary:
             return content
-        return json.loads(content) if content.strip() else None
+        return await response.json()

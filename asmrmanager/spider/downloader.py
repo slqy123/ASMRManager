@@ -274,7 +274,12 @@ class ASMRDownloader:
             return
 
         logger.info("Submitting download: %s", file_path)
-        await self.download_file(url, save_path, file_name)
+        try:
+            await self.download_file(url, save_path, file_name)
+        except (ModuleNotFoundError, DownloadError):
+            raise
+        except Exception as exc:
+            raise DownloadError(f"Failed to submit {file_path}: {exc}") from exc
 
     def create_info_file(self, voice_info: dict[str, Any], voice_path: Path):
         source_name = voice_info["source_id"]
