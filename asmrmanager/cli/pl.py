@@ -12,7 +12,7 @@ from asmrmanager.cli.core import (
     multi_rj_argument,
     pl_preprocess_cb,
 )
-from asmrmanager.common.output import print_table
+from asmrmanager.common.output import print_table, support_image
 from asmrmanager.common.types import PlayListItem, RemoteSourceID
 
 
@@ -109,7 +109,35 @@ def create(
 def show(pl_id: uuid.UUID):
     """show asmrs in the playlist"""
     pl = create_playlist()
-    pl.run(pl.show(pl_id))
+    works = pl.run(pl.show(pl_id))[0]
+    print_table(
+        titles=[
+            "id",
+            "title",
+            "circle_name",
+            "nsfw",
+            "subtitle",
+            "dl_count",
+            "voice_actors",
+        ],
+        rows=[
+            (
+                work["source_id"],
+                work["title"],
+                work["circle"]["name"],
+                work["nsfw"],
+                work["has_subtitle"],
+                work["dl_count"],
+                ",".join(va["name"] for va in work["vas"]),
+            )
+            for work in works
+        ],
+        image_paths=(
+            pl.run(*(pl.get_cover_path(work) for work in works))
+            if support_image()
+            else None
+        ),
+    )
 
 
 pl.add_command(list_)

@@ -415,7 +415,9 @@ class ASMRPlayListManager(AsyncManager):
             raise APIError(f"Unexpected response when adding works to {pl_id}.")
         logger.info(f"Sucessfully add works to playlist {pl_id}.")
 
-    async def show(self, pl_id: uuid.UUID, page_size: int = 12):
+    async def show(
+        self, pl_id: uuid.UUID, page_size: int = 12
+    ) -> builtins.list[dict[str, Any]]:
         page = 1
         works, total_count = await self.api.show_works_in_playlist(
             pl_id, page, page_size
@@ -430,32 +432,7 @@ class ASMRPlayListManager(AsyncManager):
                 f"fetching works in playlist {pl_id}: {len(works)}/{total_count}"
             )
 
-        titles = [
-            "id",
-            "title",
-            "circle_name",
-            "nsfw",
-            "subtitle",
-            "dl_count",
-            "voice_actors",
-        ]
-        print_table(
-            titles=titles,
-            rows=[(
-                        w["source_id"],
-                        w["title"],
-                        w["circle"]["name"],
-                        w["nsfw"],
-                        w["has_subtitle"],
-                        w["dl_count"],
-                        ",".join([va["name"] for va in w["vas"]]),
-                    ) for w in works],
-            image_paths=[
-                *await asyncio.gather(*[self.get_cover_path(w) for w in works])
-            ]
-            if support_image()
-            else None,
-        )
+        return works
 
 
 @dataclass
