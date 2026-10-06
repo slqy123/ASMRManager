@@ -496,7 +496,7 @@ class ASMRTagManager(AsyncManager):
         self.api = ASMRTagAPI(name, password, proxy, limit)
 
     async def get_asmr_tags(self, source_id: RemoteSourceID):
-        voice_info = await ASMRDownloadAPI.get_voice_info(self.api, source_id)  # type: ignore
+        voice_info = await self.api.get_voice_info(source_id)
         assert voice_info is not None, "Failed to get voice info."
         return [ASMRTag(**i) for i in voice_info["tags"]]
 

@@ -12,8 +12,6 @@ from typing import (
     TypeVar,
 )
 
-import asyncstdlib
-
 from asmrmanager.common import MUSIC_SUFFIXES
 from asmrmanager.common.rj_parse import id2source_name, source_name2id
 from asmrmanager.common.types import RemoteSourceID
@@ -21,7 +19,6 @@ from asmrmanager.config import Aria2Config
 from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
 from asmrmanager.spider.asmrapi import ASMRAPI
-from asmrmanager.spider.utils.concurrency import concurrent_rate_limit
 
 T = TypeVar("T", bound="ASMRDownloadAPI")
 
@@ -228,44 +225,6 @@ class ASMRDownloadAPI(ASMRAPI):
         ]
         with open(voice_path / ".recover", "w", encoding="utf-8") as f:
             json.dump(recover, f, ensure_ascii=False, indent=4)
-
-    @asyncstdlib.lru_cache(None)
-    @concurrent_rate_limit()
-    async def get_voice_info(
-        self, voice_id: RemoteSourceID
-    ) -> dict[str, Any] | None:
-        logger.debug("Get voice info: %d", voice_id)
-        voice_info = await self.get(f"work/{voice_id}")
-        assert isinstance(voice_info, dict)
-        # logger.debug(f"get voice info: {voice_info}")
-        if err := voice_info.get("error"):
-            logger.error(f"failed to get info of {voice_id}. error: {err}")
-            return None
-        return voice_info
-
-    @concurrent_rate_limit()
-    async def get_voice_tracks(self, voice_id: RemoteSourceID):
-        tracks: list[dict] | dict = await self.get(
-            f"tracks/{voice_id}", params={"v": 2}
-        )
-        if isinstance(tracks, dict):
-            if error_info := tracks.get("error"):
-                logger.error(f"Remote id {voice_id} error, {error_info}")
-                if error_info.strip() == "No tracks found":
-                    asmr_web_url = self.base_api_url.replace(
-                        "/api/", ""
-                    ).replace("api.", "")
-                    logger.error(
-                        "I seems to be a problem with the server "
-                        "that has missing files.\n"
-                        "Try giving feedback there: "
-                        f"{asmr_web_url}/work/{voice_id}"
-                    )
-                return None
-            else:
-                logger.error("Unexpected track type: dict")
-                return None
-        return tracks
 
     @staticmethod
     async def download_by_idm(

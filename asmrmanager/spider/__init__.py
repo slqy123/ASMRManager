@@ -8,7 +8,7 @@ concurrent_rate_limit.__defaults__ = (
     config.api_max_requests_per_second,
 )
 
-from .downloader import ASMRAPI
+from .asmrapi import ASMRAPI
 from .interface import ASMRDownloadManager, ASMRGeneralManager, ASMRTagManager
 
 __all__ = [
