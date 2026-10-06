@@ -162,14 +162,15 @@ def fetch_all_covers():
     """
     fetch all covers for works in storage path
     """
-    from asmrmanager.cli.core import create_downloader_and_database
+    from asmrmanager.cli.core import create_database, create_general_api
     from asmrmanager.database.database import ASMR
 
-    downloader, db = create_downloader_and_database()
+    manager = create_general_api()
+    db = create_database()
     tasks = []
 
     async def download_cover(remote_id: RemoteSourceID, save_path: Path):
-        image_data: bytes = await downloader.api.get_cover(remote_id)
+        image_data: bytes = await manager.api.get_cover(remote_id)
         with open(save_path / "cover.jpg", "wb") as f:  # noqa: ASYNC230
             f.write(image_data)
         logger.info("Successfully write cover to %s", save_path)
@@ -185,7 +186,7 @@ def fetch_all_covers():
                 continue
             tasks.append(download_cover(remote_id, save_path))
 
-    downloader.run(*tasks)
+    manager.run(*tasks)
 
 
 utils.add_command(migrate)

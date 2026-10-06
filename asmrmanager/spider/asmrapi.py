@@ -1,4 +1,3 @@
-import os
 import uuid
 from typing import Any, Literal, Self
 
@@ -17,12 +16,6 @@ from asmrmanager.spider.transport import HTTPTransport
 
 
 class ASMRAPI:
-    base_api_url = DEFAULT_API_URL
-
-    @classmethod
-    def set_api_channel(cls, api_channel: str):
-        cls.base_api_url = f"https://{api_channel}/api/"
-
     def __init__(
         self,
         name: str,
@@ -30,8 +23,9 @@ class ASMRAPI:
         proxy: str | None,
         limit: int,
         max_rps: float = 4,
+        base_url: str = DEFAULT_API_URL,
     ) -> None:
-        self.base_api_url = type(self).base_api_url
+        self.base_api_url = base_url
         self.auth = LoginAuth(name, password, self.base_api_url, CACHE_PATH)
         self.transport = HTTPTransport(self.base_api_url, proxy, limit, max_rps)
 
@@ -252,6 +246,3 @@ class ASMRAPI:
     async def __aexit__(self, *args) -> None:
         await self.transport.__aexit__(*args)
 
-
-if api_channel := os.getenv("ASMR_CUSTOM_API_CHANNEL"):
-    ASMRAPI.set_api_channel(api_channel)

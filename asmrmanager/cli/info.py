@@ -5,7 +5,7 @@ import click
 from asmrmanager.cli.core import (
     convert2remote_id,
     create_database,
-    create_downloader_and_database,
+    create_general_api,
     rj_argument,
 )
 from asmrmanager.common.output import support_image
@@ -57,9 +57,9 @@ def print_asmr_info(asmr: ASMRInstance):
         return
     from textual_image.renderable import Image
 
-    downloader, _ = create_downloader_and_database()
-    (image_path,) = downloader.run(
-        downloader.get_cover_path(
+    manager = create_general_api()
+    (image_path,) = manager.run(
+        manager.get_cover_path(
             {"id": asmr.remote_id, "source_id": id2source_name(asmr.id)}
         )
     )
@@ -73,10 +73,9 @@ def print_asmr_info(asmr: ASMRInstance):
 
 
 def info_from_web(source_id: RemoteSourceID):
-    downloader, db = create_downloader_and_database()
-    (rj_info,) = downloader.run(
-        downloader.api.get_voice_info(source_id)
-    )
+    manager = create_general_api()
+    db = create_database()
+    (rj_info,) = manager.run(manager.api.get_voice_info(source_id))
     if rj_info is None:
         sys.exit(1)
 

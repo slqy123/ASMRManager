@@ -23,17 +23,27 @@ from asmrmanager.config import config
 from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
 
-# from asmrmanager.spider.asmrapi import ASMRAPI
-
 fm = FileManager.get_fm()
-
-if config.api_channel:
-    os.environ["ASMR_CUSTOM_API_CHANNEL"] = config.api_channel
-    # ASMRAPI.set_api_channel(config.api_channel)
 
 if TYPE_CHECKING:
     from asmrmanager.database.manage import DataBaseManager
     from asmrmanager.spider import ASMRDownloadManager
+
+
+def create_api_client():
+    from asmrmanager.spider import ASMRAPI
+    from asmrmanager.spider.auth import DEFAULT_API_URL
+
+    api_channel = config.api_channel or os.getenv("ASMR_CUSTOM_API_CHANNEL")
+    base_url = f"https://{api_channel}/api/" if api_channel else DEFAULT_API_URL
+    return ASMRAPI(
+        name=config.username,
+        password=config.password,
+        proxy=config.proxy,
+        limit=config.api_max_concurrent_requests,
+        max_rps=config.api_max_requests_per_second,
+        base_url=base_url,
+    )
 
 
 @cache
@@ -52,7 +62,6 @@ def create_database(
     return db
 
 
-@cache
 def create_downloader_and_database(
     download_params: DownloadParams | None = None,
 ) -> tuple["ASMRDownloadManager", "DataBaseManager"]:
@@ -70,9 +79,7 @@ def create_downloader_and_database(
 
     return (
         ASMRDownloadManager(
-            name=config.username,
-            password=config.password,
-            proxy=config.proxy,
+            api=create_api_client(),
             id_should_download=(
                 (lambda _: True)
                 if download_params.force
@@ -91,8 +98,6 @@ def create_downloader_and_database(
             replace=download_params.replace,
             download_method=config.download_method,
             aria2_config=config.aria2_config,
-            limit=config.api_max_concurrent_requests,
-            max_rps=config.api_max_requests_per_second,
             fetch_cover=config.fetch_cover,
             tagger=config.default_tagger,
         ),
@@ -100,43 +105,22 @@ def create_downloader_and_database(
     )
 
 
-@cache
 def create_playlist():
     from asmrmanager.spider.interface import ASMRPlayListManager
 
-    return ASMRPlayListManager(
-        name=config.username,
-        password=config.password,
-        proxy=config.proxy,
-        limit=config.api_max_concurrent_requests,
-        max_rps=config.api_max_requests_per_second,
-    )
+    return ASMRPlayListManager(api=create_api_client())
 
 
-@cache
 def create_tags_api():
     from asmrmanager.spider import ASMRTagManager
 
-    return ASMRTagManager(
-        name=config.username,
-        password=config.password,
-        proxy=config.proxy,
-        limit=config.api_max_concurrent_requests,
-        max_rps=config.api_max_requests_per_second,
-    )
+    return ASMRTagManager(api=create_api_client())
 
 
-@cache
 def create_general_api():
     from asmrmanager.spider import ASMRGeneralManager
 
-    return ASMRGeneralManager(
-        name=config.username,
-        password=config.password,
-        proxy=config.proxy,
-        limit=config.api_max_concurrent_requests,
-        max_rps=config.api_max_requests_per_second,
-    )
+    return ASMRGeneralManager(api=create_api_client())
 
 
 def browse_param_options(f):
@@ -284,7 +268,8 @@ def save_source(rj: str):
 def convert2local_ids(
     source_ids: list[SourceID],
 ) -> list[LocalSourceID | None]:
-    downloader, db = create_downloader_and_database()
+    manager = create_general_api()
+    db = create_database()
 
     @asyncstdlib.lru_cache(None)
     async def convert2local_id(source_id: SourceID):
@@ -294,13 +279,13 @@ def convert2local_ids(
         res = db.func.get_local_id(source_id)
         if res is not None:
             return LocalSourceID(SourceID(res))
-        info = await downloader.api.get_voice_info(source_id)
+        info = await manager.api.get_voice_info(source_id)
         if info is None:
             logger.warning(f"failed to convert {source_id} to local id")
             return None
         return LocalSourceID(source_name2id(info["source_id"]))
 
-    return downloader.run(
+    return manager.run(
         *[convert2local_id(remote_id) for remote_id in source_ids]
     )
 
@@ -312,7 +297,8 @@ def convert2local_id(x):
 def convert2remote_ids(
     source_ids: list[SourceID],
 ) -> list[RemoteSourceID | None]:
-    downloader, db = create_downloader_and_database()
+    manager = create_general_api()
+    db = create_database()
 
     @asyncstdlib.lru_cache(None)
     async def convert2remote_id(source_id: SourceID):
@@ -323,7 +309,7 @@ def convert2remote_ids(
         if remote_id is not None:
             return RemoteSourceID(SourceID(remote_id))
         source_name = id2source_name(source_id)
-        res = await downloader.api.get_search_result(source_name, {})
+        res = await manager.api.get_search_result(source_name, {})
         works = res["works"]
         if len(works) == 0:
             logger.warning(f"no remote resources for {source_name}")
@@ -335,7 +321,7 @@ def convert2remote_ids(
             )
         return works[0]["id"]
 
-    return downloader.run(
+    return manager.run(
         *[convert2remote_id(local_id) for local_id in source_ids]
     )
 

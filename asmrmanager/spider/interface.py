@@ -68,9 +68,7 @@ class AsyncManager:
 class ASMRDownloadManager(AsyncManager):
     def __init__(
         self,
-        name: str,
-        password: str,
-        proxy: str | None,
+        api: ASMRAPI,
         id_should_download: Callable[[RemoteSourceID], bool] | None = None,
         json_should_download: Callable[[dict[str, Any]], bool] | None = None,
         name_should_download: (
@@ -79,12 +77,10 @@ class ASMRDownloadManager(AsyncManager):
         replace=False,
         download_method: Literal["aria2", "idm"] = "idm",
         aria2_config: Aria2Config | None = None,
-        limit: int = 4,
         fetch_cover: bool = False,
         tagger: Literal["tag", "tagw"] = "tag",
-        max_rps: float = 4,
     ):
-        super().__init__(ASMRAPI(name, password, proxy, limit, max_rps))
+        super().__init__(api)
         self.downloader = ASMRDownloader(
             api=self.api,
             name_should_download=name_should_download or (lambda *_: True),
@@ -350,16 +346,6 @@ class ASMRDownloadManager(AsyncManager):
 
 
 class ASMRPlayListManager(AsyncManager):
-    def __init__(
-        self,
-        name: str,
-        password: str,
-        proxy: str | None,
-        limit: int = 3,
-        max_rps: float = 4,
-    ):
-        super().__init__(ASMRAPI(name, password, proxy, limit, max_rps))
-
     async def list(self, num: int = 12, raw: bool = False):
         from asmrmanager.common.output import print_table
 
@@ -490,16 +476,6 @@ class ASMRTag:
 
 
 class ASMRTagManager(AsyncManager):
-    def __init__(
-        self,
-        name: str,
-        password: str,
-        proxy: str | None,
-        limit: int = 3,
-        max_rps: float = 4,
-    ) -> None:
-        super().__init__(ASMRAPI(name, password, proxy, limit, max_rps))
-
     async def get_asmr_tags(self, source_id: RemoteSourceID):
         voice_info = await self.api.get_voice_info(source_id)
         assert voice_info is not None, "Failed to get voice info."
@@ -537,16 +513,6 @@ class ASMRTagManager(AsyncManager):
 
 
 class ASMRGeneralManager(AsyncManager):
-    def __init__(
-        self,
-        name: str,
-        password: str,
-        proxy: str | None,
-        limit: int = 3,
-        max_rps: float = 4,
-    ) -> None:
-        super().__init__(ASMRAPI(name, password, proxy, limit, max_rps))
-
     async def verify(self, file_path: Path, file_id: int) -> bool:
         xxhash_ = xxhash.xxh128_hexdigest(file_path.read_bytes())
         res = await self.api.verify_hash(file_id, xxhash_)
