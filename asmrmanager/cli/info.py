@@ -75,7 +75,7 @@ def print_asmr_info(asmr: ASMRInstance):
 def info_from_web(source_id: RemoteSourceID):
     downloader, db = create_downloader_and_database()
     (rj_info,) = downloader.run(
-        downloader.downloader.get_voice_info(source_id)
+        downloader.api.get_voice_info(source_id)
     )
     if rj_info is None:
         sys.exit(1)

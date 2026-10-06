@@ -294,7 +294,7 @@ def convert2local_ids(
         res = db.func.get_local_id(source_id)
         if res is not None:
             return LocalSourceID(SourceID(res))
-        info = await downloader.downloader.get_voice_info(source_id)
+        info = await downloader.api.get_voice_info(source_id)
         if info is None:
             logger.warning(f"failed to convert {source_id} to local id")
             return None
@@ -323,7 +323,7 @@ def convert2remote_ids(
         if remote_id is not None:
             return RemoteSourceID(SourceID(remote_id))
         source_name = id2source_name(source_id)
-        res = await downloader.downloader.get_search_result(source_name, {})
+        res = await downloader.api.get_search_result(source_name, {})
         works = res["works"]
         if len(works) == 0:
             logger.warning(f"no remote resources for {source_name}")

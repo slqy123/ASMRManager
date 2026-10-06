@@ -5,7 +5,7 @@ from collections.abc import Awaitable, Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
 import click
 import xxhash
@@ -20,7 +20,7 @@ from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
 from asmrmanager.spider.asmrapi import ASMRAPI
 
-from .downloader import ASMRDownloadAPI
+from .downloader import ASMRDownloader
 
 fm = FileManager.get_fm()
 
@@ -29,9 +29,16 @@ class AsyncManager:
     def __init__(self, api: ASMRAPI) -> None:
         self.api = api
 
+    async def __aenter__(self) -> Self:
+        await self.api.__aenter__()
+        return self
+
+    async def __aexit__(self, *args) -> None:
+        await self.api.__aexit__(*args)
+
     def run[T](self, *tasks: Awaitable[T]) -> list[T]:
         async def run() -> list[T]:
-            async with self.api:
+            async with self:
                 return await asyncio.gather(*tasks)
 
         try:
@@ -77,22 +84,33 @@ class ASMRDownloadManager(AsyncManager):
         tagger: Literal["tag", "tagw"] = "tag",
         max_rps: float = 4,
     ):
-        self.downloader = ASMRDownloadAPI(
-            name=name,
-            password=password,
-            proxy=proxy,
+        super().__init__(ASMRAPI(name, password, proxy, limit, max_rps))
+        self.downloader = ASMRDownloader(
+            api=self.api,
             name_should_download=name_should_download or (lambda *_: True),
             json_should_download=json_should_download or (lambda _: True),
             replace=replace,
-            limit=limit,
             download_method=download_method,
             aria2_config=aria2_config,
             fetch_cover=fetch_cover,
-            max_rps=max_rps,
         )
-        super().__init__(self.downloader)
         self.id_should_download = id_should_download or (lambda _: True)
         self.tagger = tagger
+
+    async def __aenter__(self) -> Self:
+        await super().__aenter__()
+        try:
+            await self.downloader.__aenter__()
+        except BaseException:
+            await super().__aexit__(None, None, None)
+            raise
+        return self
+
+    async def __aexit__(self, *args) -> None:
+        try:
+            await self.downloader.__aexit__(*args)
+        finally:
+            await super().__aexit__(*args)
 
     async def get(self, ids: list[RemoteSourceID]):
         tasks = []
@@ -166,12 +184,12 @@ class ASMRDownloadManager(AsyncManager):
         while True:
             if filters:
                 logger.info(f"searching with {filters} {params}")
-                search_result = await self.downloader.get_search_result(
+                search_result = await self.api.get_search_result(
                     " ".join(filters).replace("/", "%2F"), params=params.params
                 )
             else:
                 logger.info(f"list works with {params}")
-                search_result = await self.downloader.list(
+                search_result = await self.api.list(
                     params=params.params
                 )
 
@@ -251,20 +269,20 @@ class ASMRDownloadManager(AsyncManager):
     async def tag(self, tag_name: str, params: BrowseParams):
         """tag 和 va 一样，都是调用了特殊的search方法"""
         raise NotImplementedError
-        tag_res = await self.downloader.tag(tag_name, params=params.params)
+        tag_res = await self.api.tag(tag_name, params=params.params)
         ids = [work["id"] for work in tag_res["works"]]
         await self.get(ids)
 
     async def va(self, va_name: str, params: BrowseParams):
         """tag 和 va 一样，都是调用了特殊的search方法"""
         raise NotImplementedError
-        va_res = await self.downloader.tag(va_name, params=params.params)
+        va_res = await self.api.tag(va_name, params=params.params)
         ids = [work["id"] for work in va_res["works"]]
         await self.get(ids)
 
     async def update(self, ids: list[RemoteSourceID]):
         async def update_one(source_id_: RemoteSourceID):
-            voice_info = await self.downloader.get_voice_info(source_id_)
+            voice_info = await self.api.get_voice_info(source_id_)
             if voice_info is None:
                 logger.error(f"Failed to update {source_id_}.")
                 return
@@ -298,7 +316,7 @@ class ASMRDownloadManager(AsyncManager):
             voice_path.mkdir(parents=True, exist_ok=True)
             self.downloader.create_info_file(voice_info, voice_path)
 
-            tracks = await self.downloader.get_voice_tracks(source_id_)
+            tracks = await self.api.get_voice_tracks(source_id_)
             if tracks is None:
                 logger.error(f"Failed to get tracks for {source_id_}.")
                 return
@@ -321,12 +339,12 @@ class ASMRDownloadManager(AsyncManager):
         await asyncio.gather(*tasks)
 
     async def get_recommendations(self, page: int = 1):
-        res = await self.downloader.get_recommendations(page)
+        res = await self.api.get_recommendations(page)
         ids = [work["id"] for work in res["works"]]
         await self.get(ids)
 
     async def get_popular(self, page: int = 1):
-        res = await self.downloader.get_popular(page)
+        res = await self.api.get_popular(page)
         ids = [work["id"] for work in res["works"]]
         await self.get(ids)
 
