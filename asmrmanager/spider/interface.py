@@ -18,9 +18,10 @@ from asmrmanager.common.types import PRIVACY, RemoteSourceID, SourceName
 from asmrmanager.config import Aria2Config
 from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
-from asmrmanager.spider.asmrapi import ASMRAPI
+from asmrmanager.spider.asmrapi import ASMRAPI, APIError
+from asmrmanager.spider.auth import AuthenticationError
 
-from .downloader import ASMRDownloader, DownloadError
+from .downloader import ASMRDownloader, BackendError, DownloadError
 
 fm = FileManager.get_fm()
 
@@ -116,7 +117,7 @@ class ASMRDownloadManager(AsyncManager):
         async def process_one(source_id: RemoteSourceID) -> RemoteSourceID | None:
             try:
                 await process(source_id)
-            except ModuleNotFoundError:
+            except (ModuleNotFoundError, BackendError, AuthenticationError):
                 raise
             except Exception as exc:
                 logger.error("Failed to process work %d: %s", source_id, exc)
@@ -393,16 +394,9 @@ class ASMRPlayListManager(AsyncManager):
     async def remove(self, pl_ids: builtins.list[uuid.UUID]):
         res = await asyncio.gather(*map(self.api.delete_playlist, pl_ids))
 
-        if not isinstance(res, list):
-            logger.error("Unexpected response type when delete playlists.")
-            return
         for r in res:
-            if not isinstance(r, dict):
-                logger.error("Unexpected response type when delete playlists.")
-                return
-            if r.get("error"):
-                logger.error(f"Error when delete playlists: {r}")
-                return
+            if not isinstance(r, dict) or "id" not in r:
+                raise APIError("Unexpected response when deleting playlists.")
             logger.info(f"Sucessfully delete playlist {r['id']}.")
 
     async def create(
@@ -412,12 +406,8 @@ class ASMRPlayListManager(AsyncManager):
         privacy: Literal["PUBLIC", "NON_PUBLIC", "PRIVATE"],
     ):
         res = await self.api.create_playlist(name, desc, PRIVACY[privacy])
-        if not isinstance(res, dict):
-            logger.error("Unexpected response type when create playlist.")
-            return
-        if res.get("error"):
-            logger.error(f"Error when creating playlist:{res}")
-            return
+        if not isinstance(res, dict) or "id" not in res:
+            raise APIError("Unexpected response when creating playlist.")
         logger.info(f"Sucessfully create playlist: {res['id']}.")
 
         logger.info("Updating local playlist cache...")
@@ -426,13 +416,7 @@ class ASMRPlayListManager(AsyncManager):
     async def add(self, source_ids: builtins.list[RemoteSourceID], pl_id: uuid.UUID):
         res = await self.api.add_works_to_playlist(source_ids, pl_id)
         if not isinstance(res, dict):
-            logger.error(
-                f"Unexpected response type when add works to {pl_id}."
-            )
-            return
-        if res.get("error"):
-            logger.error(f"Error when add works to playlist:{res}")
-            return
+            raise APIError(f"Unexpected response when adding works to {pl_id}.")
         logger.info(f"Sucessfully add works to playlist {pl_id}.")
 
     async def show(self, pl_id: uuid.UUID, page_size: int = 12):
@@ -496,21 +480,16 @@ class ASMRTag:
 class ASMRTagManager(AsyncManager):
     async def get_asmr_tags(self, source_id: RemoteSourceID):
         voice_info = await self.api.get_voice_info(source_id)
-        assert voice_info is not None, "Failed to get voice info."
+        if voice_info is None:
+            raise APIError(f"Failed to get info for work {source_id}.")
         return [ASMRTag(**i) for i in voice_info["tags"]]
 
     async def get_all_tags(self):
         return await self.api.get_all_tags()
 
     async def attach_tags(self, tag_ids: list[int], source_id: RemoteSourceID):
-        resp = await self.api.attach_tags(tag_ids, source_id)
-        if isinstance(resp, dict) and resp.get("error"):
-            logger.error(
-                f"Failed to attach tags to {source_id}: {resp['error']}"
-            )
-            return
-        else:
-            logger.info(f"Successfully attach tags to {source_id}.")
+        await self.api.attach_tags(tag_ids, source_id)
+        logger.info(f"Successfully attach tags to {source_id}.")
 
     async def vote_tag(
         self,
@@ -518,16 +497,8 @@ class ASMRTagManager(AsyncManager):
         source_id: RemoteSourceID,
         action: Literal["up", "down"],
     ):
-        resp = await self.api.vote_tag(tag_id, source_id, action)
-        if isinstance(resp, dict) and resp.get("error"):
-            logger.error(
-                f"Failed to vote tag {tag_id} for {source_id}: {resp['error']}"
-            )
-            return
-        else:
-            logger.info(
-                f"Successfully vote tag {tag_id} {action} for {source_id}."
-            )
+        await self.api.vote_tag(tag_id, source_id, action)
+        logger.info(f"Successfully vote tag {tag_id} {action} for {source_id}.")
 
 
 class ASMRGeneralManager(AsyncManager):

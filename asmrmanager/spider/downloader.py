@@ -3,6 +3,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Literal, NamedTuple, Self
 
+from aiohttp import ClientConnectionError
+
 from asmrmanager.common import MUSIC_SUFFIXES
 from asmrmanager.common.rj_parse import id2source_name, source_name2id
 from asmrmanager.common.types import RemoteSourceID
@@ -15,6 +17,10 @@ fm = FileManager.get_fm()
 
 
 class DownloadError(RuntimeError):
+    pass
+
+
+class BackendError(DownloadError):
     pass
 
 
@@ -65,7 +71,7 @@ class ASMRDownloader:
         try:
             if self.download_method == "aria2":
                 if self.aria2_config is None:
-                    raise ValueError("aria2 configuration is required.")
+                    raise BackendError("aria2 configuration is required.")
                 from .utils.aria2_downloader import Aria2Downloader
 
                 self.aria2_downloader = Aria2Downloader(proxy=None)
@@ -74,11 +80,11 @@ class ASMRDownloader:
 
                 self.idm_helper_type = IDMHelper
             else:
-                raise ValueError(
+                raise BackendError(
                     f"Unsupported download method: {self.download_method}."
                 )
         except ImportError as exc:
-            raise RuntimeError(
+            raise BackendError(
                 f"Cannot load {self.download_method} backend; install "
                 f"ASMRManager[{self.download_method}] and check its requirements."
             ) from exc
@@ -187,7 +193,10 @@ class ASMRDownloader:
     async def download_by_idm(
         self, url: str, save_path: Path, file_name: str
     ) -> None:
-        m = self.idm_helper_type(url, str(save_path.absolute()), file_name, 3)
+        try:
+            m = self.idm_helper_type(url, str(save_path.absolute()), file_name, 3)
+        except Exception as exc:
+            raise BackendError(f"Failed to initialize IDM backend: {exc}") from exc
         res = m.send_link_to_idm()
         if res != 0:
             raise RuntimeError(f"IDM submission failed with error code {res}.")
@@ -195,7 +204,14 @@ class ASMRDownloader:
     async def download_by_aria2(
         self, url: str, save_path: Path, file_name: str
     ) -> None:
-        await self.aria2_downloader.download(url, save_path, file_name)
+        try:
+            await self.aria2_downloader.download(url, save_path, file_name)
+        except Exception as exc:
+            if isinstance(
+                exc.__cause__ or exc, (ClientConnectionError, TimeoutError)
+            ):
+                raise BackendError(f"Cannot connect to aria2 RPC: {exc}") from exc
+            raise
 
     def check_exists(self, download_file_path: Path):
         p = (
@@ -264,7 +280,7 @@ class ASMRDownloader:
                 await self.process_download(
                     file_info.url, file_path.parent, file_path.name
                 )
-            except ModuleNotFoundError:
+            except (ModuleNotFoundError, BackendError):
                 raise
             except Exception as exc:
                 failed_files += 1

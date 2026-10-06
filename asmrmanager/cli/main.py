@@ -20,6 +20,9 @@ from asmrmanager.cli.view import view
 from asmrmanager.cli.vote import vote
 from asmrmanager.cli.which import which
 from asmrmanager.logger import logger
+from asmrmanager.spider.asmrapi import APIError
+from asmrmanager.spider.auth import AuthenticationError
+from asmrmanager.spider.downloader import DownloadError
 
 CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
@@ -34,6 +37,12 @@ class OrderedGroup(click.Group):
 
     def list_commands(self, ctx):
         return self.commands
+
+    def invoke(self, ctx: click.Context) -> Any:
+        try:
+            return super().invoke(ctx)
+        except (APIError, AuthenticationError, DownloadError) as exc:
+            raise click.ClickException(str(exc)) from exc
 
 
 @click.group(context_settings=CONTEXT_SETTINGS, cls=OrderedGroup)

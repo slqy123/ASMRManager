@@ -15,6 +15,10 @@ from asmrmanager.spider.auth import DEFAULT_API_URL, LoginAuth
 from asmrmanager.spider.transport import HTTPTransport
 
 
+class APIError(RuntimeError):
+    pass
+
+
 class ASMRAPI:
     def __init__(
         self,
@@ -34,15 +38,23 @@ class ASMRAPI:
             "POST", "auth/me", headers=self.auth.headers, data=credentials
         )
 
+    @staticmethod
+    def _check_response(response: Any) -> Any:
+        if isinstance(response, dict) and (error := response.get("error")):
+            raise APIError(str(error))
+        return response
+
     async def get(self, route: str, params: dict | None = None) -> Any:
-        return await self.transport.request(
+        response = await self.transport.request(
             "GET", route, headers=self.auth.headers, params=params
         )
+        return self._check_response(response)
 
     async def post(self, route: str, data: dict | None = None) -> Any:
-        return await self.transport.request(
+        response = await self.transport.request(
             "POST", route, headers=self.auth.headers, data=data
         )
+        return self._check_response(response)
 
     async def get_playlists(
         self, page: int = 1, page_size: int = 12, filter_by: str = "all"
@@ -188,34 +200,33 @@ class ASMRAPI:
         self, voice_id: RemoteSourceID
     ) -> dict[str, Any] | None:
         logger.debug("Get voice info: %d", voice_id)
-        voice_info = await self.get(f"work/{voice_id}")
-        assert isinstance(voice_info, dict)
-        if err := voice_info.get("error"):
-            logger.error(f"failed to get info of {voice_id}. error: {err}")
+        try:
+            voice_info = await self.get(f"work/{voice_id}")
+        except APIError as exc:
+            logger.error("Failed to get info of %d: %s", voice_id, exc)
             return None
+        assert isinstance(voice_info, dict)
         return voice_info
 
     async def get_voice_tracks(self, voice_id: RemoteSourceID):
-        tracks: list[dict] | dict = await self.get(
-            f"tracks/{voice_id}", params={"v": 2}
-        )
+        try:
+            tracks = await self.get(f"tracks/{voice_id}", params={"v": 2})
+        except APIError as exc:
+            logger.error("Remote id %d error: %s", voice_id, exc)
+            if str(exc).strip() == "No tracks found":
+                asmr_web_url = self.base_api_url.replace(
+                    "/api/", ""
+                ).replace("api.", "")
+                logger.error(
+                    "I seems to be a problem with the server "
+                    "that has missing files.\n"
+                    "Try giving feedback there: "
+                    f"{asmr_web_url}/work/{voice_id}"
+                )
+            return None
         if isinstance(tracks, dict):
-            if error_info := tracks.get("error"):
-                logger.error(f"Remote id {voice_id} error, {error_info}")
-                if error_info.strip() == "No tracks found":
-                    asmr_web_url = self.base_api_url.replace(
-                        "/api/", ""
-                    ).replace("api.", "")
-                    logger.error(
-                        "I seems to be a problem with the server "
-                        "that has missing files.\n"
-                        "Try giving feedback there: "
-                        f"{asmr_web_url}/work/{voice_id}"
-                    )
-                return None
-            else:
-                logger.error("Unexpected track type: dict")
-                return None
+            logger.error("Unexpected track type: dict")
+            return None
         return tracks
 
     async def get_cover(self, source_id: RemoteSourceID):
