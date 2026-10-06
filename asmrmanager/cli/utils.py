@@ -164,12 +164,10 @@ def fetch_all_covers():
     """
     from asmrmanager.cli.core import create_downloader_and_database
     from asmrmanager.database.database import ASMR
-    from asmrmanager.spider.utils.concurrency import concurrent_rate_limit
 
     downloader, db = create_downloader_and_database()
     tasks = []
 
-    @concurrent_rate_limit(4, 8)
     async def download_cover(remote_id: RemoteSourceID, save_path: Path):
         image_data: bytes = await downloader.api.get_cover(remote_id)
         with open(save_path / "cover.jpg", "wb") as f:  # noqa: ASYNC230

@@ -88,9 +88,9 @@ class ASMRDownloadAPI(ASMRAPI):
         download_method: Literal["aria2", "idm"] = "idm",
         aria2_config: Aria2Config | None = None,
         fetch_cover: bool = False,
+        max_rps: float = 4,
     ):
-        # self._session: Optional[ClientSession] = None  # for __aenter__
-        super().__init__(name, password, proxy, limit)
+        super().__init__(name, password, proxy, limit, max_rps)
         self.save_path = fm.download_path
         self.json_should_download = json_should_download
         self.name_should_download = name_should_download

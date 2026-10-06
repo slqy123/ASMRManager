@@ -14,7 +14,6 @@ from asmrmanager.filemanager.appdirs_ import CACHE_PATH
 from asmrmanager.logger import logger
 from asmrmanager.spider.auth import DEFAULT_API_URL, LoginAuth
 from asmrmanager.spider.transport import HTTPTransport
-from asmrmanager.spider.utils.concurrency import concurrent_rate_limit
 
 
 class ASMRAPI:
@@ -25,11 +24,16 @@ class ASMRAPI:
         cls.base_api_url = f"https://{api_channel}/api/"
 
     def __init__(
-        self, name: str, password: str, proxy: str | None, limit: int
+        self,
+        name: str,
+        password: str,
+        proxy: str | None,
+        limit: int,
+        max_rps: float = 4,
     ) -> None:
         self.base_api_url = type(self).base_api_url
         self.auth = LoginAuth(name, password, self.base_api_url, CACHE_PATH)
-        self.transport = HTTPTransport(self.base_api_url, proxy, limit)
+        self.transport = HTTPTransport(self.base_api_url, proxy, limit, max_rps)
 
     async def _request_login(self, credentials: dict[str, str]) -> Any:
         return await self.transport.request(
@@ -38,26 +42,12 @@ class ASMRAPI:
 
     async def get(self, route: str, params: dict | None = None) -> Any:
         return await self.transport.request(
-            "GET",
-            route,
-            headers=self.auth.headers,
-            params=params,
-            retryable=True,
+            "GET", route, headers=self.auth.headers, params=params
         )
 
-    async def post(
-        self,
-        route: str,
-        data: dict | None = None,
-        *,
-        retryable: bool = False,
-    ) -> Any:
+    async def post(self, route: str, data: dict | None = None) -> Any:
         return await self.transport.request(
-            "POST",
-            route,
-            headers=self.auth.headers,
-            data=data,
-            retryable=retryable,
+            "POST", route, headers=self.auth.headers, data=data
         )
 
     async def get_playlists(
@@ -134,7 +124,6 @@ class ASMRAPI:
                 "localSubtitledWorks": [],
                 "withPlaylistStatus": [],
             },
-            retryable=True,
         )
 
     async def get_popular(self, page: int = 1):
@@ -147,7 +136,6 @@ class ASMRAPI:
                 "localSubtitledWorks": [],
                 "withPlaylistStatus": [],
             },
-            retryable=True,
         )
 
     async def get_search_result(
@@ -188,7 +176,6 @@ class ASMRAPI:
                 "UA": self.auth.headers["User-Agent"],
                 "processorName": "Native",
             },
-            retryable=True,
         )
 
     async def binary_get(
@@ -200,11 +187,9 @@ class ASMRAPI:
             headers=self.auth.headers,
             params=params,
             binary=True,
-            retryable=True,
         )
 
     @asyncstdlib.lru_cache(None)
-    @concurrent_rate_limit()
     async def get_voice_info(
         self, voice_id: RemoteSourceID
     ) -> dict[str, Any] | None:
@@ -216,7 +201,6 @@ class ASMRAPI:
             return None
         return voice_info
 
-    @concurrent_rate_limit()
     async def get_voice_tracks(self, voice_id: RemoteSourceID):
         tracks: list[dict] | dict = await self.get(
             f"tracks/{voice_id}", params={"v": 2}

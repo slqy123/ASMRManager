@@ -17,6 +17,7 @@ keywords = [
 authors = [{ name = "SLQY", email = "sqiyel@gmail.com" }]
 dependencies = [
   "aiohttp>=3.8.6",
+  "aiolimiter>=1.2.1",
   "tenacity>=9.0.0",
   "chardet>=5.1.0",
   "click>=8.1.3,!=8.4.0,!=8.4.1",

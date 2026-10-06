@@ -92,6 +92,7 @@ def create_downloader_and_database(
             download_method=config.download_method,
             aria2_config=config.aria2_config,
             limit=config.api_max_concurrent_requests,
+            max_rps=config.api_max_requests_per_second,
             fetch_cover=config.fetch_cover,
             tagger=config.default_tagger,
         ),
@@ -108,6 +109,7 @@ def create_playlist():
         password=config.password,
         proxy=config.proxy,
         limit=config.api_max_concurrent_requests,
+        max_rps=config.api_max_requests_per_second,
     )
 
 
@@ -120,6 +122,7 @@ def create_tags_api():
         password=config.password,
         proxy=config.proxy,
         limit=config.api_max_concurrent_requests,
+        max_rps=config.api_max_requests_per_second,
     )
 
 
@@ -132,6 +135,7 @@ def create_general_api():
         password=config.password,
         proxy=config.proxy,
         limit=config.api_max_concurrent_requests,
+        max_rps=config.api_max_requests_per_second,
     )
 
 

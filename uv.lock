@@ -138,6 +138,15 @@ wheels = [
 ]
 
 [[package]]
+name = "aiolimiter"
+version = "1.3.0"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/26/60/0d16f90083a2f0ae9421d11ad98287f7942414f091ae9ad318389a764f85/aiolimiter-1.3.0.tar.gz", hash = "sha256:7343008c2228e89def7d4ce29ab98ee98822bf5db69018c09c90088929f7c104", size = 10051, upload-time = "2026-09-07T14:40:27.876Z" }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/56/d8/9237b1d29e561bd37ffe9487ea1a4551d2df2902d9b79a6ea6b18e4fcc73/aiolimiter-1.3.0-py3-none-any.whl", hash = "sha256:c0c16c377049fb2e40cc3373770e29c063de32aa25d84e5db168c854da6462b7", size = 6955, upload-time = "2026-09-07T14:40:26.753Z" },
+]
+
+[[package]]
 name = "aiosignal"
 version = "1.4.0"
 source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
@@ -177,6 +186,7 @@ name = "asmrmanager"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
+    { name = "aiolimiter" },
     { name = "appdirs" },
     { name = "asyncstdlib" },
     { name = "beaupy" },
@@ -240,6 +250,7 @@ tui = [
 requires-dist = [
     { name = "aioaria2", marker = "extra == 'aria2'", specifier = ">=1.3.4" },
     { name = "aiohttp", specifier = ">=3.8.6" },
+    { name = "aiolimiter", specifier = ">=1.2.1" },
     { name = "appdirs", specifier = ">=1.4.4" },
     { name = "asmrmanager", extras = ["aria2", "idm", "image", "player", "subtitle", "tui"], marker = "extra == 'all'" },
     { name = "asyncstdlib", specifier = ">=3.13.1" },
