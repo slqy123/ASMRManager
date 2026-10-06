@@ -34,10 +34,22 @@ class AsyncManager:
     async def __aexit__(self, *args) -> None:
         await self.api.__aexit__(*args)
 
+    async def gather[T](self, *tasks: Awaitable[T]) -> list[T]:
+        pending: list[asyncio.Future[T]] = []
+        try:
+            for task in tasks:
+                pending.append(asyncio.ensure_future(task))
+            return await asyncio.gather(*pending)
+        except BaseException:
+            for task in pending:
+                task.cancel()
+            await asyncio.gather(*pending, return_exceptions=True)
+            raise
+
     def run[T](self, *tasks: Awaitable[T]) -> list[T]:
         async def run() -> list[T]:
             async with self:
-                return await asyncio.gather(*tasks)
+                return await self.gather(*tasks)
 
         try:
             asyncio.get_running_loop()
@@ -124,17 +136,9 @@ class ASMRDownloadManager(AsyncManager):
                     logger.error("Failed to process work %d: %s", source_id, exc)
                     failed_ids[index] = source_id
 
-        tasks = [
-            asyncio.create_task(worker())
-            for _ in range(min(len(ids), self.api.transport.limit))
-        ]
-        try:
-            await asyncio.gather(*tasks)
-        except BaseException:
-            for task in tasks:
-                task.cancel()
-            await asyncio.gather(*tasks, return_exceptions=True)
-            raise
+        await self.gather(
+            *(worker() for _ in range(min(len(ids), self.api.transport.limit)))
+        )
         return [failed_ids[index] for index in sorted(failed_ids)]
 
     async def get(self, ids: list[RemoteSourceID]) -> list[RemoteSourceID]:
@@ -237,7 +241,7 @@ class ASMRPlayListManager(AsyncManager):
         return playlists
 
     async def remove(self, pl_ids: builtins.list[uuid.UUID]):
-        res = await asyncio.gather(*map(self.api.delete_playlist, pl_ids))
+        res = await self.gather(*map(self.api.delete_playlist, pl_ids))
 
         for r in res:
             if not isinstance(r, dict) or "id" not in r:

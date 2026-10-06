@@ -1,4 +1,3 @@
-import asyncio
 from json import dumps as json_dumps
 
 import click
@@ -331,7 +330,7 @@ def search(
                     click.echo(json_dumps(selected_works, ensure_ascii=False))
                 elif preview:
                     cover_paths = (
-                        await asyncio.gather(
+                        await spider.gather(
                             *(spider.get_cover_path(work) for work in selected_works)
                         )
                         if support_image()
