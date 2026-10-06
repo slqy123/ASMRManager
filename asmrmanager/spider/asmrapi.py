@@ -1,12 +1,9 @@
-import json
 import os
-import time
 import uuid
-from base64 import b64decode
-from typing import Any, ClassVar, Literal, NamedTuple, Self, TypeVar
+from typing import Any, Literal, Self
 
 import asyncstdlib
-from aiohttp import ClientConnectorError, ClientSession
+from aiohttp import ClientSession
 from aiohttp.connector import TCPConnector
 
 from asmrmanager.common.types import (
@@ -17,119 +14,36 @@ from asmrmanager.common.types import (
 )
 from asmrmanager.filemanager.appdirs_ import CACHE_PATH
 from asmrmanager.logger import logger
+from asmrmanager.spider.auth import DEFAULT_API_URL, LoginAuth
 from asmrmanager.spider.utils.concurrency import concurrent_rate_limit
 from asmrmanager.spider.utils.retry import RetryError, retry
 
-T = TypeVar("T", bound="ASMRAPI")
-class LoginCache(NamedTuple):
-    token: str
-    recommender_uuid: str
-    expire_time: int
-    username: str
-
 
 class ASMRAPI:
-    base_api_url = "https://api.asmr-200.com/api/"
-
-    headers: ClassVar[dict[str, str]] = {
-        "User-Agent": "ASMRManager (https://github.com/slqy123/ASMRManager)",
-    }
+    base_api_url = DEFAULT_API_URL
 
     @classmethod
     def set_api_channel(cls, api_channel: str):
         cls.base_api_url = f"https://{api_channel}/api/"
-        # cls.headers["Host"] = api_channel
 
     def __init__(
         self, name: str, password: str, proxy: str | None, limit: int
     ) -> None:
         self._session: ClientSession
-        self.name = name
-        self.password = password
+        self.base_api_url = type(self).base_api_url
+        self.auth = LoginAuth(name, password, self.base_api_url, CACHE_PATH)
         self.proxy = proxy
         self.limit = limit
-        self.recommender_uuid: str = ""
-        self.__logined = False
 
-    @property
-    def login_cache(self) -> LoginCache | None:
-        CACHE_PATH.mkdir(parents=True, exist_ok=True)
-        login_cache_path = CACHE_PATH / "login_cache.json"
-        if not login_cache_path.exists():
-            return None
-        try:
-            with open(login_cache_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return LoginCache(
-                    token=data["token"],
-                    recommender_uuid=data["recommender_uuid"],
-                    expire_time=data["expire_time"],
-                    username=data.get("username", ""),
-                )
-        except Exception as e:
-            logger.error(f"Failed to load login cache: {e}")
-            return None
-
-    @login_cache.setter
-    def login_cache(self, cache: LoginCache) -> None:
-        login_cache_path = CACHE_PATH / "login_cache.json"
-        with open(login_cache_path, "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "token": cache.token,
-                    "recommender_uuid": cache.recommender_uuid,
-                    "expire_time": cache.expire_time,
-                    "username": cache.username,
-                },
-                f,
-            )
-
-    async def login(self) -> None:
-        login_cache = self.login_cache
-        if (
-            login_cache
-            and login_cache.expire_time > time.time()
-            and login_cache.username == self.name
-        ):
-            logger.debug("Using cached login token.")
-            self.headers.update(
-                {
-                    "Authorization": f"Bearer {login_cache.token}",
-                }
-            )
-            self.recommender_uuid = login_cache.recommender_uuid
-            self.__logined = True
-            return
-        logger.info("Requesting new login token.")
-
-        try:
-            async with self._session.post(
-                self.base_api_url + "auth/me",
-                json={"name": self.name, "password": self.password},
-                headers=self.headers,
-                proxy=self.proxy,
-            ) as resp:
-                resp_json = await resp.json()
-                token = resp_json["token"]
-                self.headers.update(
-                    {
-                        "Authorization": f"Bearer {token}",
-                    }
-                )
-                self.recommender_uuid = resp_json["user"]["recommenderUuid"]
-                self.__logined = True
-                jwt_body = token.split(".")[1]
-                if len(jwt_body) % 4 != 0:
-                    jwt_body += "=" * (4 - len(jwt_body) % 4)
-                expire_time = json.loads(b64decode(jwt_body).decode())["exp"]
-                self.login_cache = LoginCache(
-                    token=token,
-                    recommender_uuid=self.recommender_uuid,
-                    expire_time=expire_time,
-                    username=self.name,
-                )
-        except ClientConnectorError as err:
-            logger.error(f"Login failed, {err}")
+    async def _request_login(self, credentials: dict[str, str]) -> Any:
+        async with self._session.post(
+            self.base_api_url + "auth/me",
+            json=credentials,
+            headers=self.auth.headers,
+            proxy=self.proxy,
+        ) as resp:
+            resp.raise_for_status()
+            return await resp.json()
 
     @retry()
     async def get(self, route: str, params: dict | None = None) -> Any:
@@ -138,7 +52,7 @@ class ASMRAPI:
             try:
                 async with self._session.get(
                     self.base_api_url + route,
-                    headers=self.headers,
+                    headers=self.auth.headers,
                     proxy=self.proxy,
                     params=params,
                 ) as resp:
@@ -156,7 +70,7 @@ class ASMRAPI:
             try:
                 async with self._session.post(
                     self.base_api_url + route,
-                    headers=self.headers,
+                    headers=self.auth.headers,
                     proxy=self.proxy,
                     json=data,
                 ) as resp:
@@ -235,7 +149,7 @@ class ASMRAPI:
             "recommender/recommend-for-user",
             data={
                 "keyword": " ",
-                "recommenderUuid": self.recommender_uuid,
+                "recommenderUuid": self.auth.recommender_uuid,
                 "page": page,
                 "subtitle": 0,
                 "localSubtitledWorks": [],
@@ -290,7 +204,7 @@ class ASMRAPI:
             data={
                 "fileId": fileId,
                 "hash": hash_.lower(),
-                "UA": self.headers["User-Agent"],
+                "UA": self.auth.headers["User-Agent"],
                 "processorName": "Native",
             },
         )
@@ -304,7 +218,7 @@ class ASMRAPI:
             try:
                 async with self._session.get(
                     self.base_api_url + route,
-                    headers=self.headers,
+                    headers=self.auth.headers,
                     proxy=self.proxy,
                     params=params,
                 ) as resp:
@@ -370,8 +284,11 @@ class ASMRAPI:
 
     async def __aenter__(self) -> Self:
         self._session = ClientSession(connector=TCPConnector(limit=self.limit))
-        if not self.__logined:
-            await self.login()
+        try:
+            await self.auth.login(self._request_login)
+        except BaseException:
+            await self._session.close()
+            raise
         return self
 
     async def __aexit__(self, *_) -> None:
