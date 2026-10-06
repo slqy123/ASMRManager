@@ -57,8 +57,8 @@ def sql(sql_name: str, save: bool, edit: bool, raw: bool):
     sql_path = sql_path.with_suffix(".sql")
     if not sql_path.exists():
         logger.error(
-            f"cannot locate sql {sql_name}, "
-            "check ./sqls for possible sql scripts"
+            f"Could not find SQL script {sql_name}. "
+            "Check the ./sqls directory for available scripts."
         )
         return
 

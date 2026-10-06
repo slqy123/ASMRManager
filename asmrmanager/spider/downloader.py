@@ -101,8 +101,9 @@ class ASMRDownloader:
         ):
             if download_order > 1:
                 logger.warning(
-                    f"No audio file found to download, "
-                    f"try to disable filters with order {download_order}"
+                    "No audio files were found to download. "
+                    "Try disabling filters with order %s.",
+                    download_order,
                 )
             if any(
                 (
@@ -140,7 +141,7 @@ class ASMRDownloader:
 
         should_down = self.json_should_download(voice_info)
         if not should_down:
-            logger.info(f"stop download {voice_id}")
+            logger.info("Skipping source %s because it does not meet the download criteria.", voice_id)
             return
 
         tracks = await self.api.get_voice_tracks(voice_id)
@@ -152,7 +153,7 @@ class ASMRDownloader:
 
         voice_path = save_path / voice_info["source_id"]
         if voice_path.exists():
-            logger.warning("path already exists: %s", voice_path)
+            logger.warning("Path already exists: %s.", voice_path)
 
         voice_path.mkdir(parents=True, exist_ok=True)
         self.create_info_file(voice_info, voice_path=voice_path)
@@ -162,9 +163,9 @@ class ASMRDownloader:
             tracks,
             voice_path,
         )
-        logger.debug("file list: %s", file_list_with_order)
+        logger.debug("Files to download: %s", file_list_with_order)
         file_list = self.apply_filename_filter(file_list_with_order)
-        logger.debug("final file list: %s", file_list)
+        logger.debug("Final download list: %s", file_list)
 
         self.create_recover_file(file_list, voice_path)
         if self.fetch_cover and all(str(f.path.relative_to(voice_path)) != 'cover.jpg' for f in file_list):
@@ -187,8 +188,8 @@ class ASMRDownloader:
         assert voice_path.name == voice_info["source_id"]
         if not voice_path.exists():
             logger.warning(
-                "There are no such files in your storage path for"
-                f" RJ{voice_id}"
+                "No matching files were found in storage for RJ%s.",
+                voice_id,
             )
 
         voice_path.mkdir(parents=True, exist_ok=True)
@@ -264,16 +265,16 @@ class ASMRDownloader:
         exist_info = self.check_exists(file_path)
         if exist_info.download:
             if self.replace:
-                logger.info("delete old file %s (replace mode)", file_path)
+                logger.info("Deleting the existing file %s (replace mode).", file_path)
                 file_path.unlink()
             else:
-                logger.warning("file already exists in download, ignore it: %s", file_path)
+                logger.warning("Skipping %s because it already exists in the download directory.", file_path)
                 return
         elif exist_info.storage:
-            logger.warning("file already exists in storage, ignore it: %s", file_path)
+            logger.warning("Skipping %s because it already exists in storage.", file_path)
             return
 
-        logger.info("Submitting download: %s", file_path)
+        logger.info("Submitting %s for download.", file_path)
         try:
             await self.download_file(url, save_path, file_name)
         except (ModuleNotFoundError, DownloadError):
@@ -287,14 +288,14 @@ class ASMRDownloader:
         # recv_rj_name = voice_info['original_workno']
         json_path = voice_path / f"{source_name}.json"
         if json_path.exists():
-            logger.info("update %s (already exists)", json_path)
+            logger.info("Updating %s; it already exists.", json_path)
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(voice_info, f, ensure_ascii=False, indent=4)
 
     async def download_cover(
         self, source_id: RemoteSourceID, save_path: Path
     ) -> None:
-        logger.debug("downloading cover")
+        logger.debug("Downloading the cover.")
 
         try:
             save_path.mkdir(parents=True, exist_ok=True)
@@ -302,14 +303,14 @@ class ASMRDownloader:
             with save_path.joinpath("cover.jpg").open("wb") as f:
                 f.write(image_data)
         except Exception as exc:
-            logger.warning("Failed to download cover for %d: %s", source_id, exc)
+            logger.warning("Failed to download the cover for source %d: %s", source_id, exc)
 
     async def create_dir_and_download(self, file_list: list[FileInfo]) -> None:
         failed_files = 0
         for file_info in file_list:
             file_path = file_info.path
             if not file_info.should_download:
-                logger.info("filter %s", file_path)
+                logger.info("Skipping filtered file %s.", file_path)
                 continue
             try:
                 file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -320,7 +321,7 @@ class ASMRDownloader:
                 raise
             except Exception as exc:
                 failed_files += 1
-                logger.error("Failed to submit %s: %s", file_path, exc)
+                logger.error("Failed to submit %s for download: %s", file_path, exc)
         if failed_files:
             raise DownloadError(f"Failed to submit {failed_files} files.")
 

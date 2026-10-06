@@ -27,7 +27,7 @@ def which(source_id: LocalSourceID, show: bool):
             subprocess.Popen(["xdg-open", path], start_new_session=True)
         else:
             logger.error(
-                "option --show is for windows and XDG based linux desktop environment only, if you are using other platform, using"
-                " `cd $(asmr which <RJID>)` instead."
+                "The --show option is available only on Windows and Linux desktop environments. "
+                "On other platforms, run `cd $(asmr which <RJID>)` instead."
             )
             return

@@ -125,7 +125,7 @@ class DataBaseManager:
             voteStatus: int = tag["voteStatus"]
             if voteRank != upvote - downvote and voteStatus != 1:
                 logger.warning(
-                    f"voteRank is not equal to upvote - downvote: {tag}"
+                    f"Tag voteRank ({tag}) does not match the difference between upvotes and downvotes."
                 )
 
             common_only = voteStatus == 1
@@ -148,7 +148,7 @@ class DataBaseManager:
             )
             if not res:
                 logger.debug(
-                    f"tag {tag['name']} ({upvote}/{downvote}, common={common_only}) is filtered"
+                    f"Filtered tag {tag['name']} ({upvote}/{downvote}, common={common_only})."
                 )
             return res
 
@@ -156,7 +156,7 @@ class DataBaseManager:
         pre_filtered_tags = [t for t in info["tags"] if t not in new_tags]
         if pre_filtered_tags:
             logger.info(
-                "filtered tags: %s",
+                "Filtered tags: %s",
                 ", ".join(t["name"] for t in pre_filtered_tags),
             )
         info["tags"] = new_tags
@@ -170,11 +170,11 @@ class DataBaseManager:
         if filtered_tags := self.tag_filter.intersection(tags):
             if not check:
                 logger.warning(
-                    f"Continue to download {asmr.id} though it has tags:"
-                    f" {filtered_tags}"
+                    f"Continuing to download {asmr.id} despite its filtered tags: "
+                    f"{filtered_tags}."
                 )
                 return True
-            logger.info(f"ignore {asmr.id} since it has tags: {filtered_tags}")
+            logger.info(f"Skipping {asmr.id} because it has filtered tags: {filtered_tags}.")
             return False
         return True
 
@@ -186,14 +186,14 @@ class DataBaseManager:
         update_stored: bool = False,
     ):
         if not (asmr := self.check_exists(source_id)):
-            logger.error("Incorrect RJ ID, no item in database!")
+            logger.error("RJ ID was not found in the database.")
             sys.exit(-1)
 
         asmr.count += 1
 
         if star is not None:
             if (not isinstance(star, int)) or star < 1 or star > 5:
-                logger.error("Your star should be a integer between 1 and 5")
+                logger.error("The rating must be an integer between 1 and 5.")
                 sys.exit(-1)
             asmr.star = star
 
@@ -206,11 +206,11 @@ class DataBaseManager:
 
     def hold_item(self, source_id: LocalSourceID, comment: str | None):
         if not (asmr := self.check_exists(source_id)):
-            logger.error("Incorrect RJ ID, no item in database!")
+            logger.error("RJ ID was not found in the database.")
             return
 
         if asmr.held:
-            logger.warning(f"ASMR id={source_id} has already been held!")
+            logger.warning(f"ASMR ID {source_id} is already on hold.")
 
         asmr.held = True
         if comment is not None:
@@ -225,4 +225,4 @@ class DataBaseManager:
 
     def commit(self):
         self.session.commit()
-        logger.info("successfully committed")
+        logger.info("Changes committed successfully.")

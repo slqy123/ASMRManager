@@ -55,8 +55,7 @@ def create_database(
     db = DataBaseManager(tag_filter=config.tag_filter or ())
     if not skip_check and not db.check_db_updated():
         logger.error(
-            "Your database is out dated, Please update your database schema"
-            " with asmr utils migrate!"
+            "Your database schema is outdated. Run 'asmr utils migrate' to update it."
         )
         sys.exit(-1)
     return db
@@ -268,7 +267,7 @@ def get_prev_source():
     if not PREVIOUS_RJ_PATH.exists():
         return ""
     rj = PREVIOUS_RJ_PATH.read_text(encoding="utf8")
-    logger.info(f"previous RJ id is {rj}")
+    logger.info(f"Previous RJ ID: {rj}")
     return rj
 
 
@@ -292,7 +291,7 @@ def convert2local_ids(
             return LocalSourceID(SourceID(res))
         info = await manager.api.get_voice_info(source_id)
         if info is None:
-            logger.warning(f"failed to convert {source_id} to local id")
+            logger.warning(f"Could not convert source ID {source_id} to a local ID.")
             return None
         return LocalSourceID(source_name2id(info["source_id"]))
 
@@ -323,12 +322,11 @@ def convert2remote_ids(
         res = await manager.api.get_search_result(source_name, {})
         works = res["works"]
         if len(works) == 0:
-            logger.warning(f"no remote resources for {source_name}")
+            logger.warning(f"No remote works were found for {source_name}.")
             return None
         if len(works) > 1:
             logger.warning(
-                f"multiple remote resources for {source_name}, choose the"
-                " first one by default"
+                f"Multiple remote works were found for {source_name}; using the first result."
             )
         return works[0]["id"]
 
@@ -368,7 +366,7 @@ def rj_argument(convert: Literal[False, "local", "remote"] = False):
                 source_id = convert2remote_id(source_id)
 
             if source_id is None:
-                logger.error(f"failed to convert to {convert} source id")
+                logger.error(f"Failed to convert to {convert} source id")
                 sys.exit(-1)
 
             save_source(source)
@@ -423,7 +421,7 @@ def multi_rj_argument(convert: Literal[False, "local", "remote"] = False):
                     source_id = convert2remote_id(source_id)
 
                 if source_id is None:
-                    logger.error(f"failed to convert to {convert} source id")
+                    logger.error(f"Failed to convert to {convert} source id")
                     sys.exit(-1)
                 source_ids.append(source_id)
             elif len(source_ids) == 1:
@@ -517,7 +515,7 @@ def pl_preprocess_cb(
     # check and get cached playlist
     playlists_cache = fm.get_playlist_cache()
     if playlists_cache is None:
-        logger.warning("no cached playlist, try getting from server")
+        logger.warning("No cached playlist was found; fetching playlists from the server.")
         pl = create_playlist()
         # TODO use to CONSTANT to replace 100
         playlists_cache, total = pl.run(
@@ -525,8 +523,9 @@ def pl_preprocess_cb(
         )[0]
         if total > len(playlists_cache):
             logger.warning(
-                f"total playlist number {total} is larger than"
-                f" {len(playlists_cache)}"
+                "The playlist count (%s) exceeds the cached playlist count (%s).",
+                total,
+                len(playlists_cache),
             )
         fm.save_playlist_cache(playlists_cache)
     cached_names = [p.name for p in playlists_cache]
@@ -536,12 +535,11 @@ def pl_preprocess_cb(
         if name in cached_names:
             res.append(playlists_cache[cached_names.index(name)].id)
         else:
-            logger.warning(f"invalid playlist name {name}")
+            logger.warning(f"Invalid playlist name: {name}.")
 
     if not res:
         logger.warning(
-            "If you just have created a playlist, you may need to use pl list"
-            " to cache the playlists to local"
+            "If you just created a playlist, run 'pl list' to cache it locally."
         )
         ctx.fail("no valid uuid, alias or names found")
 

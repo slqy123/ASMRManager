@@ -29,12 +29,12 @@ def migrate():
 
     db = create_database(skip_check=True)
     if db.check_db_updated():
-        logger.error("Database already updated")
+        logger.error("The database is already up to date.")
         sys.exit(-1)
     db.session.execute(text("ALTER TABLE asmr ADD COLUMN remote_id integer;"))
     db.session.execute(text("UPDATE asmr SET remote_id = id;"))
     db.session.commit()
-    logger.info("Database updated successfully")
+    logger.info("The database was updated successfully.")
 
 
 @click.command()
@@ -58,7 +58,7 @@ def convert(
 
     path = fm.get_path(source_id, prefer=dst)
     if path is None:
-        logger.error("Source not found")
+        logger.error("The source was not found.")
         sys.exit(-1)
     if mode == "lrc":
         for vtt_path in path.rglob("*.vtt"):
@@ -67,7 +67,7 @@ def convert(
                 vtt_path.with_suffix(".lrc").exists()
                 or vtt_path.with_suffix("").with_suffix(".lrc").exists()
             )
-            logger.info("Converted %s to LRC", vtt_path)
+            logger.info("Converted %s to LRC.", vtt_path)
             vtt_path.unlink()
     else:
         from asmrmanager.common.fileconverter import AudioConverter
@@ -114,7 +114,7 @@ def subtitle(
 
     rj_path = fm.get_path(source_id)
     if rj_path is None:
-        logger.error(f"RJ id {source_id} not found!")
+        logger.error(f"RJ ID {source_id} was not found.")
         return
 
     try:
@@ -126,8 +126,8 @@ def subtitle(
         )
     except ValueError:
         logger.error(
-            f"No music files{MUSIC_SUFFIXES} found, please check your local"
-            " file."
+            f"No music files with supported extensions ({MUSIC_SUFFIXES}) were found. "
+            "Check the local files and try again."
         )
         sys.exit(-1)
 
@@ -144,16 +144,16 @@ def subtitle(
         audio_paths.append(file)
 
     if not audio_paths:
-        logger.error("No audio files found in the specified directory.")
+        logger.error("No audio files were found in the specified directory.")
         return
 
     audio_paths.sort()
     try:
         for audio_path in audio_paths:
-            logger.info(f"Generating LRC file for {audio_path.name}")
+            logger.info(f"Generating an LRC file for {audio_path.name}.")
             generate_subtitle(audio_path, output, force)
     except KeyboardInterrupt:
-        logger.error("Subtitle generation interrupted by user.")
+        logger.error("Subtitle generation was interrupted by the user.")
         return
 
 
@@ -173,7 +173,7 @@ def fetch_all_covers():
         image_data: bytes = await manager.api.get_cover(remote_id)
         with open(save_path / "cover.jpg", "wb") as f:  # noqa: ASYNC230
             f.write(image_data)
-        logger.info("Successfully write cover to %s", save_path)
+        logger.info("Saved the cover to %s.", save_path)
 
     for local_id, remote_id in db.query(ASMR.id, ASMR.remote_id).all():
         # print(local_id, remote_id)
@@ -181,7 +181,7 @@ def fetch_all_covers():
             save_path = fm.storage_path / id2source_name(local_id)
             if not save_path.exists():
                 logger.debug(
-                    "%s not found in storage", id2source_name(local_id)
+                    "%s was not found in storage.", id2source_name(local_id)
                 )
                 continue
             tasks.append(download_cover(remote_id, save_path))

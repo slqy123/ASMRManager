@@ -18,7 +18,7 @@ def play(ctx: click.Context, source_id: LocalSourceID):
 
     rj_path = fm.get_path(source_id)
     if rj_path is None:
-        logger.error(f"RJ id {source_id} not found!")
+        logger.error(f"RJ ID {source_id} was not found.")
         return
 
     try:
@@ -30,8 +30,8 @@ def play(ctx: click.Context, source_id: LocalSourceID):
         )
     except ValueError:
         logger.error(
-            f"No music files{MUSIC_SUFFIXES} found, please check your local"
-            " file."
+            f"No music files with supported extensions ({MUSIC_SUFFIXES}) were found. "
+            "Check the local files and try again."
         )
         sys.exit(-1)
 

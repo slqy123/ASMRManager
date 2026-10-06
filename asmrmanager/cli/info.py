@@ -125,10 +125,10 @@ def info(source_id: LocalSourceID, rand: bool, web: bool):
 
     v_info = db.func.get_info(source_id, rand=rand)
     if v_info is None:
-        logger.info(f"{source_id} not exists, try getting from web")
+        logger.info(f"Source {source_id} was not found locally; fetching it from the web.")
         remote_source_id = convert2remote_id(source_id)
         if remote_source_id is None:
-            logger.error(f"cannot convert {source_id} to remote id")
+            logger.error(f"Could not convert {source_id} to a remote ID.")
             return
         # logger.debug(f"converted {source_id} to {remote_source_id}")
         v_info = info_from_web(remote_source_id)

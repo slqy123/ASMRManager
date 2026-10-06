@@ -12,7 +12,10 @@ from asmrmanager.logger import logger
 def review(source_id: LocalSourceID, star: int, comment: str):
     """review an ASMR with star(1-5), add comment and put it into storage path"""
     logger.info(
-        f"run command review with rj_id={source_id}, star={star} comment={comment}"
+        "Running review for source %s (rating: %s; comment: %s).",
+        source_id,
+        star,
+        comment,
     )
 
     from asmrmanager.cli.core import create_database, fm
@@ -22,7 +25,7 @@ def review(source_id: LocalSourceID, star: int, comment: str):
     update_stored = False
     if not fm.could_store():
         logger.warning(
-            "storage/download path not found skip storing operation"
+            "The storage or download path is unavailable; skipping storage."
         )
     else:
         fm.store(source_id)

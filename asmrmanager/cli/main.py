@@ -48,7 +48,7 @@ class OrderedGroup(click.Group):
 @click.group(context_settings=CONTEXT_SETTINGS, cls=OrderedGroup)
 @click.version_option(__version__, prog_name="ASMRManager")
 def main():
-    logger.info(f"Run program with: {' '.join(sys.argv[1:])}")
+    logger.info("Running command: %s", " ".join(sys.argv[1:]))
 
 
 try:

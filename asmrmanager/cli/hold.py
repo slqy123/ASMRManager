@@ -10,7 +10,9 @@ from asmrmanager.logger import logger
 @click.option("-c", "--comment", type=str, default=None, show_default=True)
 def hold(source_id: LocalSourceID, comment: str | None = None):
     """set the ASMR.hold to true, and add a comment for the reason"""
-    logger.info(f"run command hold with rj_id={source_id} comment={comment}")
+    logger.info(
+        "Placing source %s on hold (comment: %s).", source_id, comment
+    )
 
     from asmrmanager.cli.core import create_database
 

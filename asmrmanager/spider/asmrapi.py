@@ -200,11 +200,11 @@ class ASMRAPI:
         if not refresh and voice_id in self._voice_info_cache:
             return self._voice_info_cache[voice_id]
         self._voice_info_cache.pop(voice_id, None)
-        logger.debug("Get voice info: %d", voice_id)
+        logger.debug("Fetching work details for source %d.", voice_id)
         try:
             voice_info = await self.get(f"work/{voice_id}")
         except APIError as exc:
-            logger.error("Failed to get info of %d: %s", voice_id, exc)
+            logger.error("Failed to fetch work details for source %d: %s", voice_id, exc)
             return None
         assert isinstance(voice_info, dict)
         self._voice_info_cache[voice_id] = voice_info
@@ -214,20 +214,19 @@ class ASMRAPI:
         try:
             tracks = await self.get(f"tracks/{voice_id}", params={"v": 2})
         except APIError as exc:
-            logger.error("Remote id %d error: %s", voice_id, exc)
+            logger.error("Failed to fetch tracks for source %d: %s", voice_id, exc)
             if str(exc).strip() == "No tracks found":
                 asmr_web_url = self.base_api_url.replace(
                     "/api/", ""
                 ).replace("api.", "")
                 logger.error(
-                    "I seems to be a problem with the server "
-                    "that has missing files.\n"
-                    "Try giving feedback there: "
+                    "The server may be missing files for this work.\n"
+                    "Please report the issue here: "
                     f"{asmr_web_url}/work/{voice_id}"
                 )
             return None
         if isinstance(tracks, dict):
-            logger.error("Unexpected track type: dict")
+            logger.error("The server returned tracks in an unexpected format (dictionary).")
             return None
         return tracks
 

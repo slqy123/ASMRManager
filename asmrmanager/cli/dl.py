@@ -66,32 +66,32 @@ def check(source_ids: list[LocalSourceID]):
         asmr = db.check_exists(source_id)
         if asmr is None:
             logger.warning(
-                f"Not found In Database: {source_name}, please manually download it"
+                f"{source_name} was not found in the database; download it manually."
             )
             continue
 
         src = fm.get_location(source_id)
         if src is None:
-            logger.warning("%s not found, add to download", source_name)
+            logger.warning("%s was not found; adding it to the download queue.", source_name)
             dl_queue.append(source_name)
             continue
 
         if src == "download" and asmr.stored:
-            logger.info("move %s to storage (already stored)", source_name)
+            logger.info("Moving %s to storage; it is already marked as stored.", source_name)
             fm.store(source_id)
             continue
 
         if src == "storage" and not asmr.stored:
-            logger.info("update database for %s (already in storage)", source_name)
+            logger.info("Updating the database for %s; it is already in storage.", source_name)
             asmr.stored = True
             continue
 
-        logger.info(f"No need to update {source_name}")
+        logger.info("No update is needed for %s.", source_name)
     db.commit()
-    logger.info("Update succesfully.")
+    logger.info("Update completed successfully.")
     if dl_queue:
         logger.info(
-            "Please check the item to download and get theme manually:"
+            "Review the items below and download them manually:"
         )
         logger.info(" ".join(dl_queue))
 
@@ -275,7 +275,7 @@ def search(
     """
     if (preview or json) and browse_params.page == 0:
         logger.error(
-            "--preview and --json can not be used together with --page=0"
+            "--preview and --json cannot be used together with --page=0."
         )
         return
 
@@ -357,10 +357,10 @@ def search(
                     // int(search_result["pagination"]["pageSize"])
                     + 1
                 )
-                logger.info(f"Total pages to download: {total_pages_to_download}")
+                logger.info(f"Total pages to download: {total_pages_to_download}.")
             assert search_result["pagination"]["currentPage"] == browse_params.page
             if browse_params.page >= total_pages_to_download:
-                logger.info("All pages downloaded.")
+                logger.info("All pages have been downloaded.")
                 break
             logger.info(
                 f"Downloading progress: {browse_params.page}/{total_pages_to_download}"

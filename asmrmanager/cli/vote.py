@@ -63,7 +63,7 @@ def get_prev_id():
         source_id = convert2remote_id(source_id)
 
     if source_id is None:
-        logger.error("failed to convert to remote source id")
+        logger.error("Failed to convert to remote source id")
         sys.exit(-1)
 
     return RemoteSourceID(source_id)

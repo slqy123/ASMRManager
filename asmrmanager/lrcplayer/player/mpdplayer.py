@@ -103,15 +103,15 @@ class MPDPlayer(BasePlayer):
             else:
                 if len(self.client.listall()) == len(music_list) + 1:
                     break
-        logger.info(f"mpd update finished {self.client.listall()}")
+        logger.info(f"MPD playlist updated: {self.client.listall()}")
         self.client.clear()
         while len(self.client.playlist()) != 0:
             time.sleep(0.01)
-        logger.info("mpd clear finished")
+        logger.info("MPD playlist cleared.")
         self.client.add("default")
         while len(self.client.playlist()) != len(music_list):
             time.sleep(0.01)
-        logger.info(f"mpd add finished {self.client.playlist()}")
+        logger.info(f"Added tracks to the MPD playlist: {self.client.playlist()}")
         self.client.play()
         self.client.single(0)
 

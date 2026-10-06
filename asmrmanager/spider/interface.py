@@ -202,11 +202,11 @@ class ASMRDownloadManager(AsyncManager):
             filters.append(text)
 
         if filters:
-            logger.info(f"searching with {filters} {params}")
+            logger.info(f"Searching with {filters} {params}")
             return await self.api.get_search_result(
                 " ".join(filters).replace("/", "%2F"), params=params.params
             )
-        logger.info(f"list works with {params}")
+        logger.info(f"List works with {params}")
         return await self.api.list(params=params.params)
 
     async def update(self, ids: list[RemoteSourceID]) -> list[RemoteSourceID]:
@@ -229,14 +229,14 @@ class ASMRPlayListManager(AsyncManager):
         playlists, total = await self.api.get_playlists(
             page=page, page_size=num
         )
-        logger.info(f"fetching playlists ({len(playlists)}/{total})")
+        logger.info(f"Fetching playlists ({len(playlists)}/{total})")
         while num * page < total:
             page += 1
             playlists_, _ = await self.api.get_playlists(
                 page=page, page_size=num
             )
             playlists += playlists_
-            logger.info(f"fetching playlists ({len(playlists)}/{total})")
+            logger.info(f"Fetching playlists ({len(playlists)}/{total})")
         fm.save_playlist_cache(playlists)
         return playlists
 
@@ -246,7 +246,7 @@ class ASMRPlayListManager(AsyncManager):
         for r in res:
             if not isinstance(r, dict) or "id" not in r:
                 raise APIError("Unexpected response when deleting playlists.")
-            logger.info(f"Sucessfully delete playlist {r['id']}.")
+            logger.info("Deleted playlist %s.", r["id"])
 
     async def create(
         self,
@@ -257,7 +257,7 @@ class ASMRPlayListManager(AsyncManager):
         res = await self.api.create_playlist(name, desc, PRIVACY[privacy])
         if not isinstance(res, dict) or "id" not in res:
             raise APIError("Unexpected response when creating playlist.")
-        logger.info(f"Sucessfully create playlist: {res['id']}.")
+        logger.info("Created playlist %s.", res["id"])
 
         logger.info("Updating local playlist cache...")
         return await self.list()
@@ -266,7 +266,7 @@ class ASMRPlayListManager(AsyncManager):
         res = await self.api.add_works_to_playlist(source_ids, pl_id)
         if not isinstance(res, dict):
             raise APIError(f"Unexpected response when adding works to {pl_id}.")
-        logger.info(f"Sucessfully add works to playlist {pl_id}.")
+        logger.info("Added works to playlist %s.", pl_id)
 
     async def show(
         self, pl_id: uuid.UUID, page_size: int = 12
@@ -282,7 +282,7 @@ class ASMRPlayListManager(AsyncManager):
             )
             works += works_
             logger.info(
-                f"fetching works in playlist {pl_id}: {len(works)}/{total_count}"
+                f"Fetching works in playlist {pl_id}: {len(works)}/{total_count}"
             )
 
         return works
@@ -315,7 +315,7 @@ class ASMRTagManager(AsyncManager):
 
     async def attach_tags(self, tag_ids: list[int], source_id: RemoteSourceID):
         await self.api.attach_tags(tag_ids, source_id)
-        logger.info(f"Successfully attach tags to {source_id}.")
+        logger.info("Attached tags to source %s.", source_id)
 
     async def vote_tag(
         self,
@@ -324,18 +324,23 @@ class ASMRTagManager(AsyncManager):
         action: Literal["up", "down"],
     ):
         await self.api.vote_tag(tag_id, source_id, action)
-        logger.info(f"Successfully vote tag {tag_id} {action} for {source_id}.")
+        logger.info(
+            "Voted %s on tag %s for source %s.",
+            action,
+            tag_id,
+            source_id,
+        )
 
 
 class ASMRGeneralManager(AsyncManager):
     async def verify(self, file_path: Path, file_id: int) -> bool:
         xxhash_ = xxhash.xxh128_hexdigest(file_path.read_bytes())
         res = await self.api.verify_hash(file_id, xxhash_)
-        logger.debug(f"Hash of file {file_id}: {xxhash_}")
+        logger.debug("Hash for file %s: %s", file_id, xxhash_)
         logger.debug(f"Response: {res}")
         res = res["result"]
         if res:
-            logger.debug(f"File {file_id} is verified.")
+            logger.debug("Verified file %s successfully.", file_id)
         else:
-            logger.error(f"File {file_id} is not verified.")
+            logger.error("Verification failed for file %s.", file_id)
         return res
