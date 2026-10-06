@@ -12,6 +12,7 @@ from asmrmanager.cli.core import (
     multi_rj_argument,
     pl_preprocess_cb,
 )
+from asmrmanager.common.output import print_table
 from asmrmanager.common.types import PlayListItem, RemoteSourceID
 
 
@@ -56,7 +57,15 @@ def pl():
 def list_(num: int, raw: bool):
     """list all playlists"""
     pl = create_playlist()
-    pl.run(pl.list(num, raw))
+    playlists = pl.run(pl.list(num))[0]
+    print_table(
+        titles=["id", "name", "amount", "privacy"],
+        rows=[
+            (str(item.id), item.name, item.works_count, item.privacy.name)
+            for item in playlists
+        ],
+        raw=raw,
+    )
 
 
 @click.command()

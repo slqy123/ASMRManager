@@ -371,9 +371,7 @@ class ASMRDownloadManager(AsyncManager):
 
 
 class ASMRPlayListManager(AsyncManager):
-    async def list(self, num: int = 12, raw: bool = False):
-        from asmrmanager.common.output import print_table
-
+    async def list(self, num: int = 12):
         page = 1
         playlists, total = await self.api.get_playlists(
             page=page, page_size=num
@@ -386,16 +384,8 @@ class ASMRPlayListManager(AsyncManager):
             )
             playlists += playlists_
             logger.info(f"fetching playlists ({len(playlists)}/{total})")
-        print_table(
-            titles=["id", "name", "amount", "privacy"],
-            rows=[
-                (str(p.id), p.name, p.works_count, p.privacy.name)
-                for p in playlists
-            ],
-            raw=raw,
-        )
-
         fm.save_playlist_cache(playlists)
+        return playlists
 
     async def remove(self, pl_ids: builtins.list[uuid.UUID]):
         res = await asyncio.gather(*map(self.api.delete_playlist, pl_ids))
