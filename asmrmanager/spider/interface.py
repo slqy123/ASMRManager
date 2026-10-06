@@ -2,13 +2,10 @@ import asyncio
 import builtins
 import uuid
 from collections.abc import Awaitable, Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import (
-    Any,
-    Literal,
-    TypeVar,
-)
+from typing import Any, Literal
 
 import click
 import xxhash
@@ -25,7 +22,6 @@ from asmrmanager.spider.asmrapi import ASMRAPI
 
 from .downloader import ASMRDownloadAPI
 
-T = TypeVar("T", bound=Any)
 fm = FileManager.get_fm()
 
 
@@ -33,31 +29,18 @@ class AsyncManager:
     def __init__(self, api: ASMRAPI) -> None:
         self.api = api
 
-    def run(self, *tasks: Awaitable[T]) -> list[T]:
-        async def _run():
+    def run[T](self, *tasks: Awaitable[T]) -> list[T]:
+        async def run() -> list[T]:
             async with self.api:
                 return await asyncio.gather(*tasks)
 
-        if asyncio._get_running_loop() is None:
-            return asyncio.run(_run())
-        else:
-            logger.warning(
-                "Run task in new thread, "
-                "this behaviour is unexpected but it works."
-            )
-            import threading
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(run())
 
-            result: list[T] | None = None
-
-            def _run_threading():
-                nonlocal result
-                result = asyncio.run(_run())
-
-            thread = threading.Thread(target=_run_threading)
-            thread.start()
-            thread.join()
-            assert result is not None
-            return result
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            return executor.submit(asyncio.run, run()).result()
 
     async def get_cover_path(self, work: Any):
         remote_id, source_name = work["id"], work["source_id"]
