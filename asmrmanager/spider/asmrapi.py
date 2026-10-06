@@ -1,8 +1,6 @@
 import uuid
 from typing import Any, Literal, Self
 
-import asyncstdlib
-
 from asmrmanager.common.types import (
     PRIVACY,
     PlayListItem,
@@ -32,6 +30,7 @@ class ASMRAPI:
         self.base_api_url = base_url
         self.auth = LoginAuth(name, password, self.base_api_url, CACHE_PATH)
         self.transport = HTTPTransport(self.base_api_url, proxy, limit, max_rps)
+        self._voice_info_cache: dict[RemoteSourceID, dict[str, Any]] = {}
 
     async def _request_login(self, credentials: dict[str, str]) -> Any:
         return await self.transport.request(
@@ -195,10 +194,12 @@ class ASMRAPI:
             binary=True,
         )
 
-    @asyncstdlib.lru_cache(None)
     async def get_voice_info(
-        self, voice_id: RemoteSourceID
+        self, voice_id: RemoteSourceID, *, refresh: bool = False
     ) -> dict[str, Any] | None:
+        if not refresh and voice_id in self._voice_info_cache:
+            return self._voice_info_cache[voice_id]
+        self._voice_info_cache.pop(voice_id, None)
         logger.debug("Get voice info: %d", voice_id)
         try:
             voice_info = await self.get(f"work/{voice_id}")
@@ -206,6 +207,7 @@ class ASMRAPI:
             logger.error("Failed to get info of %d: %s", voice_id, exc)
             return None
         assert isinstance(voice_info, dict)
+        self._voice_info_cache[voice_id] = voice_info
         return voice_info
 
     async def get_voice_tracks(self, voice_id: RemoteSourceID):
@@ -247,6 +249,7 @@ class ASMRAPI:
 
     async def __aenter__(self) -> Self:
         await self.transport.__aenter__()
+        self._voice_info_cache.clear()
         try:
             await self.auth.login(self._request_login)
         except BaseException:
@@ -255,5 +258,8 @@ class ASMRAPI:
         return self
 
     async def __aexit__(self, *args) -> None:
-        await self.transport.__aexit__(*args)
+        try:
+            await self.transport.__aexit__(*args)
+        finally:
+            self._voice_info_cache.clear()
 

@@ -314,7 +314,7 @@ class ASMRDownloadManager(AsyncManager):
 
     async def update(self, ids: list[RemoteSourceID]) -> list[RemoteSourceID]:
         async def update_one(source_id_: RemoteSourceID) -> None:
-            voice_info = await self.api.get_voice_info(source_id_)
+            voice_info = await self.api.get_voice_info(source_id_, refresh=True)
             if voice_info is None:
                 raise DownloadError(f"Failed to get info for work {source_id_}.")
 
