@@ -7,8 +7,10 @@ from typing import Any, Self
 from aiohttp import (
     ClientConnectionError,
     ClientPayloadError,
+    ClientResponseError,
     ClientSession,
     ClientTimeout,
+    ContentTypeError,
     TCPConnector,
 )
 from aiolimiter import AsyncLimiter
@@ -20,6 +22,10 @@ from tenacity import (
 )
 
 from asmrmanager.logger import logger
+
+
+class APIError(RuntimeError):
+    pass
 
 
 class HTTPTransport:
@@ -84,38 +90,63 @@ class HTTPTransport:
         data: dict[str, Any] | None = None,
         binary: bool = False,
     ) -> Any:
-        async for attempt in AsyncRetrying(
-            stop=stop_after_attempt(5),
-            wait=wait_random_exponential(multiplier=2, min=1, max=30),
-            retry=retry_if_exception_type(
-                (
-                    ClientConnectionError,
-                    ClientPayloadError,
-                    asyncio.TimeoutError,
-                )
-            ),
-            before_sleep=lambda state: logger.warning(
-                "Retrying %s %s in %.1fs (attempt %d/5)",
-                method,
-                route,
-                state.upcoming_sleep,
-                state.attempt_number + 1,
-            ),
-            reraise=True,
-        ):
-            with attempt:
-                async with (
-                    self._request_slot() as session,
-                    session.request(
-                        method,
-                        self.base_url + route,
-                        headers=headers,
-                        proxy=self.proxy,
-                        params=params,
-                        json=data,
-                    ) as response,
-                ):
-                    content = await response.read()
+        method = method.upper()
+        attempts = 5 if method == "GET" else 1
+        failure_hint = (
+            " The remote outcome may be unknown; check it before retrying."
+            if method != "GET"
+            else ""
+        )
+        try:
+            async for attempt in AsyncRetrying(
+                stop=stop_after_attempt(attempts),
+                wait=wait_random_exponential(multiplier=2, min=1, max=30),
+                retry=retry_if_exception_type(
+                    (
+                        ClientConnectionError,
+                        ClientPayloadError,
+                        TimeoutError,
+                    )
+                ),
+                before_sleep=lambda state: logger.warning(
+                    "Retrying %s request in %.1fs (attempt %d/%d)",
+                    method,
+                    state.upcoming_sleep,
+                    state.attempt_number + 1,
+                    attempts,
+                ),
+                reraise=True,
+            ):
+                with attempt:
+                    async with (
+                        self._request_slot() as session,
+                        session.request(
+                            method,
+                            self.base_url + route,
+                            headers=headers,
+                            proxy=self.proxy,
+                            params=params,
+                            json=data,
+                        ) as response,
+                    ):
+                        response.raise_for_status()
+                        content = await response.read()
+        except ClientResponseError as exc:
+            status = (
+                f"HTTP {exc.status}" if exc.status else "invalid HTTP response"
+            )
+            raise APIError(
+                f"{method} request failed ({status}).{failure_hint}"
+            ) from None
+        except (ClientConnectionError, ClientPayloadError, TimeoutError):
+            raise APIError(
+                f"{method} request failed: connection or response interrupted.{failure_hint}"
+            ) from None
         if binary:
             return content
-        return await response.json()
+        try:
+            return await response.json()
+        except (ContentTypeError, ValueError):
+            raise APIError(
+                f"{method} request returned invalid JSON.{failure_hint}"
+            ) from None

@@ -10,11 +10,7 @@ from asmrmanager.common.types import (
 from asmrmanager.filemanager.appdirs_ import CACHE_PATH
 from asmrmanager.logger import logger
 from asmrmanager.spider.auth import DEFAULT_API_URL, LoginAuth
-from asmrmanager.spider.transport import HTTPTransport
-
-
-class APIError(RuntimeError):
-    pass
+from asmrmanager.spider.transport import APIError, HTTPTransport
 
 
 class ASMRAPI:
