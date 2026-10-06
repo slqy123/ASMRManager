@@ -11,6 +11,8 @@ from asmrmanager.cli.main import main
 from asmrmanager.config import SyncConfig, config
 from asmrmanager.database.manage import DataBaseManager
 from asmrmanager.logger import logger
+from asmrmanager.spider.asmrapi import APIError
+from tests.fake_cloud import FakeCloud
 from tests.test_local_database import work_info
 
 
@@ -36,15 +38,15 @@ class ReviewSyncBoundaryTest(TestCase):
         self.enterContext(patch("asmrmanager.cli.core.save_source"))
         self.fm = self.enterContext(patch("asmrmanager.cli.review.fm"))
         self.fm.could_store.return_value = False
+        self.api = FakeCloud([work_info()])
+        self.api.failures["PUT", "review"] = APIError(
+            "TEST_PRIVATE_NETWORK_ERROR"
+        )
         self.network = self.enterContext(
             patch(
-                "asmrmanager.cli.core.create_api_client",
-                side_effect=AssertionError(
-                    "Unverified cloud writes must remain blocked"
-                ),
+                "asmrmanager.cli.core.create_api_client", return_value=self.api
             )
         )
-        self.addCleanup(self.network.assert_not_called)
         self.runner = CliRunner()
 
     def reset_review(self):
@@ -68,10 +70,24 @@ class ReviewSyncBoundaryTest(TestCase):
     def assert_sync_failure(self, result, fields):
         self.assertEqual(result.exit_code, 1, result.output)
         self.assertIn("Local review changes were saved", result.output)
-        self.assertIn(
-            f"is not available for: {', '.join(fields)}.", result.output
+        self.assertIn("cloud synchronization failed", result.output)
+        self.assertIn("asmr sync push", result.output)
+        self.assertNotIn("synchronized.", result.output)
+        requests = [
+            event
+            for event in self.api.events
+            if event[:2] == ("PUT", "review")
+        ]
+        self.assertTrue(requests)
+        mapping = {
+            "star": "rating",
+            "comment": "review_text",
+            "progress": "progress",
+        }
+        self.assertEqual(
+            set(requests[-1][2]["data"]) - {"work_id"},
+            {mapping[name] for name in fields},
         )
-        self.assertIn("No cloud request was made", result.output)
         self.assertNotIn("TEST_PRIVATE", result.output)
 
     def assert_initial_review(self):

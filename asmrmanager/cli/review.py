@@ -1,10 +1,16 @@
 import click
 from sqlalchemy.exc import SQLAlchemyError
 
-from asmrmanager.cli.core import create_database, fm, rj_argument
+from asmrmanager.cli.core import (
+    create_database,
+    fm,
+    push_local_review,
+    rj_argument,
+)
 from asmrmanager.common.types import PROGRESS_VALUES, LocalSourceID
 from asmrmanager.config import config
 from asmrmanager.logger import logger
+from asmrmanager.sync import SyncError
 
 
 @click.command()
@@ -73,8 +79,14 @@ def review(
         if submitted and getattr(config.sync, field)
     ]
     if sync_fields:
-        raise click.ClickException(
-            "Local review changes were saved, but cloud synchronization "
-            f"is not available for: {', '.join(sync_fields)}. "
-            "No cloud request was made."
+        try:
+            push_local_review(asmr, sync_fields)
+        except SyncError as exc:
+            raise click.ClickException(
+                "Local review changes were saved, but cloud synchronization failed. "
+                f"{exc} Retry with asmr sync push {source_id}; "
+                "do not repeat review to retry synchronization."
+            ) from None
+        click.echo(
+            "Local review changes were saved and submitted fields were synchronized."
         )

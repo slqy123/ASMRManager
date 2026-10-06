@@ -15,6 +15,7 @@ from asmrmanager.cli.play import play
 from asmrmanager.cli.query import query
 from asmrmanager.cli.review import review
 from asmrmanager.cli.sql import sql
+from asmrmanager.cli.sync import sync
 from asmrmanager.cli.utils import utils
 from asmrmanager.cli.view import view
 from asmrmanager.cli.vote import vote
@@ -23,6 +24,7 @@ from asmrmanager.logger import logger
 from asmrmanager.spider.asmrapi import APIError
 from asmrmanager.spider.auth import AuthenticationError
 from asmrmanager.spider.downloader import DownloadError
+from asmrmanager.sync import SyncError
 
 CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
@@ -41,7 +43,12 @@ class OrderedGroup(click.Group):
     def invoke(self, ctx: click.Context) -> Any:
         try:
             return super().invoke(ctx)
-        except (APIError, AuthenticationError, DownloadError) as exc:
+        except (
+            APIError,
+            AuthenticationError,
+            DownloadError,
+            SyncError,
+        ) as exc:
             raise click.ClickException(str(exc)) from exc
 
 
@@ -82,6 +89,7 @@ main.add_command(file)
 main.add_command(pl)
 main.add_command(utils)
 main.add_command(vote)
+main.add_command(sync)
 
 if __name__ == "__main__":
     main()

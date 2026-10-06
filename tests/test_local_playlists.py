@@ -408,20 +408,19 @@ class LocalPlaylistTest(TestCase):
             self.assertEqual(playlist.works, [])
             self.assertFalse((self.root / ".prev_rj").exists())
 
-    def test_enabled_playlist_sync_blocks_unimplemented_cloud_writes(self):
+    def test_enabled_playlist_sync_blocks_unlinked_changes_without_publishing(
+        self,
+    ):
         playlist = self.playlist()
         config.sync.playlist = True
         for arguments in (
-            ["create", "No implicit publishing"],
             ["add", str(playlist.id), "RJ000123"],
             ["rm", str(playlist.id)],
         ):
             with self.subTest(arguments=arguments):
                 result = self.runner.invoke(pl, arguments)
                 self.assertNotEqual(result.exit_code, 0)
-                self.assertIn(
-                    "cloud synchronization is not available", result.output
-                )
+                self.assertIn("Playlist is not linked", result.output)
         self.assertEqual(len(self.db.list_playlists()), 1)
         self.assertEqual(playlist.works, [])
         self.assertIsNone(playlist.remote_id)

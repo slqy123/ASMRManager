@@ -46,6 +46,23 @@ def create_api_client():
     )
 
 
+def create_sync_api():
+    from asmrmanager.sync import CloudSync
+
+    return CloudSync(create_api_client())
+
+
+def push_local_review(work, fields):
+    from asmrmanager.sync import review_changes
+
+    manager = create_sync_api()
+    manager.run(
+        manager.push_review(
+            work.id, work.remote_id, review_changes(work, fields)
+        )
+    )
+
+
 @cache
 def create_database():
     from asmrmanager.database.manage import DataBaseManager
