@@ -7,14 +7,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Self
 
-import click
 import xxhash
 
 from asmrmanager.common.browse_params import BrowseParams
-from asmrmanager.common.output import print_table, support_image
 from asmrmanager.common.rj_parse import source_name2id
-from asmrmanager.common.select import select_multiple
-from asmrmanager.common.types import PRIVACY, RemoteSourceID, SourceName
+from asmrmanager.common.types import PRIVACY, RemoteSourceID
 from asmrmanager.config import Aria2Config
 from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
@@ -167,17 +164,7 @@ class ASMRDownloadManager(AsyncManager):
         price: tuple[int | None, int | None],
         duration: tuple[str | None, str | None],
         params: BrowseParams,
-        all_: bool,
-        preview: bool,
-        json: bool,
-    ) -> list[RemoteSourceID]:
-        failed_ids: list[RemoteSourceID] = []
-        total_pages_to_download = None
-        download_all_pages = False
-        if params.page == 0:
-            download_all_pages = True
-            params.page = 1
-
+    ) -> dict[str, Any]:
         filters = []
 
         filters += [f"${self.tagger}:{t}$" for t in tags]
@@ -210,93 +197,13 @@ class ASMRDownloadManager(AsyncManager):
         if text:
             filters.append(text)
 
-        while True:
-            if filters:
-                logger.info(f"searching with {filters} {params}")
-                search_result = await self.api.get_search_result(
-                    " ".join(filters).replace("/", "%2F"), params=params.params
-                )
-            else:
-                logger.info(f"list works with {params}")
-                search_result = await self.api.list(
-                    params=params.params
-                )
-
-            if not all_:
-                # select RJs
-                source_names: list[SourceName] = [
-                    work["source_id"] for work in search_result["works"]
-                ]
-                titles = [work["title"] for work in search_result["works"]]
-                indexes = select_multiple(
-                    [
-                        f"{source_name} | {title}"
-                        for source_name, title in zip(source_names, titles)
-                    ],
-                )
-                if not indexes:
-                    logger.warning("Nothing was selected.")
-            else:
-                indexes = range(len(search_result["works"]))
-
-            if not indexes:
-                pass
-            elif json:
-                from json import dumps as json_dumps
-
-                click.echo(
-                    json_dumps(
-                        [search_result["works"][i] for i in indexes],
-                        ensure_ascii=False,
-                    )
-                )
-            elif preview:
-                preview_results = [search_result["works"][i] for i in indexes]
-                if not support_image():
-                    cover_paths = None
-                else:
-                    cover_paths = await asyncio.gather(
-                        *[self.get_cover_path(r) for r in preview_results]
-                    )
-                print_table(
-                    titles=["id", "title", "circle_name"],
-                    rows=[
-                        (r["id"], r["title"], r["name"])
-                        for r in preview_results
-                    ],
-                    image_paths=cover_paths,
-                )
-
-            else:
-                failed_ids.extend(
-                    await self.get(
-                        [search_result["works"][i]["id"] for i in indexes]
-                    )
-                )
-
-            if not download_all_pages:
-                break
-            else:
-                if total_pages_to_download is None:
-                    total_pages_to_download = (
-                        int(search_result["pagination"]["totalCount"])
-                        // int(search_result["pagination"]["pageSize"])
-                        + 1
-                    )
-                    logger.info(
-                        f"Total pages to download: {total_pages_to_download}"
-                    )
-                assert (
-                    search_result["pagination"]["currentPage"] == params.page
-                )
-                if params.page >= total_pages_to_download:
-                    logger.info("All pages downloaded.")
-                    break
-                logger.info(
-                    f"Downloading progress: {params.page}/{total_pages_to_download}"
-                )
-                params.page += 1
-        return failed_ids
+        if filters:
+            logger.info(f"searching with {filters} {params}")
+            return await self.api.get_search_result(
+                " ".join(filters).replace("/", "%2F"), params=params.params
+            )
+        logger.info(f"list works with {params}")
+        return await self.api.list(params=params.params)
 
     async def tag(self, tag_name: str, params: BrowseParams):
         """tag 和 va 一样，都是调用了特殊的search方法"""

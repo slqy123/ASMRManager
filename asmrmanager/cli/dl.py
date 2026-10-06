@@ -1,3 +1,5 @@
+import asyncio
+from json import dumps as json_dumps
 
 import click
 
@@ -14,7 +16,9 @@ from asmrmanager.cli.core import (
 )
 from asmrmanager.common.browse_params import BrowseParams
 from asmrmanager.common.download_params import DownloadParams
+from asmrmanager.common.output import print_table, support_image
 from asmrmanager.common.rj_parse import id2source_name
+from asmrmanager.common.select import select_multiple
 from asmrmanager.common.types import LocalSourceID, RemoteSourceID
 from asmrmanager.logger import logger
 
@@ -279,36 +283,93 @@ def search(
     spider, db = create_downloader_and_database(
         download_params=download_params
     )
-    (failed_ids,) = spider.run(
-        spider.search(
-            " ".join(
-                (
-                    "-" + k[1:]
-                    if (k := t.strip()).startswith("!")
-                    else k
-                )
-                for t in keywords
-            ),
-            tags=tags,
-            vas=vas,
-            circle=circle,
-            age=age,
-            lang=lang,
-            no_tags=no_tags,
-            no_vas=no_vas,
-            no_circle=no_circle,
-            no_age=no_age,
-            no_lang=no_lang,
-            rate=rate,
-            sell=sell,
-            price=price,
-            duration=duration,
-            params=browse_params,
-            all_=all_,
-            preview=preview,
-            json=json,
-        )
+    text = " ".join(
+        "-" + k[1:] if (k := t.strip()).startswith("!") else k
+        for t in keywords
     )
+
+    async def process_pages() -> list[RemoteSourceID]:
+        failed_ids: list[RemoteSourceID] = []
+        total_pages_to_download = None
+        download_all_pages = browse_params.page == 0
+        if download_all_pages:
+            browse_params.page = 1
+
+        while True:
+            search_result = await spider.search(
+                text,
+                tags=tags,
+                vas=vas,
+                circle=circle,
+                age=age,
+                lang=lang,
+                no_tags=no_tags,
+                no_vas=no_vas,
+                no_circle=no_circle,
+                no_age=no_age,
+                no_lang=no_lang,
+                rate=rate,
+                sell=sell,
+                price=price,
+                duration=duration,
+                params=browse_params,
+            )
+            works = search_result["works"]
+            indexes: list[int] | range
+            if all_:
+                indexes = range(len(works))
+            else:
+                indexes = select_multiple(
+                    [f"{work['source_id']} | {work['title']}" for work in works]
+                )
+                if not indexes:
+                    logger.warning("Nothing was selected.")
+
+            if indexes:
+                selected_works = [works[i] for i in indexes]
+                if json:
+                    click.echo(json_dumps(selected_works, ensure_ascii=False))
+                elif preview:
+                    cover_paths = (
+                        await asyncio.gather(
+                            *(spider.get_cover_path(work) for work in selected_works)
+                        )
+                        if support_image()
+                        else None
+                    )
+                    print_table(
+                        titles=["id", "title", "circle_name"],
+                        rows=[
+                            (work["id"], work["title"], work["name"])
+                            for work in selected_works
+                        ],
+                        image_paths=cover_paths,
+                    )
+                else:
+                    failed_ids.extend(
+                        await spider.get([work["id"] for work in selected_works])
+                    )
+
+            if not download_all_pages:
+                break
+            if total_pages_to_download is None:
+                total_pages_to_download = (
+                    int(search_result["pagination"]["totalCount"])
+                    // int(search_result["pagination"]["pageSize"])
+                    + 1
+                )
+                logger.info(f"Total pages to download: {total_pages_to_download}")
+            assert search_result["pagination"]["currentPage"] == browse_params.page
+            if browse_params.page >= total_pages_to_download:
+                logger.info("All pages downloaded.")
+                break
+            logger.info(
+                f"Downloading progress: {browse_params.page}/{total_pages_to_download}"
+            )
+            browse_params.page += 1
+        return failed_ids
+
+    (failed_ids,) = spider.run(process_pages())
     commit_download_results(db, failed_ids)
 
 
