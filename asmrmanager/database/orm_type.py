@@ -19,8 +19,12 @@ class ASMRInstance:
     has_subtitle: bool
 
     star: int
-    count: int
     comment: str
+    progress: str | None
+    last_review: date | None
+    notes: str
+    details: dict | None
+    recovery_ready: bool
 
     held: bool
     stored: bool

@@ -41,7 +41,7 @@
 
 下载的音声作品元数据会存储在本地 SQLite 数据库中，基于此提供了以下功能（仅本地）：
 
-- 对作品进行评分，评论。
+- 对作品进行评分、评论，记录收听状态和最近评价日期；私人备注保留在本地。
 - 使用预定义的SQL脚本进行查询(仓库提供了一些模板，例如 [search.sql](./asmrmanager/filemanager/resources/sqls.example/search.sql))
 
 同时也提供网站以下API接口的CLI实现：
@@ -220,6 +220,29 @@ asmr pl create myplaylist --desc "An example playlist" --privacy PRIVATE  # 创�
 asmr pl add myplaylist RJ123456  # 将音声添加到myplaylist播放列表中
 asmr pl show myplaylist  # 展示myplaylist播放列表中的音声
 ```
+
+本地评价与收听状态：
+
+```shell
+asmr review RJ123456 --star 5 --comment "当前评论"
+asmr review RJ123456 --progress listening
+asmr review RJ123456 --clear-progress
+asmr review RJ123456 --star 0 --comment ""
+```
+
+收听状态可选 `marked`（想听）、`listening`（在听）、`listened`（听过）、`replay`（重听）、`postponed`（搁置）。
+评论会替换当前值；`hold --comment` 的原因只作为本地备注保存。修改评分或评论会记录评价日期并尝试将已有文件移入存储目录；仅修改收听状态不会移动文件。
+
+升级与旧数据导入：
+
+```shell
+asmr utils migrate
+asmr utils migrate --root /path/to/legacy/download --root /path/to/legacy/storage
+```
+
+迁移前会备份已有数据库并显示备份位置。默认从配置的下载目录、存储目录导入作品详情和恢复记录，同时导入旧播放列表缓存。迁移可重复执行，不覆盖已有用户评价，不删除原文件；无法导入的文件会单独报告，修正后可重试。旧评论保留为本地备注，没有可靠来源的评价日期留空。已有自定义 SQL 需要使用新的 `last_review` 字段。
+
+新下载的作品详情和恢复记录保存在数据库中，补下载、文件对比和校验不再依赖作品目录中的 JSON 或 `.recover`。请同时备份数据目录下的 `data.db`；只复制音频目录不会带走这些记录。若需恢复迁移前的数据库，请先关闭工具，保留当前数据库及其伴随文件，再将备份恢复到 `data.db`，不要混用两个版本的数据库文件。
 
 生成字幕文件，目前仅支持LRC格式：
 

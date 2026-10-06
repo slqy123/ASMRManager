@@ -11,7 +11,12 @@ import xxhash
 
 from asmrmanager.common.browse_params import BrowseParams
 from asmrmanager.common.rj_parse import source_name2id
-from asmrmanager.common.types import PRIVACY, RemoteSourceID
+from asmrmanager.common.types import (
+    PRIVACY,
+    LocalSourceID,
+    RecoverRecord,
+    RemoteSourceID,
+)
 from asmrmanager.config import Aria2Config
 from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
@@ -89,6 +94,7 @@ class ASMRDownloadManager(AsyncManager):
         aria2_config: Aria2Config | None = None,
         fetch_cover: bool = False,
         tagger: Literal["tag", "tagw"] = "tag",
+        save_recovery: Callable[[LocalSourceID, list[RecoverRecord]], None] | None = None,
     ):
         super().__init__(api)
         self.downloader = ASMRDownloader(
@@ -99,6 +105,7 @@ class ASMRDownloadManager(AsyncManager):
             download_method=download_method,
             aria2_config=aria2_config,
             fetch_cover=fetch_cover,
+            save_recovery=save_recovery,
         )
         self.id_should_download = id_should_download or (lambda _: True)
         self.tagger = tagger

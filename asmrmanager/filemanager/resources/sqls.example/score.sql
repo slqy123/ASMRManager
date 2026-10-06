@@ -1,4 +1,4 @@
-select asmr.id,title,circle_name,nsfw,release_date,price,dl_count,star,asmr.count,held,has_subtitle, va.name
+select asmr.id,title,circle_name,nsfw,release_date,price,dl_count,star,asmr.last_review,held,has_subtitle, va.name
 from asmr
          join asmrs2tags a2t on asmr.id = a2t.asmr_id
          join tag t on a2t.tag_id = t.id

@@ -21,20 +21,34 @@ def utils():
 
 
 @click.command()
-def migrate():
-    "migrate the database to the latest version(2.0.0+)"
-    from sqlalchemy.sql import text
+@click.option("--root", "roots", type=click.Path(exists=True, file_okay=False, path_type=Path), multiple=True,
+              help="Legacy files to import; defaults to download and storage paths.")
+def migrate(roots: tuple[Path, ...]):
+    """Back up and migrate the database, importing legacy metadata files."""
+    from sqlalchemy.exc import SQLAlchemyError
 
     from asmrmanager.cli.core import create_database
+    from asmrmanager.database.engine import get_engine
+    from asmrmanager.database.migrate import migrate_database
 
-    db = create_database(skip_check=True)
-    if db.check_db_updated():
-        logger.error("The database is already up to date.")
-        sys.exit(-1)
-    db.session.execute(text("ALTER TABLE asmr ADD COLUMN remote_id integer;"))
-    db.session.execute(text("UPDATE asmr SET remote_id = id;"))
-    db.session.commit()
-    logger.info("The database was updated successfully.")
+    try:
+        result = migrate_database(
+            get_engine(), list(roots) if roots else [fm.download_path, fm.storage_path],
+            playlist_cache=fm.CACHE_PATH / "playlist.cache",
+        )
+    except (OSError, ValueError, SQLAlchemyError) as exc:
+        raise click.ClickException(str(exc)) from exc
+    create_database.cache_clear()
+    if result.backup is not None:
+        click.echo(f"Database backup: {result.backup}")
+    click.echo(
+        f"Imported {result.details} work details, {result.recoveries} recovery sets, "
+        f"{result.playlists} playlists; skipped {result.skipped}. Legacy files were kept."
+    )
+    if result.errors:
+        for error in result.errors:
+            click.echo(error, err=True)
+        raise click.ClickException(f"{len(result.errors)} legacy imports failed.")
 
 
 @click.command()

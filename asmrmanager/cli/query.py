@@ -39,7 +39,7 @@ def query(keyword: str, limit: int, raw: bool):
             ASMR.circle_name,
             ASMR.nsfw,
             ASMR.has_subtitle,
-            ASMR.count,
+            ASMR.last_review,
             ASMR.star,
         )
         .join(ASMRs2Tags, ASMRs2Tags.asmr_id == ASMR.id)
@@ -51,6 +51,7 @@ def query(keyword: str, limit: int, raw: bool):
             | ASMR.title.contains(keyword)
             | Tag.name.contains(keyword)
             | ASMR.comment.contains(keyword)
+            | ASMR.notes.contains(keyword)
             | VoiceActor.name.contains(keyword)
         )
         .group_by(ASMR.id)
@@ -68,7 +69,7 @@ def query(keyword: str, limit: int, raw: bool):
         "circle_name",
         "nsfw",
         "subtitle",
-        "count",
+        "last_review",
         "star",
     ]
 

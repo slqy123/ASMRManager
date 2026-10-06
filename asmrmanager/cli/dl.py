@@ -43,7 +43,7 @@ def get(source_ids: list[RemoteSourceID], download_params: DownloadParams):
 @click.command()
 @multi_rj_argument("remote")
 def update(source_ids: list[RemoteSourceID]):
-    """update metadata, including recover file and description file"""
+    """update work details and recovery records in the database"""
     if not source_ids:
         logger.error("You must give at least one source id!")
         return

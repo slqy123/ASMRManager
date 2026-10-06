@@ -66,28 +66,24 @@ def del_(source_id: LocalSourceID):
     help="recover files that have been filtered out",
 )
 def recover(source_id: LocalSourceID, regex: str, ignore_filter: bool):
-    """recover a file from recover file"""
+    """recover missing files using database records"""
 
     url2download: list[tuple[str, Path]] = []
 
-    res = fm.load_recover(source_id)
+    res = create_database().load_recovery(source_id)
     if res is None:
-        return
+        raise click.ClickException("No recovery records; update this work first.")
     recovers = res
 
     files = fm.get_all_files(source_id)
     source_name = id2source_name(source_id)
 
     for recover in recovers:
-        rel_path = recover["path"]
-
-        # recover_file = rj_path / rel_path
-        # if recover_file.exists():
-        #     continue
+        rel_path = Path(recover["path"])
         if rel_path in files:
             continue
 
-        if not re.search(regex, rel_path):
+        if not re.search(regex, str(rel_path)):
             continue
 
         if not recover["should_download"]:
@@ -309,10 +305,9 @@ def diff(source_id: LocalSourceID):
     Diff local files and the remote files,
     display files filtered, missing and added
     """
-    if res := fm.load_recover(source_id):
-        recovers = res
-    else:
-        return
+    recovers = create_database().load_recovery(source_id)
+    if recovers is None:
+        raise click.ClickException("No recovery records; update this work first.")
 
     local_files = fm.get_all_files(source_id)
 
@@ -363,10 +358,9 @@ def diff(source_id: LocalSourceID):
 
 
 def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
-    if res := fm.load_recover(source_id):
-        recovers = res
-    else:
-        logger.error(f"Could not load recovery data for source ID {source_id}.")
+    recovers = create_database().load_recovery(source_id)
+    if recovers is None:
+        logger.error("No recovery records for %s; update this work first", source_id)
         return False
 
     local_files = fm.get_all_files(source_id)
@@ -405,8 +399,8 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
     file_ids = [i.get("fileId") for i in recovers if i["should_download"]]
     if not all(isinstance(i, int) for i in file_ids):
         logger.warning(
-            f"The recovery data for source ID {source_id} is missing file IDs. "
-            "Update the recovery file and try again."
+            "Recovery records for %s have missing file IDs; update this work first",
+            source_id,
         )
         return False
     file_ids = typing.cast(list[int], file_ids)

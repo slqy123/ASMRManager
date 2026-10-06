@@ -18,7 +18,6 @@ from asmrmanager.common.rj_parse import (
 from asmrmanager.common.types import (
     LocalSourceID,
     PlayListItem,
-    RecoverRecord,
     SourceName,
 )
 from asmrmanager.filemanager.appdirs_ import (
@@ -414,28 +413,6 @@ class FileManager:
         #         pass
 
         return False
-
-    def load_recover(
-        self, source_id: LocalSourceID
-    ) -> list[RecoverRecord] | None:
-        """load recover file of source ID(choose download path first)"""
-        recover_path = self.get_path(
-            source_id, rel=".recover", prefer="download"
-        )
-        logger.debug("Recovery file path: %s", recover_path)
-        if recover_path is None:
-            logger.error(
-                f"No recovery file was found for source ID {source_id}. "
-                "Update the recovery data and try again."
-            )
-            return None
-
-        import json
-
-        recovers: list[RecoverRecord] = json.loads(
-            recover_path.read_text(encoding="utf8")
-        )
-        return recovers
 
     def get_all_files(self, source_id: LocalSourceID) -> set[Path]:
         """get all files of source ID both in download and storage path"""

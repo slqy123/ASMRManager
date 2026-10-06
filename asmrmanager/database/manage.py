@@ -1,21 +1,33 @@
 import math
-import sys
 from collections.abc import Sequence
+from copy import deepcopy
 from datetime import UTC, date, datetime
 from typing import Any, cast
 
 import sqlalchemy.orm
-from sqlalchemy import event, text
+from sqlalchemy import event, inspect, text
 from sqlalchemy.engine import Engine, ResultProxy
 from sqlalchemy.engine.result import Result
 from sqlalchemy.orm import Session, sessionmaker
 
 from asmrmanager.common.rj_parse import is_local_source_id, source2id
-from asmrmanager.common.types import LocalSourceID, RemoteSourceID
+from asmrmanager.common.types import (
+    PROGRESS_VALUES,
+    LocalSourceID,
+    RecoverRecord,
+    RemoteSourceID,
+)
 from asmrmanager.database.orm_type import ASMRInstance
 from asmrmanager.logger import logger
 
-from .database import ASMR, Tag, VoiceActor, bind_engine
+from .database import (
+    ASMR,
+    SCHEMA_VERSION,
+    RecoveryFile,
+    Tag,
+    VoiceActor,
+    bind_engine,
+)
 from .engine import get_engine
 from .q_func import QFunc
 
@@ -36,10 +48,20 @@ class DataBaseManager:
         tag_filter: Sequence[str] = (),
     ):
         self.engine = engine or get_engine()
-        event.listens_for(self.engine, "connect")(
-            create_math_functions_on_connect
-        )  # add a listener after engine created, before session created
-        bind_engine(self.engine)
+        if not event.contains(
+            self.engine, "connect", create_math_functions_on_connect
+        ):
+            event.listen(self.engine, "connect", create_math_functions_on_connect)
+        with self.engine.connect() as connection:
+            version = connection.exec_driver_sql("PRAGMA user_version").scalar()
+            if version > SCHEMA_VERSION:
+                raise ValueError("Database schema is newer than this application.")
+        if not inspect(self.engine).has_table("asmr"):
+            bind_engine(self.engine)
+            with self.engine.begin() as connection:
+                connection.exec_driver_sql(
+                    f"PRAGMA user_version = {SCHEMA_VERSION}"
+                )
 
         self.tag_filter = set(tag_filter)
 
@@ -47,18 +69,24 @@ class DataBaseManager:
         self.func = QFunc(self.session)
 
     def check_db_updated(self):
-        from sqlalchemy import inspect
-
         inspector = inspect(self.engine)
-        columns = inspector.get_columns("asmr")
-        names = [c["name"] for c in columns]
-        return "remote_id" in names
+        names = {c["name"] for c in inspector.get_columns("asmr")}
+        with self.engine.connect() as connection:
+            version = connection.exec_driver_sql("PRAGMA user_version").scalar()
+        return (
+            version == SCHEMA_VERSION
+            and set(ASMR.__table__.columns.keys()).issubset(names)
+            and "count" not in names
+            and {"playlist", "playlist_work", "recovery_file"}.issubset(
+                inspector.get_table_names()
+            )
+        )
 
     def check_exists(
         self, source_id: LocalSourceID | RemoteSourceID
     ) -> ASMRInstance | None:
         return (
-            self.session.query(ASMR).get(source_id)
+            self.session.get(ASMR, source_id)
             or self.session.query(ASMR)
             .filter_by(remote_id=source_id)
             .one_or_none()
@@ -81,6 +109,7 @@ class DataBaseManager:
             price=info["price"],
             dl_count=info["dl_count"],
             has_subtitle=info["has_subtitle"],
+            details=deepcopy(info),
         )
 
         for actor_info in info["vas"]:
@@ -91,13 +120,10 @@ class DataBaseManager:
             if not tag_info.get("id"):
                 continue
             tag = Tag(id=tag_info["id"], name=tag_info["name"])
-            if tag_info["i18n"]:
-                tag.cn_name = tag_info["i18n"]["zh-cn"]["name"]
-                tag.jp_name = tag_info["i18n"]["ja-jp"]["name"]
-                tag.en_name = tag_info["i18n"]["en-us"]["name"]
-            else:
-                # assert tag.id == 10000
-                assert tag.id == 10000
+            translations = tag_info.get("i18n") or {}
+            tag.cn_name = translations.get("zh-cn", {}).get("name")
+            tag.jp_name = translations.get("ja-jp", {}).get("name")
+            tag.en_name = translations.get("en-us", {}).get("name")
             asmr.tags.append(tag)
         return asmr
 
@@ -115,7 +141,8 @@ class DataBaseManager:
 
         def tag_strategy_filter(tag: dict) -> bool:
             """true if tag should be accepted and stored in database"""
-            # logger.debug(f"evaluating tag: {tag}")
+            if tag_strategy == "accept_all":
+                return True
             upvote: int = tag["upvote"]
             downvote: int = tag["downvote"]
             voteRank: int = (
@@ -159,13 +186,14 @@ class DataBaseManager:
                 "Filtered tags: %s",
                 ", ".join(t["name"] for t in pre_filtered_tags),
             )
-        info["tags"] = new_tags
-        asmr = self.parse_info(info)
+        indexed_info = {**info, "tags": new_tags}
+        asmr = self.parse_info(indexed_info)
+        asmr.details = deepcopy(info)
 
         self.session.merge(asmr)
 
         # check for tag filter
-        tags = [t["name"] for t in info["tags"]]
+        tags = [t["name"] for t in new_tags]
 
         if filtered_tags := self.tag_filter.intersection(tags):
             if not check:
@@ -181,28 +209,72 @@ class DataBaseManager:
     def update_review(
         self,
         source_id: LocalSourceID,
-        star: int,
-        comment: str,
+        star: int | None = None,
+        comment: str | None = None,
         update_stored: bool = False,
+        progress: str | None = None,
+        clear_progress: bool = False,
     ):
-        if not (asmr := self.check_exists(source_id)):
-            logger.error("RJ ID was not found in the database.")
-            sys.exit(-1)
-
-        asmr.count += 1
-
+        if star is not None and (type(star) is not int or not 0 <= star <= 5):
+            raise ValueError("Rating must be an integer between 0 and 5.")
+        if progress is not None and progress not in PROGRESS_VALUES:
+            raise ValueError("Unknown listening status.")
+        if clear_progress and progress is not None:
+            raise ValueError("Cannot set and clear listening status together.")
+        asmr = self.session.get(ASMR, source_id)
+        if asmr is None:
+            raise ValueError("Work not found in the local database.")
         if star is not None:
-            if (not isinstance(star, int)) or star < 1 or star > 5:
-                logger.error("The rating must be an integer between 1 and 5.")
-                sys.exit(-1)
             asmr.star = star
-
         if comment is not None:
-            comment = f"{datetime.now(UTC).astimezone().date()}: {comment}\n"
-            asmr.comment += comment
+            asmr.comment = comment
+        if progress is not None or clear_progress:
+            asmr.progress = progress
+        if star is not None or comment is not None:
+            asmr.last_review = datetime.now(UTC).astimezone().date()
+            if update_stored:
+                asmr.stored = True
+        return asmr
 
-        if update_stored:
-            asmr.stored = True
+    def save_recovery(
+        self, source_id: LocalSourceID, records: list[RecoverRecord]
+    ):
+        from asmrmanager.common.types import validate_recovery
+
+        records = validate_recovery(records)
+        asmr = self.session.get(ASMR, source_id)
+        if asmr is None:
+            raise ValueError("Work not found in the local database.")
+        self.session.query(RecoveryFile).filter_by(work_id=source_id).delete()
+        self.session.add_all(
+            RecoveryFile(
+                work_id=source_id,
+                path=record["path"],
+                url=record["url"],
+                should_download=record["should_download"],
+                file_id=record.get("fileId"),
+            )
+            for record in records
+        )
+        asmr.recovery_ready = True
+
+    def load_recovery(
+        self, source_id: LocalSourceID
+    ) -> list[RecoverRecord] | None:
+        asmr = self.session.get(ASMR, source_id)
+        if asmr is None or not asmr.recovery_ready:
+            return None
+        return [
+            {
+                "path": record.path,
+                "url": record.url,
+                "should_download": record.should_download,
+                "fileId": record.file_id,
+            }
+            for record in self.session.query(RecoveryFile)
+            .filter_by(work_id=source_id)
+            .order_by(RecoveryFile.path)
+        ]
 
     def hold_item(self, source_id: LocalSourceID, comment: str | None):
         if not (asmr := self.check_exists(source_id)):
@@ -215,7 +287,7 @@ class DataBaseManager:
         asmr.held = True
         if comment is not None:
             comment = f"{datetime.now(UTC).astimezone().date()}: {comment}\n"
-            asmr.comment += comment
+            asmr.notes = (asmr.notes or "") + comment
 
     def execute(self, sql: str) -> ResultProxy | Result:
         return self.session.execute(text(sql))
