@@ -37,11 +37,16 @@ def print_asmr_info(asmr: ASMRInstance):
 
 **comment**
 - star: {star}
-- review count: {count}
+- last review: {last_review}
+- progress: {progress}
 - held: {held}
 - stored: {stored}
 
 {comment}
+
+**local notes**
+
+{notes}
     """
     res: dict = asmr.__dict__.copy()
     # logger.debug(res)
@@ -83,7 +88,9 @@ def info_from_web(source_id: RemoteSourceID):
 
     res = db.parse_info(rj_info)
     res.star = 0
-    res.count = 0
+    res.last_review = None
+    res.progress = None
+    res.notes = ""
     res.held = False
     res.stored = False
     res.comment = ""

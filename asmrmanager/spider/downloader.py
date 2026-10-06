@@ -1,4 +1,3 @@
-import json
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Literal, NamedTuple, Self
@@ -7,7 +6,11 @@ from aiohttp import ClientConnectionError
 
 from asmrmanager.common import MUSIC_SUFFIXES
 from asmrmanager.common.rj_parse import id2source_name, source_name2id
-from asmrmanager.common.types import RemoteSourceID
+from asmrmanager.common.types import (
+    LocalSourceID,
+    RecoverRecord,
+    RemoteSourceID,
+)
 from asmrmanager.config import Aria2Config
 from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
@@ -24,9 +27,6 @@ class BackendError(DownloadError):
     pass
 
 
-# TODO 统一管理固定的参数
-
-# saved in .recover without download order
 class FileInfo(NamedTuple):
     path: Path
     url: str
@@ -52,10 +52,12 @@ class ASMRDownloader:
         download_method: Literal["aria2", "idm"] = "idm",
         aria2_config: Aria2Config | None = None,
         fetch_cover: bool = False,
+        save_recovery: Callable[[LocalSourceID, list[RecoverRecord]], None] | None = None,
     ):
         self.api = api
         self.save_path = fm.download_path
         self.json_should_download = json_should_download
+        self.save_recovery = save_recovery
         self.name_should_download = name_should_download
         self.replace = replace
         self.fetch_cover = fetch_cover
@@ -155,18 +157,16 @@ class ASMRDownloader:
             logger.warning("path already exists: %s", voice_path)
 
         voice_path.mkdir(parents=True, exist_ok=True)
-        self.create_info_file(voice_info, voice_path=voice_path)
-
 
         file_list_with_order = self.get_file_list(
             tracks,
             voice_path,
         )
-        logger.debug("file list: %s", file_list_with_order)
+        logger.debug("Found %d files", len(file_list_with_order))
         file_list = self.apply_filename_filter(file_list_with_order)
-        logger.debug("final file list: %s", file_list)
+        logger.debug("Prepared %d recovery records", len(file_list))
 
-        self.create_recover_file(file_list, voice_path)
+        self.save_recovery_records(file_list, voice_path)
         if self.fetch_cover and all(str(f.path.relative_to(voice_path)) != 'cover.jpg' for f in file_list):
             await self.download_cover(voice_id, voice_path)
         await self.create_dir_and_download(file_list)
@@ -186,13 +186,10 @@ class ASMRDownloader:
             )
         assert voice_path.name == voice_info["source_id"]
         if not voice_path.exists():
-            logger.warning(
-                "There are no such files in your storage path for"
-                f" RJ{voice_id}"
-            )
+            logger.warning("No local files for %s; updating metadata", voice_info["source_id"])
 
         voice_path.mkdir(parents=True, exist_ok=True)
-        self.create_info_file(voice_info, voice_path)
+        self.json_should_download(voice_info)
 
         tracks = await self.api.get_voice_tracks(voice_id)
         if tracks is None:
@@ -200,9 +197,9 @@ class ASMRDownloader:
 
         file_list_with_order = self.get_file_list(tracks, voice_path)
         file_list = self.apply_filename_filter(file_list_with_order)
-        self.create_recover_file(file_list, voice_path)
+        self.save_recovery_records(file_list, voice_path)
 
-    def create_recover_file(
+    def save_recovery_records(
         self,
         file_list: list[FileInfo],
         voice_path: Path,
@@ -218,8 +215,9 @@ class ASMRDownloader:
             }
             for file in file_list
         ]
-        with open(voice_path / ".recover", "w", encoding="utf-8") as f:
-            json.dump(recover, f, ensure_ascii=False, indent=4)
+        if self.save_recovery is None:
+            raise DownloadError("Recovery database storage is not configured.")
+        self.save_recovery(source_name2id(voice_path.name), recover)
 
     async def download_by_idm(
         self, url: str, save_path: Path, file_name: str
@@ -280,16 +278,6 @@ class ASMRDownloader:
             raise
         except Exception as exc:
             raise DownloadError(f"Failed to submit {file_path}: {exc}") from exc
-
-    def create_info_file(self, voice_info: dict[str, Any], voice_path: Path):
-        source_name = voice_info["source_id"]
-        # info中有名字信息，理论上应该是一样的，但有可能为空，所以不考虑使用
-        # recv_rj_name = voice_info['original_workno']
-        json_path = voice_path / f"{source_name}.json"
-        if json_path.exists():
-            logger.info("update %s (already exists)", json_path)
-        with open(json_path, "w", encoding="utf-8") as f:
-            json.dump(voice_info, f, ensure_ascii=False, indent=4)
 
     async def download_cover(
         self, source_id: RemoteSourceID, save_path: Path

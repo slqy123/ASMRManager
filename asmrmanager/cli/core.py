@@ -47,18 +47,18 @@ def create_api_client():
 
 
 @cache
-def create_database(
-    skip_check: bool = False,
-):  # skip_check is only used for migration
+def create_database():
     from asmrmanager.database.manage import DataBaseManager
 
-    db = DataBaseManager(tag_filter=config.tag_filter or ())
-    if not skip_check and not db.check_db_updated():
-        logger.error(
-            "Your database is out dated, Please update your database schema"
-            " with asmr utils migrate!"
+    try:
+        db = DataBaseManager(tag_filter=config.tag_filter or ())
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if not db.check_db_updated():
+        db.session.close()
+        raise click.ClickException(
+            "Database schema is outdated; run asmr utils migrate first."
         )
-        sys.exit(-1)
     return db
 
 
@@ -88,6 +88,19 @@ def create_downloader_and_database(
             return True
         return fm.get_location(info.id) is None
 
+    def save_info(info):
+        should_download = db.add_info(
+            info,
+            check=download_params.check_tag,
+            tag_strategy=config.tag_strategy,
+        )
+        db.commit()
+        return should_download
+
+    def save_recovery(source_id, records):
+        db.save_recovery(source_id, records)
+        db.commit()
+
     return (
         ASMRDownloadManager(
             api=create_api_client(),
@@ -96,11 +109,8 @@ def create_downloader_and_database(
                 if download_params.force
                 else id_should_download
             ),  # 如果数据库中不存在或者文件不存在，都执行下载
-            json_should_download=lambda info: db.add_info(
-                info,
-                check=download_params.check_tag,
-                tag_strategy=config.tag_strategy,
-            ),
+            json_should_download=save_info,
+            save_recovery=save_recovery,
             name_should_download=(
                 name_should_download
                 if download_params.check_name
