@@ -520,7 +520,7 @@ def pl_preprocess_cb(
         pl = create_playlist()
         # TODO use to CONSTANT to replace 100
         playlists_cache, total = pl.run(
-            pl.playlist.get_playlists(page_size=100)
+            pl.api.get_playlists(page_size=100)
         )[0]
         if total > len(playlists_cache):
             logger.warning(

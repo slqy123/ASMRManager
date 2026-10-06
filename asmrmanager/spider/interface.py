@@ -17,13 +17,11 @@ from asmrmanager.common.browse_params import BrowseParams
 from asmrmanager.common.output import print_table, support_image
 from asmrmanager.common.rj_parse import source_name2id
 from asmrmanager.common.select import select_multiple
-from asmrmanager.common.types import RemoteSourceID, SourceName
+from asmrmanager.common.types import PRIVACY, RemoteSourceID, SourceName
 from asmrmanager.config import Aria2Config
 from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
 from asmrmanager.spider.asmrapi import ASMRAPI
-from asmrmanager.spider.playlist import ASMRPlayListAPI
-from asmrmanager.spider.tag import ASMRTagAPI
 from asmrmanager.spider.utils.concurrency import concurrent_rate_limit
 
 from .downloader import ASMRDownloadAPI
@@ -353,22 +351,19 @@ class ASMRPlayListManager(AsyncManager):
     def __init__(
         self, name: str, password: str, proxy: str | None, limit: int = 3
     ):
-        self.playlist = ASMRPlayListAPI(
-            name=name, password=password, proxy=proxy, limit=limit
-        )
-        super().__init__(self.playlist)
+        super().__init__(ASMRAPI(name, password, proxy, limit))
 
     async def list(self, num: int = 12, raw: bool = False):
         from asmrmanager.common.output import print_table
 
         page = 1
-        playlists, total = await self.playlist.get_playlists(
+        playlists, total = await self.api.get_playlists(
             page=page, page_size=num
         )
         logger.info(f"fetching playlists ({len(playlists)}/{total})")
         while num * page < total:
             page += 1
-            playlists_, _ = await self.playlist.get_playlists(
+            playlists_, _ = await self.api.get_playlists(
                 page=page, page_size=num
             )
             playlists += playlists_
@@ -385,7 +380,7 @@ class ASMRPlayListManager(AsyncManager):
         fm.save_playlist_cache(playlists)
 
     async def remove(self, pl_ids: builtins.list[uuid.UUID]):
-        res = await asyncio.gather(*map(self.playlist.delete_playlist, pl_ids))
+        res = await asyncio.gather(*map(self.api.delete_playlist, pl_ids))
 
         if not isinstance(res, list):
             logger.error("Unexpected response type when delete playlists.")
@@ -405,9 +400,7 @@ class ASMRPlayListManager(AsyncManager):
         desc: str | None,
         privacy: Literal["PUBLIC", "NON_PUBLIC", "PRIVATE"],
     ):
-        from asmrmanager.spider.playlist import PRIVACY
-
-        res = await self.playlist.create_playlist(name, desc, PRIVACY[privacy])
+        res = await self.api.create_playlist(name, desc, PRIVACY[privacy])
         if not isinstance(res, dict):
             logger.error("Unexpected response type when create playlist.")
             return
@@ -420,7 +413,7 @@ class ASMRPlayListManager(AsyncManager):
         await self.list()
 
     async def add(self, source_ids: builtins.list[RemoteSourceID], pl_id: uuid.UUID):
-        res = await self.playlist.add_works_to_playlist(source_ids, pl_id)
+        res = await self.api.add_works_to_playlist(source_ids, pl_id)
         if not isinstance(res, dict):
             logger.error(
                 f"Unexpected response type when add works to {pl_id}."
@@ -433,12 +426,12 @@ class ASMRPlayListManager(AsyncManager):
 
     async def show(self, pl_id: uuid.UUID, page_size: int = 12):
         page = 1
-        works, total_count = await self.playlist.show_works_in_playlist(
+        works, total_count = await self.api.show_works_in_playlist(
             pl_id, page, page_size
         )
         while page * page_size < total_count:
             page += 1
-            works_, _ = await self.playlist.show_works_in_playlist(
+            works_, _ = await self.api.show_works_in_playlist(
                 pl_id, page, page_size
             )
             works += works_
@@ -493,7 +486,7 @@ class ASMRTagManager(AsyncManager):
     def __init__(
         self, name: str, password: str, proxy: str | None, limit: int = 3
     ) -> None:
-        self.api = ASMRTagAPI(name, password, proxy, limit)
+        super().__init__(ASMRAPI(name, password, proxy, limit))
 
     async def get_asmr_tags(self, source_id: RemoteSourceID):
         voice_info = await self.api.get_voice_info(source_id)

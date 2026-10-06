@@ -1,14 +1,20 @@
 import json
 import os
 import time
+import uuid
 from base64 import b64decode
-from typing import Any, ClassVar, NamedTuple, Self, TypeVar
+from typing import Any, ClassVar, Literal, NamedTuple, Self, TypeVar
 
 import asyncstdlib
 from aiohttp import ClientConnectorError, ClientSession
 from aiohttp.connector import TCPConnector
 
-from asmrmanager.common.types import RemoteSourceID
+from asmrmanager.common.types import (
+    PRIVACY,
+    PlayListItem,
+    RemoteSourceID,
+    SourceID,
+)
 from asmrmanager.filemanager.appdirs_ import CACHE_PATH
 from asmrmanager.logger import logger
 from asmrmanager.spider.utils.concurrency import concurrent_rate_limit
@@ -161,10 +167,10 @@ class ASMRAPI:
                 raise RetryError
         return resp_json
 
-    async def _get_playlists(
-        self, page, page_size: int = 12, filter_by: str = "all"
-    ) -> dict[str, Any]:
-        return await self.get(
+    async def get_playlists(
+        self, page: int = 1, page_size: int = 12, filter_by: str = "all"
+    ) -> tuple[list[PlayListItem], int]:
+        resp = await self.get(
             "playlist/get-playlists",
             params={
                 "page": page,
@@ -172,40 +178,57 @@ class ASMRAPI:
                 "filterBy": filter_by,
             },
         )
+        playlists = [
+            PlayListItem(
+                id=uuid.UUID(item["id"]),
+                name=item["name"],
+                privacy=PRIVACY(item["privacy"]),
+                desc=item["description"],
+                works_count=item["works_count"],
+                latest_work_id=SourceID(item["latestWorkID"]),
+            )
+            for item in resp["playlists"]
+        ]
+        return playlists, resp["pagination"]["totalCount"]
 
-    async def _create_playlist(
-        self, name: str, desc: str | None = None, privacy: int = 0
+    async def create_playlist(
+        self,
+        name: str,
+        desc: str | None = None,
+        privacy: PRIVACY = PRIVACY.PRIVATE,
     ):
-        # Literal['public', 'non-public', 'private']
         return await self.post(
             "playlist/create-playlist",
             data={
                 "name": name,
                 "description": desc or "",
-                "privacy": privacy,
+                "privacy": privacy.value,
                 "locale": "zh-CN",
                 "works": [],
             },
         )
 
-    async def _add_works_to_playlist(
-        self, source_ids: list[RemoteSourceID], pl_id: str
+    async def add_works_to_playlist(
+        self, source_ids: list[RemoteSourceID], pl_id: uuid.UUID
     ):
         return await self.post(
             "playlist/add-works-to-playlist",
-            data={"id": pl_id, "works": source_ids},
+            data={"id": str(pl_id), "works": source_ids},
         )
 
-    async def _show_works_in_playlist(
-        self, pl_id: str, page: int = 1, page_size: int = 12
-    ):
-        return await self.get(
+    async def show_works_in_playlist(
+        self, pl_id: uuid.UUID, page: int = 1, page_size: int = 12
+    ) -> tuple[list[Any], int]:
+        resp = await self.get(
             "playlist/get-playlist-works",
-            params={"id": pl_id, "page": page, "pageSize": page_size},
+            params={"id": str(pl_id), "page": page, "pageSize": page_size},
         )
+        return resp["works"], resp["pagination"]["totalCount"]
 
-    async def _delete_playlist(self, pl_id: str):
-        return await self.post("playlist/delete-playlist", data={"id": pl_id})
+    async def delete_playlist(self, pl_id: uuid.UUID):
+        return await self.post(
+            "playlist/delete-playlist", data={"id": str(pl_id)}
+        )
 
     async def get_recommendations(self, page: int = 1):
         return await self.post(
@@ -237,22 +260,27 @@ class ASMRAPI:
     ) -> dict[str, Any]:
         return await self.get(f"search/{content}", params=params)
 
-    async def _get_tags(self):
+    async def get_all_tags(self):
         return await self.get("tags/")
 
-    async def _attach_tags(self, tag_ids: list[int], work_id: int):
+    async def attach_tags(self, tag_ids: list[int], source_id: RemoteSourceID):
         return await self.post(
             "vote/attach-tags-to-work",
-            data={"tagIDs": tag_ids, "workID": work_id},
+            data={"tagIDs": tag_ids, "workID": source_id},
         )
 
-    async def _vote_tag(self, tag_id: int, work_id: int, up: bool):
+    async def vote_tag(
+        self,
+        tag_id: int,
+        source_id: RemoteSourceID,
+        action: Literal["up", "down"],
+    ):
         return await self.post(
             "vote/vote-work-tag",
             data={
-                "status": 1 if up else 2,
+                "status": 1 if action == "up" else 2,
                 "tagID": tag_id,
-                "workID": work_id,
+                "workID": source_id,
             },
         )
 
