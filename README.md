@@ -43,11 +43,9 @@
 
 - 对作品进行评分、评论，记录收听状态和最近评价日期；私人备注保留在本地。
 - 使用预定义的SQL脚本进行查询(仓库提供了一些模板，例如 [search.sql](./asmrmanager/filemanager/resources/sqls.example/search.sql))
+- 在本地创建播放列表、添加已有作品、查询或删除列表，不依赖网络或登录。
 
-同时也提供网站以下API接口的CLI实现：
-
-- 管理用户播放列表
-- 对作品标签进行投票
+此外，还可以对网站上的作品标签进行投票。
 
 ### 播放
 
@@ -98,7 +96,7 @@ pip install ASMRManager[依赖]
 - `file check` 检查下载目录下的文件是否按照规则被正确下载，并验证文件完整性
 - `file store` 将下载文件转移到存储目录(STORAGE_PATH)，并执行相应文件格式转换(详情见config.toml的before_store字段)
 - `view` 选择文件并复制到 VIEW_PATH
-- `pl add` 将某个音声添加到用户的云端播放列表(配合 `pl create` 使用)
+- `pl add` 将本地数据库中已有的作品添加到本地播放列表(配合 `pl create` 使用)
 - `pl vote up/down/add` 对相关标签进行投票，或添加新标签
 - `review` 为某个作品评分并评论(本地)
 
@@ -212,14 +210,32 @@ asmr vote down -t 497
 asmr vote up  # 不传入-t参数，会进入交互式选择模式
 ```
 
-播放列表管理
+本地播放列表管理：
 
 ```shell
-asmr pl list # 列出所有播放列表
-asmr pl create myplaylist --desc "An example playlist" --privacy PRIVATE  # 创建一个播放列表，并将权限设置为私密。
-asmr pl add myplaylist RJ123456  # 将音声添加到myplaylist播放列表中
-asmr pl show myplaylist  # 展示myplaylist播放列表中的音声
+asmr pl list
+asmr pl list --num 100 --raw
+asmr pl create myplaylist --desc "An example playlist" --privacy PRIVATE
+asmr pl add myplaylist RJ123456 VJ015443
+asmr pl show myplaylist
+asmr pl rm myplaylist
 ```
+
+列表有独立的本地 ID，可以使用 ID、唯一名称或 `[playlist_aliases]` 中配置的别名操作；名称重复时必须使用 `pl list` 显示的本地 ID。添加的作品须已存在于本地数据库，也可使用数据库中已知的云端作品 ID，不会为了添加成员联网获取详情。同一作品可以属于多个列表，重复添加不会增加重复成员。`pl rm` 删除整个列表，但保留作品及其文件。
+
+`list`、`show` 和补全始终读取本地数据；封面仅使用已有本地文件。`known_members` 是已知成员数，`members_complete` 表示成员是否完整：旧缓存迁移的列表成员未知，不能把已知成员为零理解为云端空列表。本地 ID 与显示的 `remote_id` 不可混用，创建本地列表不会自动发布到云端。
+
+配置文件支持以下开关，旧配置缺少这一节时也全部默认关闭：
+
+```toml
+[sync]
+star = false
+comment = false
+progress = false
+playlist = false
+```
+
+当前尚未支持云端推送、拉取和列表发布，请保持这些开关关闭。开启 `playlist` 会拒绝列表修改，不会跳过云端步骤而只修改本地；本地查询和补全仍可使用。
 
 本地评价与收听状态：
 
@@ -231,7 +247,7 @@ asmr review RJ123456 --star 0 --comment ""
 ```
 
 收听状态可选 `marked`（想听）、`listening`（在听）、`listened`（听过）、`replay`（重听）、`postponed`（搁置）。
-评论会替换当前值；`hold --comment` 的原因只作为本地备注保存。修改评分或评论会记录评价日期并尝试将已有文件移入存储目录；仅修改收听状态不会移动文件。
+评论会替换当前值；`hold --comment` 的原因只作为本地备注保存。修改评分或评论会记录评价日期并尝试将已有文件移入存储目录；仅修改收听状态不会移动文件。`review` 只维护本地数据库已有作品，本地编号和已知的云端编号都可离线解析；未知作品会报错，不会联网补取详情。
 
 升级与旧数据导入：
 

@@ -514,6 +514,7 @@ class DatabaseTest(TestCase):
         db.add_info(work_info())
         db.session.commit()
         with (
+            patch("asmrmanager.cli.core.create_database", return_value=db),
             patch("asmrmanager.cli.review.create_database", return_value=db),
             patch("asmrmanager.cli.review.fm") as fm,
         ):
@@ -527,6 +528,7 @@ class DatabaseTest(TestCase):
     def test_review_cli_validates_before_moving_files(self):
         db = self.database()
         with (
+            patch("asmrmanager.cli.core.create_database", return_value=db),
             patch("asmrmanager.cli.review.create_database", return_value=db),
             patch("asmrmanager.cli.review.fm") as fm,
         ):
@@ -539,6 +541,7 @@ class DatabaseTest(TestCase):
         db.add_info(work_info())
         db.session.commit()
         with (
+            patch("asmrmanager.cli.core.create_database", return_value=db),
             patch("asmrmanager.cli.review.create_database", return_value=db),
             patch("asmrmanager.cli.review.fm") as fm,
         ):
@@ -560,6 +563,7 @@ class DatabaseTest(TestCase):
         db.add_info(work_info())
         db.session.commit()
         with (
+            patch("asmrmanager.cli.core.create_database", return_value=db),
             patch("asmrmanager.cli.review.create_database", return_value=db),
             patch("asmrmanager.cli.review.fm") as fm,
         ):

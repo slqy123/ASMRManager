@@ -6,7 +6,7 @@ from asmrmanager.logger import logger
 
 
 @click.command()
-@rj_argument("local")
+@rj_argument("local-only")
 @click.option(
     "-s", "--star", type=click.IntRange(0, 5), help="Rating; 0 clears it."
 )

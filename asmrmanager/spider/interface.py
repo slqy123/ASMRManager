@@ -1,6 +1,4 @@
 import asyncio
-import builtins
-import uuid
 from collections.abc import Awaitable, Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -12,7 +10,6 @@ import xxhash
 from asmrmanager.common.browse_params import BrowseParams
 from asmrmanager.common.rj_parse import source_name2id
 from asmrmanager.common.types import (
-    PRIVACY,
     LocalSourceID,
     RecoverRecord,
     RemoteSourceID,
@@ -228,71 +225,6 @@ class ASMRDownloadManager(AsyncManager):
         res = await self.api.get_popular(page)
         ids = [work["id"] for work in res["works"]]
         return await self.get(ids)
-
-
-class ASMRPlayListManager(AsyncManager):
-    async def list(self, num: int = 12):
-        page = 1
-        playlists, total = await self.api.get_playlists(
-            page=page, page_size=num
-        )
-        logger.info(f"Fetching playlists ({len(playlists)}/{total})")
-        while num * page < total:
-            page += 1
-            playlists_, _ = await self.api.get_playlists(
-                page=page, page_size=num
-            )
-            playlists += playlists_
-            logger.info(f"Fetching playlists ({len(playlists)}/{total})")
-        fm.save_playlist_cache(playlists)
-        return playlists
-
-    async def remove(self, pl_ids: builtins.list[uuid.UUID]):
-        res = await self.gather(*map(self.api.delete_playlist, pl_ids))
-
-        for r in res:
-            if not isinstance(r, dict) or "id" not in r:
-                raise APIError("Unexpected response when deleting playlists.")
-            logger.info("Deleted playlist %s.", r["id"])
-
-    async def create(
-        self,
-        name: str,
-        desc: str | None,
-        privacy: Literal["PUBLIC", "NON_PUBLIC", "PRIVATE"],
-    ):
-        res = await self.api.create_playlist(name, desc, PRIVACY[privacy])
-        if not isinstance(res, dict) or "id" not in res:
-            raise APIError("Unexpected response when creating playlist.")
-        logger.info("Created playlist %s.", res["id"])
-
-        logger.info("Updating local playlist cache...")
-        return await self.list()
-
-    async def add(self, source_ids: builtins.list[RemoteSourceID], pl_id: uuid.UUID):
-        res = await self.api.add_works_to_playlist(source_ids, pl_id)
-        if not isinstance(res, dict):
-            raise APIError(f"Unexpected response when adding works to {pl_id}.")
-        logger.info("Added works to playlist %s.", pl_id)
-
-    async def show(
-        self, pl_id: uuid.UUID, page_size: int = 12
-    ) -> builtins.list[dict[str, Any]]:
-        page = 1
-        works, total_count = await self.api.show_works_in_playlist(
-            pl_id, page, page_size
-        )
-        while page * page_size < total_count:
-            page += 1
-            works_, _ = await self.api.show_works_in_playlist(
-                pl_id, page, page_size
-            )
-            works += works_
-            logger.info(
-                f"Fetching works in playlist {pl_id}: {len(works)}/{total_count}"
-            )
-
-        return works
 
 
 @dataclass

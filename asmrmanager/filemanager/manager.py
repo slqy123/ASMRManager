@@ -8,8 +8,6 @@ from typing import (
     NamedTuple,
 )
 
-import toml
-
 from asmrmanager.common.rj_parse import (
     id2source_name,
     source2id,
@@ -17,7 +15,6 @@ from asmrmanager.common.rj_parse import (
 )
 from asmrmanager.common.types import (
     LocalSourceID,
-    PlayListItem,
     SourceName,
 )
 from asmrmanager.filemanager.appdirs_ import (
@@ -92,24 +89,6 @@ class FileManager:
 
         logger.info(
             "Generated the default MPD configuration at %s.", cls.CONFIG_PATH
-        )
-
-    @classmethod
-    def get_playlist_cache(cls) -> list[PlayListItem] | None:
-        cls.CACHE_PATH.mkdir(parents=True, exist_ok=True)
-        dst_path = cls.CACHE_PATH / "playlist.cache"
-        if dst_path.exists():
-            playlists = toml.load(dst_path)["playlists"]
-            return [PlayListItem(**p) for p in playlists]
-        return None
-
-    @classmethod
-    def save_playlist_cache(cls, playlists: list[PlayListItem]):
-        cls.CACHE_PATH.mkdir(parents=True, exist_ok=True)
-        dst_path = cls.CACHE_PATH / "playlist.cache"
-        toml.dump(
-            {"playlists": [p.asdict() for p in playlists]},
-            dst_path.open(mode="w", encoding="utf-8"),
         )
 
     def __init__(

@@ -1,12 +1,25 @@
 import os
 from ast import literal_eval
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 import toml
 
 from asmrmanager import CONFIG_PATH
 from asmrmanager.logger import logger
+
+
+@dataclass
+class SyncConfig:
+    star: bool = False
+    comment: bool = False
+    progress: bool = False
+    playlist: bool = False
+
+    def __post_init__(self):
+        for name in ("star", "comment", "progress", "playlist"):
+            if type(getattr(self, name)) is not bool:
+                raise ValueError(f"sync.{name} must be a boolean.")
 
 
 @dataclass
@@ -35,6 +48,7 @@ class Config:
     player: Literal["mpd", "pygame", "sounddevice"]
     mpd_config: "MPDConfig"
     before_store: str = ""
+    sync: SyncConfig = field(default_factory=SyncConfig)
 
 
 @dataclass
@@ -116,6 +130,7 @@ config = Config(
     mpd_config=MPDConfig(**_config.get("mpd_config", {})),
     before_store=_config.get("before_store", ""),
     subtitle_config=SubtitleConfig(**_config.get("subtitle_config", {})),
+    sync=SyncConfig(**_config.get("sync", {})),
 )
 
 # environment variable override

@@ -126,12 +126,6 @@ def create_downloader_and_database(
     )
 
 
-def create_playlist():
-    from asmrmanager.spider.interface import ASMRPlayListManager
-
-    return ASMRPlayListManager(api=create_api_client())
-
-
 def create_tags_api():
     from asmrmanager.spider import ASMRTagManager
 
@@ -284,6 +278,7 @@ def get_prev_source():
 
 def save_source(rj: str):
     PREVIOUS_RJ_PATH.write_text(rj, encoding="utf8")
+    get_prev_source.cache_clear()
 
 
 def convert2local_ids(
@@ -350,7 +345,9 @@ def convert2remote_id(x):
     return convert2remote_ids([x])[0]
 
 
-def rj_argument(convert: Literal[False, "local", "remote"] = False):
+def rj_argument(
+    convert: Literal[False, "local", "remote", "local-only"] = False,
+):
     """parse the source_id: int, if not given it will use the previous source_id"""
 
     def _(f):
@@ -371,7 +368,12 @@ def rj_argument(convert: Literal[False, "local", "remote"] = False):
             if source_id is None:
                 logger.error(f"Invalid input source id: {source}")
                 sys.exit(-1)
-            if convert == "local" and not is_local_source_id(source_id):
+            if convert == "local-only":
+                try:
+                    source_id = create_database().resolve_local_work(source).id
+                except ValueError as exc:
+                    raise click.ClickException(str(exc)) from exc
+            elif convert == "local" and not is_local_source_id(source_id):
                 source_id = convert2local_id(source_id)
             elif convert == "remote" and not is_remote_source_id(source_id):
                 source_id = convert2remote_id(source_id)
@@ -491,69 +493,24 @@ def time_interval_preprocess_cb(
 
 
 def pl_preprocess_cb(
-    ctx: click.Context, param: click.Option, val: str | tuple[str, ...]
-) -> list[uuid.UUID]:
-    def is_valid_uuid(v: str):
-        try:
-            uuid.UUID(v)
-            return True
-        except ValueError:
-            return False
-
-    if isinstance(val, str):
-        val = (val,)
-
-    res = []
-
-    # check for valid uuid
-    possible_aliaes: list[str] = []
-    for v in val:
-        if is_valid_uuid(v):
-            res.append(v)
-            continue
-        else:
-            possible_aliaes.append(v)
-
-    # make transfromation from alias to uuid or name
-    possible_names = []
-    for alias in possible_aliaes:
-        name_or_uuid = config.playlist_aliases.get(alias, alias)
-        if is_valid_uuid(name_or_uuid):
-            res.append(name_or_uuid)
-        else:
-            possible_names.append(name_or_uuid)
-
-    # check and get cached playlist
-    playlists_cache = fm.get_playlist_cache()
-    if playlists_cache is None:
-        logger.warning("No cached playlist was found; fetching playlists from the server.")
-        pl = create_playlist()
-        # TODO use to CONSTANT to replace 100
-        playlists_cache, total = pl.run(
-            pl.api.get_playlists(page_size=100)
-        )[0]
-        if total > len(playlists_cache):
-            logger.warning(
-                "The playlist count (%s) exceeds the cached playlist count (%s).",
-                total,
-                len(playlists_cache),
-            )
-        fm.save_playlist_cache(playlists_cache)
-    cached_names = [p.name for p in playlists_cache]
-
-    # check for valid names using playlist cache
-    for name in possible_names:
-        if name in cached_names:
-            res.append(playlists_cache[cached_names.index(name)].id)
-        else:
-            logger.warning(f"Invalid playlist name: {name}.")
-
-    if not res:
-        logger.warning(
-            "If you just created a playlist, run 'pl list' to cache it locally."
+    ctx: click.Context, param: click.Parameter, val: str | tuple[str, ...]
+) -> uuid.UUID | list[uuid.UUID] | None:
+    if ctx.resilient_parsing:
+        return None
+    values = (val,) if isinstance(val, str) else val
+    if not values:
+        raise click.BadParameter(
+            "Specify at least one local playlist.", ctx, param
         )
-        ctx.fail("no valid uuid, alias or names found")
-
-    if param.nargs == 1:
-        return res[0]
-    return res
+    db = create_database()
+    try:
+        ids = []
+        for value in values:
+            try:
+                identifier = uuid.UUID(value)
+            except ValueError:
+                identifier = config.playlist_aliases.get(value, value)
+            ids.append(db.get_playlist(identifier).id)
+    except ValueError as exc:
+        raise click.BadParameter(str(exc), ctx, param) from exc
+    return ids[0] if param.nargs == 1 else ids
