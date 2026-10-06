@@ -1,7 +1,9 @@
 import click
+from sqlalchemy.exc import SQLAlchemyError
 
 from asmrmanager.cli.core import create_database, fm, rj_argument
 from asmrmanager.common.types import PROGRESS_VALUES, LocalSourceID
+from asmrmanager.config import config
 from asmrmanager.logger import logger
 
 
@@ -56,4 +58,23 @@ def review(
         db.session.rollback()
         if isinstance(exc, ValueError):
             raise click.ClickException(str(exc)) from exc
+        if isinstance(exc, SQLAlchemyError):
+            raise click.ClickException(
+                "Could not save local review changes."
+            ) from None
         raise
+    sync_fields = [
+        field
+        for field, submitted in (
+            ("star", star is not None),
+            ("comment", comment is not None),
+            ("progress", progress is not None or clear_progress),
+        )
+        if submitted and getattr(config.sync, field)
+    ]
+    if sync_fields:
+        raise click.ClickException(
+            "Local review changes were saved, but cloud synchronization "
+            f"is not available for: {', '.join(sync_fields)}. "
+            "No cloud request was made."
+        )

@@ -1,4 +1,5 @@
 import asyncio
+import json
 import traceback
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import patch
@@ -115,13 +116,44 @@ class HTTPTransportTest(IsolatedAsyncioTestCase):
         self.assertEqual(len(self.requests), 1)
         self.assertEqual(self.requests[0]["body"], b'{"name": "Local"}')
 
+    async def test_review_put_preserves_explicit_null_and_omits_unsubmitted_fields(
+        self,
+    ):
+        self.body = b'{"message":"updated"}'
+        result = await self.api.update_review(200123, {"progress": None})
+        self.assertEqual(result, {"message": "updated"})
+        self.assertEqual(len(self.requests), 1)
+        request = self.requests[0]
+        self.assertEqual(request["method"], "PUT")
+        self.assertEqual(request["path"], "/api/review")
+        self.assertEqual(request["query"], {"starOnly": "false"})
+        self.assertEqual(request["authorization"], "Bearer test-secret")
+        self.assertEqual(
+            json.loads(request["body"]), {"work_id": 200123, "progress": None}
+        )
+
+    async def test_review_put_failure_does_not_add_an_application_retry(self):
+        with (
+            patch.object(
+                self.transport._session,
+                "request",
+                side_effect=ClientConnectionError("test-secret"),
+            ) as request,
+            self.assertRaisesRegex(
+                APIError, "outcome may be unknown"
+            ) as error,
+        ):
+            await self.api.update_review(200123, {"rating": None})
+        self.assertEqual(request.call_count, 1)
+        self.assert_safe_error(error.exception)
+
     async def test_binary_request_preserves_bytes(self):
         self.body = b"\x00\xff\x01"
         self.content_type = "application/octet-stream"
         self.assertEqual(await self.api.binary_get("cover/123.jpg"), self.body)
 
     async def test_http_errors_never_become_json_or_binary_success(self):
-        for method in ("GET", "POST"):
+        for method in ("GET", "POST", "PUT"):
             for status in (401, 403, 404, 409, 422, 429, 500, 502):
                 for binary in (False, True):
                     with self.subTest(
@@ -156,7 +188,7 @@ class HTTPTransportTest(IsolatedAsyncioTestCase):
         self.assert_safe_error(error.exception)
 
     async def test_invalid_json_and_content_type_fail_without_retries(self):
-        for method in ("GET", "POST"):
+        for method in ("GET", "POST", "PUT"):
             for body, content_type in (
                 (b"<html>test-secret</html>", "text/html"),
                 (b'{"test-secret":', "application/json"),
@@ -312,10 +344,14 @@ class HTTPTransportTest(IsolatedAsyncioTestCase):
     async def test_application_error_in_successful_http_response_still_fails(
         self,
     ):
-        self.body = b'{"error":"Application rejected the request"}'
-        with self.assertRaisesRegex(APIError, "Application rejected"):
-            await self.api.post("review", {"work_id": 123})
-        self.assertEqual(len(self.requests), 1)
+        self.body = b'{"error":"Application rejected test-secret"}'
+        for method in (self.api.get, self.api.post, self.api.put):
+            with self.assertRaisesRegex(
+                APIError, "reported an error"
+            ) as error:
+                await method("review")
+            self.assert_safe_error(error.exception)
+        self.assertEqual(len(self.requests), 3)
 
     async def test_unopened_transport_still_reports_lifecycle_error(self):
         transport = HTTPTransport(

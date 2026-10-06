@@ -161,4 +161,4 @@ if os.getenv("ASMR_DISABLE_COVER") == "1":
 if (__tagger := os.getenv("ASMR_DEFAULT_TAGGER")) in ("tag", "tagw"):
     config.default_tagger = __tagger
 
-logger.debug(f"Config loaded: {config}")
+logger.debug("Config loaded.")

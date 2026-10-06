@@ -87,6 +87,23 @@ class SyncConfigTest(TestCase):
         ):
             self.load(data)
 
+    def test_debug_logs_do_not_include_configuration_values(self):
+        data = deepcopy(self.example)
+        data["username"] = "TEST_PRIVATE_USERNAME"
+        data["password"] = "TEST_PRIVATE_PASSWORD"
+        data["proxy"] = "http://test:TEST_PRIVATE_PROXY@localhost:8080"
+        data["aria2_config"]["secret"] = "TEST_PRIVATE_RPC_SECRET"
+        with self.assertLogs(configuration.logger, level="DEBUG") as logs:
+            loaded = self.load(data)
+        self.assertEqual(loaded.username, data["username"])
+        self.assertEqual(loaded.password, data["password"])
+        self.assertEqual(loaded.proxy, data["proxy"])
+        self.assertEqual(
+            loaded.aria2_config.secret, data["aria2_config"]["secret"]
+        )
+        self.assertIn("Config loaded", "\n".join(logs.output))
+        self.assertNotIn("TEST_PRIVATE", "\n".join(logs.output))
+
     def test_disabled_sync_keeps_review_offline_and_progress_side_effect_free(
         self,
     ):
