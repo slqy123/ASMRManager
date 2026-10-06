@@ -114,25 +114,31 @@ class ASMRDownloadManager(AsyncManager):
         ids: list[RemoteSourceID],
         process: Callable[[RemoteSourceID], Awaitable[None]],
     ) -> list[RemoteSourceID]:
-        async def process_one(source_id: RemoteSourceID) -> RemoteSourceID | None:
-            try:
-                await process(source_id)
-            except (ModuleNotFoundError, BackendError, AuthenticationError):
-                raise
-            except Exception as exc:
-                logger.error("Failed to process work %d: %s", source_id, exc)
-                return source_id
-            return None
+        pending_ids = iter(enumerate(ids))
+        failed_ids: dict[int, RemoteSourceID] = {}
 
-        tasks = [asyncio.create_task(process_one(source_id)) for source_id in ids]
+        async def worker() -> None:
+            for index, source_id in pending_ids:
+                try:
+                    await process(source_id)
+                except (ModuleNotFoundError, BackendError, AuthenticationError):
+                    raise
+                except Exception as exc:
+                    logger.error("Failed to process work %d: %s", source_id, exc)
+                    failed_ids[index] = source_id
+
+        tasks = [
+            asyncio.create_task(worker())
+            for _ in range(min(len(ids), self.api.transport.limit))
+        ]
         try:
-            results = await asyncio.gather(*tasks)
+            await asyncio.gather(*tasks)
         except BaseException:
             for task in tasks:
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
             raise
-        return [source_id for source_id in results if source_id is not None]
+        return [failed_ids[index] for index in sorted(failed_ids)]
 
     async def get(self, ids: list[RemoteSourceID]) -> list[RemoteSourceID]:
         ids_to_download = []
