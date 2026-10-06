@@ -240,13 +240,6 @@ class ASMRAPI:
     async def list(self, params: dict) -> dict[str, Any]:
         return await self.get("works", params=params)
 
-    async def tag(self, tag_name: str, params: dict):
-        # return await self.get(f'tags/{tag_id}/works', params=params)
-        return await self.get_search_result(f"$tag:{tag_name}$", params=params)
-
-    async def va(self, va_name: str, params: dict):
-        return await self.get_search_result(f"$va:{va_name}$", params=params)
-
     async def __aenter__(self) -> Self:
         await self.transport.__aenter__()
         self._voice_info_cache.clear()
