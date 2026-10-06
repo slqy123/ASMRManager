@@ -87,7 +87,12 @@ class Snapshot:
 class CloudSync(AsyncManager):
     def __init__(self, api):
         super().__init__(api)
-        url = urlsplit(api.base_api_url)
+        try:
+            url = urlsplit(api.base_api_url)
+        except ValueError:
+            raise SyncError(
+                "Invalid synchronization service address."
+            ) from None
         if (
             url.scheme not in ("http", "https")
             or not url.hostname

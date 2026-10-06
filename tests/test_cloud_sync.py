@@ -827,12 +827,58 @@ class CloudSyncTest(TestCase):
             "https://test.example/api/?token=TEST_PRIVATE_TOKEN",
             "https://test.example/other/",
             "file:///api/",
+            "https://[TEST_PRIVATE_TOKEN/api/",
         ):
             self.api.base_api_url = address
             with self.assertRaises(SyncError) as error:
                 CloudSync(self.api)
             self.assertNotIn("TEST_PRIVATE", str(error.exception))
         self.assertEqual(self.api.events, [])
+
+    def test_complete_multiple_pages_import_each_work_once(self):
+        config.sync.star = True
+        for index in range(21):
+            info = work_info(f"RJ{1000 + index:06d}", 201000 + index)
+            self.api.works[info["id"]] = info
+            self.review(info["id"])
+        self.ok("sync", "pull", "--choice", "cloud")
+        self.assertEqual(self.db.session.query(ASMR).count(), 24)
+        self.assertEqual(self.work(1020).star, 4)
+        self.assertIsNone(self.work(1020).last_review)
+        self.assertEqual(self.writes(), [])
+
+    def test_playlist_change_during_member_collection_blocks_all_application(
+        self,
+    ):
+        config.sync.playlist = True
+        playlist = self.linked([123])
+        reads = 0
+
+        def change(method, route, params):
+            nonlocal reads
+            if method == "GET" and route == "playlist/get-playlist-metadata":
+                reads += 1
+                if reads == 2:
+                    self.api.playlists[params["id"]]["description"] = (
+                        "Changed during pull"
+                    )
+
+        self.api.hook = change
+        result = self.invoke("sync", "pull", "--choice", "cloud")
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertEqual(playlist.description, "")
+        self.assertEqual([work.id for work in playlist.works], [123])
+
+    def test_conflicting_remote_ids_for_the_same_source_block_pull(self):
+        config.sync = SyncConfig(star=True, playlist=True)
+        self.review()
+        self.api.works[200999] = work_info("RJ000123", 200999)
+        self.api.playlist("Conflicting mapping", [200999])
+        before = self.state()
+        result = self.invoke("sync", "pull", "--choice", "cloud")
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertEqual(self.state(), before)
+        self.assertEqual(self.db.list_playlists(), [])
 
     def test_unknown_review_fields_and_other_owner_are_not_absence(self):
         config.sync.star = True
