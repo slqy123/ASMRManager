@@ -20,7 +20,7 @@ from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
 from asmrmanager.spider.asmrapi import ASMRAPI
 
-from .downloader import ASMRDownloader
+from .downloader import ASMRDownloader, DownloadError
 
 fm = FileManager.get_fm()
 
@@ -280,8 +280,7 @@ class ASMRDownloadManager(AsyncManager):
         async def update_one(source_id_: RemoteSourceID):
             voice_info = await self.api.get_voice_info(source_id_)
             if voice_info is None:
-                logger.error(f"Failed to update {source_id_}.")
-                return
+                raise DownloadError(f"Failed to get info for work {source_id_}.")
 
             # should_down = self.spider.json_should_download(voice_info)
             # if not should_down:
@@ -290,17 +289,15 @@ class ASMRDownloadManager(AsyncManager):
 
             local_source_id = source_name2id(voice_info["source_id"])
             if local_source_id is None:
-                logger.error(f"Failded to convert {source_id_} to local id.")
-                return
+                raise DownloadError(f"Failed to convert {source_id_} to local id.")
             voice_path = fm.get_path(
                 local_source_id,
                 prefer="download",
             )
             if voice_path is None:
-                logger.error(
-                    "Failed to get the path for source id: %d", local_source_id
+                raise DownloadError(
+                    f"Failed to get the path for source id {local_source_id}."
                 )
-                return
             # voice_path = save_path / id2source_name(local_source_id)
             assert voice_path.name == voice_info["source_id"]
             if not voice_path.exists():
@@ -314,8 +311,7 @@ class ASMRDownloadManager(AsyncManager):
 
             tracks = await self.api.get_voice_tracks(source_id_)
             if tracks is None:
-                logger.error(f"Failed to get tracks for {source_id_}.")
-                return
+                raise DownloadError(f"Failed to get tracks for work {source_id_}.")
 
             file_list_with_order = self.downloader.get_file_list(
                 tracks, voice_path
@@ -323,9 +319,6 @@ class ASMRDownloadManager(AsyncManager):
             file_list = self.downloader.apply_filename_filter(
                 file_list_with_order
             )
-            if file_list is None:
-                logger.error(f"Failed to update {local_source_id}")
-                return
             self.downloader.create_recover_file(file_list, voice_path)
 
         tasks = []

@@ -1,5 +1,4 @@
 import json
-import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Literal, NamedTuple, Self
@@ -13,6 +12,11 @@ from asmrmanager.logger import logger
 from asmrmanager.spider.asmrapi import ASMRAPI
 
 fm = FileManager.get_fm()
+
+
+class DownloadError(RuntimeError):
+    pass
+
 
 # TODO 统一管理固定的参数
 
@@ -81,7 +85,7 @@ class ASMRDownloader:
 
     def apply_filename_filter(
         self, file_list_with_order: list[FileInfoWithOrder]
-    ) -> list[FileInfo] | None:
+    ) -> list[FileInfo]:
         for download_order in sorted(
             {
                 i.download_order
@@ -102,8 +106,7 @@ class ASMRDownloader:
             ):
                 break
         else:
-            logger.error("No audio file found to download")
-            return None
+            raise DownloadError("No audio file found to download.")
         file_list = [
             FileInfo(
                 path=f.path,
@@ -121,7 +124,8 @@ class ASMRDownloader:
         save_path: Path | None = None,
     ) -> None:
         voice_info = await self.api.get_voice_info(voice_id)
-        assert voice_info is not None, f"Failed to download voice {voice_id}"
+        if voice_info is None:
+            raise DownloadError(f"Failed to get info for work {voice_id}.")
 
         assert (
             id2source_name(source_name2id(voice_info["source_id"]))
@@ -135,11 +139,7 @@ class ASMRDownloader:
 
         tracks = await self.api.get_voice_tracks(voice_id)
         if tracks is None:
-            logger.error(
-                f"Remote id {voice_id} error: "
-                "failed to get tracks, skip download"
-            )
-            return
+            raise DownloadError(f"Failed to get tracks for work {voice_id}.")
 
         if save_path is None:
             save_path = self.save_path
@@ -158,9 +158,6 @@ class ASMRDownloader:
         )
         logger.debug("file list: %s", file_list_with_order)
         file_list = self.apply_filename_filter(file_list_with_order)
-        if file_list is None:
-            logger.error(f"Failed to download {voice_id}")
-            return
         logger.debug("final file list: %s", file_list)
 
         self.create_recover_file(file_list, voice_path)
@@ -245,37 +242,35 @@ class ASMRDownloader:
     async def download_cover(
         self, source_id: RemoteSourceID, save_path: Path
     ) -> None:
-        save_path.mkdir(parents=True, exist_ok=True)
-
         logger.debug("downloading cover")
 
         try:
+            save_path.mkdir(parents=True, exist_ok=True)
             image_data = await self.api.get_cover(source_id)
             with save_path.joinpath("cover.jpg").open("wb") as f:
                 f.write(image_data)
-        except Exception as _:
-            logger.error("Failed to download cover: %d", source_id)
+        except Exception as exc:
+            logger.warning("Failed to download cover for %d: %s", source_id, exc)
 
     async def create_dir_and_download(self, file_list: list[FileInfo]) -> None:
+        failed_files = 0
         for file_info in file_list:
             file_path = file_info.path
             if not file_info.should_download:
                 logger.info("filter %s", file_path)
                 continue
-            file_path.parent.mkdir(parents=True, exist_ok=True)
             try:
+                file_path.parent.mkdir(parents=True, exist_ok=True)
                 await self.process_download(
                     file_info.url, file_path.parent, file_path.name
                 )
-            except ModuleNotFoundError as e:
-                logger.critical(
-                    f"Module not found: {e}, please read the install part of"
-                    " the README.md to install the corresponding module"
-                )
-                sys.exit(-1)
-            except Exception as e:
-                logger.error(f"Unknow download error: {e}")
-                continue
+            except ModuleNotFoundError:
+                raise
+            except Exception as exc:
+                failed_files += 1
+                logger.error("Failed to submit %s: %s", file_path, exc)
+        if failed_files:
+            raise DownloadError(f"Failed to submit {failed_files} files.")
 
     def get_file_list(
         self,
