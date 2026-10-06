@@ -1,16 +1,8 @@
 import json
 import sys
-import typing
 from collections.abc import Callable
-from importlib import import_module
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Literal,
-    NamedTuple,
-    TypeVar,
-)
+from typing import Any, Literal, NamedTuple, Self
 
 from asmrmanager.common import MUSIC_SUFFIXES
 from asmrmanager.common.rj_parse import id2source_name, source_name2id
@@ -19,39 +11,6 @@ from asmrmanager.config import Aria2Config
 from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
 from asmrmanager.spider.asmrapi import ASMRAPI
-
-T = TypeVar("T", bound="ASMRDownloadAPI")
-
-
-if TYPE_CHECKING:
-    from .utils.aria2_downloader import Aria2Downloader as _Aria2Downloader
-    from .utils.IDMHelper import IDMHelper as _IDMHelper
-
-try:
-    IDMHelper = typing.cast(
-        "type[_IDMHelper]|None",
-        import_module(".utils.IDMHelper", "asmrmanager.spider").IDMHelper,
-    )
-# except (ImportError, ModuleNotFoundError):
-except Exception:
-    # __IDMHELPER_EXIST = False
-    IDMHelper = None
-
-
-try:
-    # __ARIA2_EXIST = True
-    # from .utils.aria2_downloader import Aria2Downloader
-    Aria2Downloader = typing.cast(
-        "type[_Aria2Downloader]|None",
-        import_module(
-            ".utils.aria2_downloader", "asmrmanager.spider"
-        ).Aria2Downloader,
-    )
-# except (ImportError, ModuleNotFoundError):
-except Exception:
-    # __ARIA2_EXIST = False
-    Aria2Downloader = None
-
 
 fm = FileManager.get_fm()
 
@@ -105,18 +64,26 @@ class ASMRDownloadAPI(ASMRAPI):
         self.aria2_config = aria2_config
         self.download_method = download_method
 
-        if self.download_method == "aria2":
-            assert Aria2Downloader is not None, (
-                "You have `download_method = aria2` configured"
-                "but failed to import corresponding class: Aria2Downloader"
-            )
-            # 不默认使用配置文件中的proxy，可以在aria2.conf中自行添加all-proxy配置
-            self.aria2_downloader = Aria2Downloader(None)
-        else:
-            assert IDMHelper is not None, (
-                "You have `download_method = idm` configured, "
-                "but failed to import corresponding class: IDMHelper"
-            )
+        try:
+            if self.download_method == "aria2":
+                if self.aria2_config is None:
+                    raise ValueError("aria2 configuration is required.")
+                from .utils.aria2_downloader import Aria2Downloader
+
+                self.aria2_downloader = Aria2Downloader(proxy=None)
+            elif self.download_method == "idm":
+                from .utils.IDMHelper import IDMHelper
+
+                self.idm_helper_type = IDMHelper
+            else:
+                raise ValueError(
+                    f"Unsupported download method: {self.download_method}."
+                )
+        except ImportError as exc:
+            raise RuntimeError(
+                f"Cannot load {self.download_method} backend; install "
+                f"ASMRManager[{self.download_method}] and check its requirements."
+            ) from exc
 
     def apply_filename_filter(
         self, file_list_with_order: list[FileInfoWithOrder]
@@ -226,28 +193,18 @@ class ASMRDownloadAPI(ASMRAPI):
         with open(voice_path / ".recover", "w", encoding="utf-8") as f:
             json.dump(recover, f, ensure_ascii=False, indent=4)
 
-    @staticmethod
     async def download_by_idm(
-        url: str, save_path: Path, file_name: str
-    ) -> bool:
-        """the save path + file should not exist,
-        and the filename should be legal"""
-        assert IDMHelper is not None
-        m = IDMHelper(url, str(save_path.absolute()), file_name, 3)
+        self, url: str, save_path: Path, file_name: str
+    ) -> None:
+        m = self.idm_helper_type(url, str(save_path.absolute()), file_name, 3)
         res = m.send_link_to_idm()
         if res != 0:
-            logger.error("IDM returns an error code!")
-            return False
-        return True
+            raise RuntimeError(f"IDM submission failed with error code {res}.")
 
     async def download_by_aria2(
         self, url: str, save_path: Path, file_name: str
-    ) -> bool:
-        """the save path + file should not exist,
-        and the filename should be legal"""
-
+    ) -> None:
         await self.aria2_downloader.download(url, save_path, file_name)
-        return True
 
     def check_exists(self, download_file_path: Path):
         p = (
@@ -278,10 +235,8 @@ class ASMRDownloadAPI(ASMRAPI):
             logger.warning("file already exists in storage, ignore it: %s", file_path)
             return
 
-        logger.info("Downloading %s", file_path)
-        if not await self.download_file(url, save_path, file_name):
-            logger.error("Download failed: %s", file_path)
-            return
+        logger.info("Submitting download: %s", file_path)
+        await self.download_file(url, save_path, file_name)
 
     def create_info_file(self, voice_info: dict[str, Any], voice_path: Path):
         source_name = voice_info["source_id"]
@@ -395,7 +350,7 @@ class ASMRDownloadAPI(ASMRAPI):
 
         return file_list
 
-    async def __aenter__(self) -> typing.Self:
+    async def __aenter__(self) -> Self:
         await super().__aenter__()
 
         if self.download_method == "aria2":
