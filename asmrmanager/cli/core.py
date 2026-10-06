@@ -62,6 +62,17 @@ def create_database(
     return db
 
 
+def commit_download_results(
+    db: "DataBaseManager", failed_ids: list[RemoteSourceID]
+) -> None:
+    db.commit()
+    if failed_ids:
+        raise click.ClickException(
+            f"Failed to process {len(failed_ids)} works: "
+            f"{', '.join(map(str, failed_ids))}."
+        )
+
+
 def create_downloader_and_database(
     download_params: DownloadParams | None = None,
 ) -> tuple["ASMRDownloadManager", "DataBaseManager"]:

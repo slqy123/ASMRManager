@@ -3,6 +3,7 @@ import click
 
 from asmrmanager.cli.core import (
     browse_param_options,
+    commit_download_results,
     create_database,
     create_downloader_and_database,
     download_param_options,
@@ -32,8 +33,8 @@ def get(source_ids: list[RemoteSourceID], download_params: DownloadParams):
         logger.error("You must give at least one source id!")
         return
     spider, db = create_downloader_and_database(download_params)
-    spider.run(spider.get(source_ids))
-    db.commit()
+    (failed_ids,) = spider.run(spider.get(source_ids))
+    commit_download_results(db, failed_ids)
 
 
 @click.command()
@@ -46,8 +47,8 @@ def update(source_ids: list[RemoteSourceID]):
     spider, db = create_downloader_and_database(
         DownloadParams(False, False, True, True)
     )
-    spider.run(spider.update(source_ids))
-    db.commit()
+    (failed_ids,) = spider.run(spider.update(source_ids))
+    commit_download_results(db, failed_ids)
 
 
 @click.command()
@@ -278,7 +279,7 @@ def search(
     spider, db = create_downloader_and_database(
         download_params=download_params
     )
-    spider.run(
+    (failed_ids,) = spider.run(
         spider.search(
             " ".join(
                 (
@@ -308,7 +309,7 @@ def search(
             json=json,
         )
     )
-    db.commit()
+    commit_download_results(db, failed_ids)
 
 
 @click.command()
@@ -316,8 +317,8 @@ def search(
 def rec(download_params: DownloadParams):
     """download recommendations of the current account"""
     spider, db = create_downloader_and_database(download_params)
-    spider.run(spider.get_recommendations())
-    db.commit()
+    (failed_ids,) = spider.run(spider.get_recommendations())
+    commit_download_results(db, failed_ids)
 
 
 @click.command()
@@ -325,8 +326,8 @@ def rec(download_params: DownloadParams):
 def popular(download_params: DownloadParams):
     """download current popular ASMRs"""
     spider, db = create_downloader_and_database(download_params)
-    spider.run(spider.get_popular())
-    db.commit()
+    (failed_ids,) = spider.run(spider.get_popular())
+    commit_download_results(db, failed_ids)
 
 
 dl.add_command(get)

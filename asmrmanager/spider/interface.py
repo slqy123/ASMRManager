@@ -108,14 +108,39 @@ class ASMRDownloadManager(AsyncManager):
         finally:
             await super().__aexit__(*args)
 
-    async def get(self, ids: list[RemoteSourceID]):
-        tasks = []
+    async def _process_works(
+        self,
+        ids: list[RemoteSourceID],
+        process: Callable[[RemoteSourceID], Awaitable[None]],
+    ) -> list[RemoteSourceID]:
+        async def process_one(source_id: RemoteSourceID) -> RemoteSourceID | None:
+            try:
+                await process(source_id)
+            except ModuleNotFoundError:
+                raise
+            except Exception as exc:
+                logger.error("Failed to process work %d: %s", source_id, exc)
+                return source_id
+            return None
+
+        tasks = [asyncio.create_task(process_one(source_id)) for source_id in ids]
+        try:
+            results = await asyncio.gather(*tasks)
+        except BaseException:
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+            raise
+        return [source_id for source_id in results if source_id is not None]
+
+    async def get(self, ids: list[RemoteSourceID]) -> list[RemoteSourceID]:
+        ids_to_download = []
         for id_ in ids:
             if not self.id_should_download(id_):
                 logger.info(f"Remote ID: {id_} already exists.")
                 continue
-            tasks.append(self.downloader.download(id_))
-        await asyncio.gather(*tasks)
+            ids_to_download.append(id_)
+        return await self._process_works(ids_to_download, self.downloader.download)
 
     async def search(
         self,
@@ -138,7 +163,8 @@ class ASMRDownloadManager(AsyncManager):
         all_: bool,
         preview: bool,
         json: bool,
-    ):
+    ) -> list[RemoteSourceID]:
+        failed_ids: list[RemoteSourceID] = []
         total_pages_to_download = None
         download_all_pages = False
         if params.page == 0:
@@ -235,8 +261,10 @@ class ASMRDownloadManager(AsyncManager):
                 )
 
             else:
-                await self.get(
-                    [search_result["works"][i]["id"] for i in indexes]
+                failed_ids.extend(
+                    await self.get(
+                        [search_result["works"][i]["id"] for i in indexes]
+                    )
                 )
 
             if not download_all_pages:
@@ -256,11 +284,12 @@ class ASMRDownloadManager(AsyncManager):
                 )
                 if params.page >= total_pages_to_download:
                     logger.info("All pages downloaded.")
-                    return
+                    break
                 logger.info(
                     f"Downloading progress: {params.page}/{total_pages_to_download}"
                 )
                 params.page += 1
+        return failed_ids
 
     async def tag(self, tag_name: str, params: BrowseParams):
         """tag 和 va 一样，都是调用了特殊的search方法"""
@@ -276,8 +305,8 @@ class ASMRDownloadManager(AsyncManager):
         ids = [work["id"] for work in va_res["works"]]
         await self.get(ids)
 
-    async def update(self, ids: list[RemoteSourceID]):
-        async def update_one(source_id_: RemoteSourceID):
+    async def update(self, ids: list[RemoteSourceID]) -> list[RemoteSourceID]:
+        async def update_one(source_id_: RemoteSourceID) -> None:
             voice_info = await self.api.get_voice_info(source_id_)
             if voice_info is None:
                 raise DownloadError(f"Failed to get info for work {source_id_}.")
@@ -321,21 +350,17 @@ class ASMRDownloadManager(AsyncManager):
             )
             self.downloader.create_recover_file(file_list, voice_path)
 
-        tasks = []
-        for rj_id in ids:
-            tasks.append(update_one(rj_id))
+        return await self._process_works(ids, update_one)
 
-        await asyncio.gather(*tasks)
-
-    async def get_recommendations(self, page: int = 1):
+    async def get_recommendations(self, page: int = 1) -> list[RemoteSourceID]:
         res = await self.api.get_recommendations(page)
         ids = [work["id"] for work in res["works"]]
-        await self.get(ids)
+        return await self.get(ids)
 
-    async def get_popular(self, page: int = 1):
+    async def get_popular(self, page: int = 1) -> list[RemoteSourceID]:
         res = await self.api.get_popular(page)
         ids = [work["id"] for work in res["works"]]
-        await self.get(ids)
+        return await self.get(ids)
 
 
 class ASMRPlayListManager(AsyncManager):
