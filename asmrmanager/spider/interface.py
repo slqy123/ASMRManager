@@ -407,7 +407,7 @@ class ASMRPlayListManager(AsyncManager):
         logger.info(f"Sucessfully create playlist: {res['id']}.")
 
         logger.info("Updating local playlist cache...")
-        await self.list()
+        return await self.list()
 
     async def add(self, source_ids: builtins.list[RemoteSourceID], pl_id: uuid.UUID):
         res = await self.api.add_works_to_playlist(source_ids, pl_id)

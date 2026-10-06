@@ -33,6 +33,17 @@ class PLID(click.ParamType):
         ]
 
 
+def _print_playlists(playlists: list[PlayListItem], raw: bool = False):
+    print_table(
+        titles=["id", "name", "amount", "privacy"],
+        rows=[
+            (str(item.id), item.name, item.works_count, item.privacy.name)
+            for item in playlists
+        ],
+        raw=raw,
+    )
+
+
 @click.group()
 def pl():
     """asmr playlist interface"""
@@ -58,14 +69,7 @@ def list_(num: int, raw: bool):
     """list all playlists"""
     pl = create_playlist()
     playlists = pl.run(pl.list(num))[0]
-    print_table(
-        titles=["id", "name", "amount", "privacy"],
-        rows=[
-            (str(item.id), item.name, item.works_count, item.privacy.name)
-            for item in playlists
-        ],
-        raw=raw,
-    )
+    _print_playlists(playlists, raw)
 
 
 @click.command()
@@ -101,7 +105,8 @@ def create(
 ):
     """create a playlist"""
     pl = create_playlist()
-    pl.run(pl.create(name, desc, privacy))
+    playlists = pl.run(pl.create(name, desc, privacy))[0]
+    _print_playlists(playlists)
 
 
 @click.command()
