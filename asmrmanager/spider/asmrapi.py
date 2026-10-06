@@ -3,8 +3,6 @@ import uuid
 from typing import Any, Literal, Self
 
 import asyncstdlib
-from aiohttp import ClientSession
-from aiohttp.connector import TCPConnector
 
 from asmrmanager.common.types import (
     PRIVACY,
@@ -15,8 +13,8 @@ from asmrmanager.common.types import (
 from asmrmanager.filemanager.appdirs_ import CACHE_PATH
 from asmrmanager.logger import logger
 from asmrmanager.spider.auth import DEFAULT_API_URL, LoginAuth
+from asmrmanager.spider.transport import HTTPTransport
 from asmrmanager.spider.utils.concurrency import concurrent_rate_limit
-from asmrmanager.spider.utils.retry import RetryError, retry
 
 
 class ASMRAPI:
@@ -29,57 +27,38 @@ class ASMRAPI:
     def __init__(
         self, name: str, password: str, proxy: str | None, limit: int
     ) -> None:
-        self._session: ClientSession
         self.base_api_url = type(self).base_api_url
         self.auth = LoginAuth(name, password, self.base_api_url, CACHE_PATH)
-        self.proxy = proxy
-        self.limit = limit
+        self.transport = HTTPTransport(self.base_api_url, proxy, limit)
 
     async def _request_login(self, credentials: dict[str, str]) -> Any:
-        async with self._session.post(
-            self.base_api_url + "auth/me",
-            json=credentials,
-            headers=self.auth.headers,
-            proxy=self.proxy,
-        ) as resp:
-            resp.raise_for_status()
-            return await resp.json()
+        return await self.transport.request(
+            "POST", "auth/me", headers=self.auth.headers, data=credentials
+        )
 
-    @retry()
     async def get(self, route: str, params: dict | None = None) -> Any:
-        resp_json = None
-        while not resp_json:
-            try:
-                async with self._session.get(
-                    self.base_api_url + route,
-                    headers=self.auth.headers,
-                    proxy=self.proxy,
-                    params=params,
-                ) as resp:
-                    resp_json = await resp.json()
-                    return resp_json
-            except Exception as e:
-                logger.warning(f"Request {route} failed: {e}")
-                raise RetryError
-        return resp_json
+        return await self.transport.request(
+            "GET",
+            route,
+            headers=self.auth.headers,
+            params=params,
+            retryable=True,
+        )
 
-    @retry()
-    async def post(self, route: str, data: dict | None = None) -> Any:
-        resp_json = None
-        while not resp_json:
-            try:
-                async with self._session.post(
-                    self.base_api_url + route,
-                    headers=self.auth.headers,
-                    proxy=self.proxy,
-                    json=data,
-                ) as resp:
-                    resp_json = await resp.json()
-                    return resp_json
-            except Exception as e:
-                logger.warning(f"Request {route} failed: {e}")
-                raise RetryError
-        return resp_json
+    async def post(
+        self,
+        route: str,
+        data: dict | None = None,
+        *,
+        retryable: bool = False,
+    ) -> Any:
+        return await self.transport.request(
+            "POST",
+            route,
+            headers=self.auth.headers,
+            data=data,
+            retryable=retryable,
+        )
 
     async def get_playlists(
         self, page: int = 1, page_size: int = 12, filter_by: str = "all"
@@ -155,6 +134,7 @@ class ASMRAPI:
                 "localSubtitledWorks": [],
                 "withPlaylistStatus": [],
             },
+            retryable=True,
         )
 
     async def get_popular(self, page: int = 1):
@@ -167,6 +147,7 @@ class ASMRAPI:
                 "localSubtitledWorks": [],
                 "withPlaylistStatus": [],
             },
+            retryable=True,
         )
 
     async def get_search_result(
@@ -207,27 +188,20 @@ class ASMRAPI:
                 "UA": self.auth.headers["User-Agent"],
                 "processorName": "Native",
             },
+            retryable=True,
         )
 
-    @retry()
     async def binary_get(
         self, route: str, params: dict | None = None
     ) -> bytes:
-        content = None
-        while not content:
-            try:
-                async with self._session.get(
-                    self.base_api_url + route,
-                    headers=self.auth.headers,
-                    proxy=self.proxy,
-                    params=params,
-                ) as resp:
-                    content = await resp.content.read()
-                    return content
-            except Exception as e:
-                logger.warning(f"Request {route} failed: {e}")
-                raise RetryError
-        return content
+        return await self.transport.request(
+            "GET",
+            route,
+            headers=self.auth.headers,
+            params=params,
+            binary=True,
+            retryable=True,
+        )
 
     @asyncstdlib.lru_cache(None)
     @concurrent_rate_limit()
@@ -283,16 +257,16 @@ class ASMRAPI:
         return await self.get_search_result(f"$va:{va_name}$", params=params)
 
     async def __aenter__(self) -> Self:
-        self._session = ClientSession(connector=TCPConnector(limit=self.limit))
+        await self.transport.__aenter__()
         try:
             await self.auth.login(self._request_login)
         except BaseException:
-            await self._session.close()
+            await self.transport.__aexit__(None, None, None)
             raise
         return self
 
-    async def __aexit__(self, *_) -> None:
-        await self._session.close()
+    async def __aexit__(self, *args) -> None:
+        await self.transport.__aexit__(*args)
 
 
 if api_channel := os.getenv("ASMR_CUSTOM_API_CHANNEL"):
