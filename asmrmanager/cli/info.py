@@ -35,6 +35,8 @@ def print_asmr_info(asmr: ASMRInstance):
 - CV
 {cvs}
 
+{language_editions}
+
 **comment**
 - star: {star}
 - last review: {last_review}
@@ -54,7 +56,17 @@ def print_asmr_info(asmr: ASMRInstance):
     cvs = "\n".join([f"  - {c}" for c in asmr.vas])
     if res.get("tags"):
         del res["tags"]
-    s = template.format(tags=tags, cvs=cvs, **res).strip()
+    editions = (asmr.details or {}).get("language_editions") or []
+    language_editions = "\n".join(
+        f"- {edition.get('label') or edition.get('lang') or 'Unknown'}: {edition['workno']}"
+        for edition in editions
+        if isinstance(edition, dict) and edition.get("workno")
+    )
+    if language_editions:
+        language_editions = f"**language editions**\n{language_editions}"
+    s = template.format(
+        tags=tags, cvs=cvs, language_editions=language_editions, **res
+    ).strip()
 
     console = Console()
     if not support_image():
