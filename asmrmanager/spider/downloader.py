@@ -102,7 +102,7 @@ class ASMRDownloader:
             }
         ):
             if download_order > 1:
-                logger.warning(
+                logger.info(
                     "No audio files were found to download. "
                     "Try disabling filters with order %s.",
                     download_order,
