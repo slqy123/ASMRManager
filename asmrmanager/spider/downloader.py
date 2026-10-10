@@ -182,14 +182,8 @@ class ASMRDownloader:
             raise DownloadError(f"Failed to convert {voice_id} to local id.")
         voice_path = fm.get_path(local_source_id, prefer="download")
         if voice_path is None:
-            raise DownloadError(
-                f"Failed to get the path for source id {local_source_id}."
-            )
+            voice_path = self.save_path / id2source_name(local_source_id)
         assert voice_path.name == voice_info["source_id"]
-        if not voice_path.exists():
-            logger.warning("No local files for %s; updating metadata", voice_info["source_id"])
-
-        voice_path.mkdir(parents=True, exist_ok=True)
         self.json_should_download(voice_info)
 
         tracks = await self.api.get_voice_tracks(voice_id)

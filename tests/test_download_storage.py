@@ -119,6 +119,28 @@ class DownloadStorageTest(IsolatedAsyncioTestCase):
         self.assertEqual(list(self.fm.download_path.rglob("*.json")), [])
         self.assertEqual(list(self.fm.download_path.rglob(".recover")), [])
 
+    async def test_update_without_local_directory_persists_metadata(self):
+        self.fm.get_path = Mock(return_value=None)
+        downloader = self.downloader()
+        await downloader.update(200123)
+        self.assertEqual(self.db.session.get(ASMR, 123).details, work_info())
+        self.assertEqual(self.db.load_recovery(123), [recovery("track.mp3")])
+        self.assertFalse(self.fm.download_path.exists())
+        self.fm.get_path.assert_called_once_with(123, prefer="download")
+
+    async def test_update_track_failure_keeps_details_without_directory(self):
+        self.fm.get_path = Mock(return_value=None)
+        self.api.get_voice_tracks.return_value = None
+        with self.assertRaises(DownloadError):
+            await self.downloader().update(200123)
+        independent = DataBaseManager(self.engine)
+        self.addCleanup(independent.session.close)
+        self.assertEqual(
+            independent.session.get(ASMR, 123).details, work_info()
+        )
+        self.assertIsNone(independent.load_recovery(123))
+        self.assertFalse(self.fm.download_path.exists())
+
     async def test_track_failure_keeps_committed_details(self):
         self.api.get_voice_tracks.return_value = None
         with self.assertRaises(DownloadError):

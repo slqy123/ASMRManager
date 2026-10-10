@@ -399,4 +399,4 @@ class DataBaseManager:
 
     def commit(self):
         self.session.commit()
-        logger.info("Changes committed successfully.")
+        logger.debug("Changes committed successfully.")
