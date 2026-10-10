@@ -8,10 +8,12 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
 
+import click
 import toml
 from click.testing import CliRunner
 from sqlalchemy import create_engine, inspect
 
+from asmrmanager.cli.dl import update
 from asmrmanager.cli.review import review
 from asmrmanager.cli.utils import migrate
 from asmrmanager.common.types import validate_recovery
@@ -82,6 +84,17 @@ class DatabaseTest(TestCase):
         self.addCleanup(db.session.close)
         return db
 
+    def legacy_json(self, source_id, content):
+        db = self.database()
+        db.session.add(ASMR(id=source_id))
+        db.session.commit()
+        source_name = f"RJ{source_id:06d}"
+        directory = self.root / source_name
+        directory.mkdir()
+        path = directory / f"{source_name}.json"
+        path.write_text(content)
+        return path
+
     def legacy(self, remote_column=True):
         with self.engine.begin() as connection:
             connection.exec_driver_sql(
@@ -115,10 +128,127 @@ class DatabaseTest(TestCase):
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("Database backup:", result.output)
         self.assertIn("Legacy files were kept", result.output)
+        self.assertIn("before deleting legacy files manually", result.output)
+        self.assertIn("back up the current data.db", result.output)
+
+    def test_migrate_cli_cleanup_scripts_use_actual_roots(self):
+        import shlex
+
+        download = self.root / "download with spaces"
+        storage = self.root / "storage's files"
+        download.mkdir()
+        storage.mkdir()
+        for arguments, expected_roots in (
+            ([], [download, storage]),
+            (["--root", str(storage), "--root", str(storage)], [storage]),
+        ):
+            with (
+                self.subTest(arguments=arguments),
+                patch("asmrmanager.database.engine.get_engine", return_value=self.engine),
+                patch("asmrmanager.cli.utils.fm") as fm,
+            ):
+                fm.CACHE_PATH = self.root
+                fm.download_path = download
+                fm.storage_path = storage
+                result = CliRunner().invoke(migrate, arguments)
+            self.assertEqual(result.exit_code, 0, result.output)
+            self.assertEqual(result.output.count("Bash:"), 1)
+            self.assertEqual(result.output.count("PowerShell:"), 1)
+            bash_roots = " ".join(shlex.quote(str(root)) for root in expected_roots)
+            self.assertIn(f"find {bash_roots} -regextype", result.output)
+            for root in expected_roots:
+                quoted = "'" + str(root).replace("'", "''") + "'"
+                self.assertIn(quoted, result.output)
+            self.assertIn("-mindepth 2 -maxdepth 2", result.output)
+            self.assertNotIn("-Recurse", result.output)
+            self.assertNotIn("globstar", result.output)
+            self.assertNotIn("/path/to/", result.output)
+            self.assertNotIn("example path", result.output)
+
+    def test_migrate_cli_bash_cleanup_deletes_only_shallow_legacy_files(self):
+        import subprocess
+
+        root = self.root / "storage's files"
+        source = root / "RJ000123"
+        nested = source / "audio"
+        nested.mkdir(parents=True)
+        legacy = [source / "RJ000123.json", source / ".recover"]
+        preserved = [source / "audio.mp3", source / "other.json", nested / ".recover"]
+        for path in legacy + preserved:
+            path.write_text("test")
+        with (
+            patch("asmrmanager.database.engine.get_engine", return_value=self.engine),
+            patch("asmrmanager.cli.utils.fm") as fm,
+        ):
+            fm.CACHE_PATH = self.root
+            result = CliRunner().invoke(migrate, ["--root", str(root)])
+        self.assertEqual(result.exit_code, 0, result.output)
+        script = result.output.split("Bash:\n", 1)[1].split("PowerShell:", 1)[0]
+        self.assertNotIn("Read-Host", result.output)
+        self.assertNotIn("read -r", script)
+        for path in legacy:
+            self.assertTrue(path.exists())
+        executed = subprocess.run(
+            ["bash", "-c", script], stdin=subprocess.DEVNULL, text=True, capture_output=True
+        )
+        self.assertEqual(executed.returncode, 0, executed.stderr)
+        self.assertEqual(set(executed.stdout.splitlines()), {str(path) for path in legacy})
+        for path in legacy:
+            self.assertFalse(path.exists())
+        for path in preserved:
+            self.assertTrue(path.exists())
+
+    def test_migrate_cli_powershell_cleanup_deletes_only_shallow_legacy_files(self):
+        import shutil
+        import subprocess
+
+        powershell = shutil.which("pwsh")
+        if powershell is None:
+            self.skipTest("PowerShell is not installed")
+        roots = [self.root / "download with spaces", self.root / "storage's files"]
+        legacy = []
+        preserved = []
+        for root in roots:
+            source = root / "RJ000123"
+            nested = source / "audio"
+            nested.mkdir(parents=True)
+            legacy.extend([source / "RJ000123.json", source / ".recover"])
+            preserved.extend([
+                root / ".recover", source / "audio.mp3", source / "other.json",
+                nested / ".recover", nested / "RJ000123.json",
+            ])
+        for path in legacy + preserved:
+            path.write_text("test")
+        (roots[0] / "linked-work").symlink_to(roots[1] / "RJ000123", target_is_directory=True)
+        linked_file = roots[0] / "RJ000123" / "RJ000456.json"
+        linked_file.symlink_to(roots[1] / "RJ000123" / "other.json")
+        preserved.append(linked_file)
+        with (
+            patch("asmrmanager.database.engine.get_engine", return_value=self.engine),
+            patch("asmrmanager.cli.utils.fm") as fm,
+        ):
+            fm.CACHE_PATH = self.root
+            fm.download_path, fm.storage_path = roots
+            result = CliRunner().invoke(migrate, [])
+        self.assertEqual(result.exit_code, 0, result.output)
+        script = result.output.split("PowerShell:\n", 1)[1]
+        for path in legacy:
+            self.assertTrue(path.exists())
+        executed = subprocess.run(
+            [powershell, "-NoProfile", "-NonInteractive", "-Command", script],
+            stdin=subprocess.DEVNULL, text=True, capture_output=True, timeout=30,
+        )
+        self.assertEqual(executed.returncode, 0, executed.stderr)
+        self.assertEqual(executed.stderr, "")
+        for path in legacy:
+            self.assertFalse(path.exists())
+        for path in preserved:
+            self.assertTrue(path.exists())
 
     def test_migrate_cli_reports_bad_files_as_failure(self):
-        (self.root / "RJ000123.json").write_text("bad JSON")
+        path = self.legacy_json(123, "bad JSON")
         with (
+            patch.object(update, "callback", side_effect=click.ClickException("API unavailable")),
             patch(
                 "asmrmanager.database.engine.get_engine",
                 return_value=self.engine,
@@ -129,7 +259,34 @@ class DatabaseTest(TestCase):
             result = CliRunner().invoke(migrate, ["--root", str(self.root)])
         self.assertNotEqual(result.exit_code, 0)
         self.assertIn("1 legacy imports failed", result.output)
-        self.assertTrue((self.root / "RJ000123.json").exists())
+        self.assertIn("Keep legacy JSON and .recover files", result.output)
+        self.assertNotIn("before deleting legacy files manually", result.output)
+        self.assertTrue(path.exists())
+
+    def test_migrate_cli_updates_invalid_legacy_details_from_api(self):
+        path = self.legacy_json(123, json.dumps({"source_id": "RJ000123"}))
+
+        def update_details(source_ids):
+            self.assertEqual(source_ids, ("RJ000123",))
+            db = DataBaseManager(self.engine)
+            try:
+                db.add_info(work_info(), tag_strategy="accept_all")
+                db.commit()
+            finally:
+                db.session.close()
+
+        with (
+            patch("asmrmanager.database.engine.get_engine", return_value=self.engine),
+            patch("asmrmanager.cli.utils.fm") as fm,
+            patch.object(update, "callback", side_effect=update_details) as fallback,
+        ):
+            fm.CACHE_PATH = self.root
+            result = CliRunner().invoke(migrate, ["--root", str(self.root)])
+        self.assertEqual(result.exit_code, 0, result.output)
+        fallback.assert_called_once()
+        self.assertIn("Imported 1 work details", result.output)
+        self.assertEqual(self.database().session.get(ASMR, 123).details, work_info())
+        self.assertTrue(path.exists())
 
     def test_migration_preserves_existing_relations_and_history(self):
         self.legacy()
@@ -162,7 +319,7 @@ class DatabaseTest(TestCase):
     def test_import_legacy_tags_without_vote_or_translation_fields(self):
         info = work_info()
         info["tags"] = [{"id": 10, "name": "Legacy tag"}]
-        (self.root / "RJ000123.json").write_text(json.dumps(info))
+        self.legacy_json(123, json.dumps(info))
         result = migrate_database(self.engine, [self.root])
         self.assertEqual(result.errors, [])
         self.assertEqual(result.details, 1)
@@ -173,16 +330,63 @@ class DatabaseTest(TestCase):
     def test_duplicate_remote_id_is_reported_without_losing_other_imports(
         self,
     ):
-        (self.root / "RJ000123.json").write_text(json.dumps(work_info()))
-        (self.root / "RJ000124.json").write_text(
-            json.dumps(work_info("RJ000124"))
-        )
+        self.legacy_json(123, json.dumps(work_info()))
+        self.legacy_json(124, json.dumps(work_info("RJ000124")))
         result = migrate_database(self.engine, [self.root])
         self.assertEqual(result.details, 1)
         self.assertEqual(len(result.errors), 1)
         db = self.database()
         self.assertIsNotNone(db.session.get(ASMR, 123))
-        self.assertIsNone(db.session.get(ASMR, 124))
+        self.assertIsNone(db.session.get(ASMR, 124).details)
+        self.assertIsNone(db.session.get(ASMR, 124).remote_id)
+
+    def test_migration_only_checks_fixed_paths_for_incomplete_database_works(self):
+        db = self.database()
+        db.add_info(work_info())
+        db.save_recovery(123, [recovery()])
+        db.session.add(ASMR(id=124))
+        db.session.commit()
+        source = self.root / "RJ000124"
+        source.mkdir()
+        (source / "RJ000124.json").write_text(json.dumps(work_info("RJ000124", 200124)))
+        (source / ".recover").write_text(json.dumps([recovery()]))
+        orphan = self.root / "RJ000125"
+        orphan.mkdir()
+        (orphan / "RJ000125.json").write_text(json.dumps(work_info("RJ000125", 200125)))
+        checked = []
+        is_file = Path.is_file
+
+        def check_file(path):
+            checked.append(path)
+            return is_file(path)
+
+        with (
+            patch.object(Path, "rglob", side_effect=AssertionError("Recursive scan")),
+            patch.object(Path, "iterdir", side_effect=AssertionError("Directory scan")),
+            patch.object(Path, "is_file", check_file),
+            patch("asmrmanager.database.migrate.logger") as logs,
+        ):
+            result = migrate_database(self.engine, [self.root])
+        self.assertEqual(result.errors, [])
+        self.assertEqual((result.details, result.recoveries), (1, 1))
+        self.assertEqual(checked, [source / "RJ000124.json", source / ".recover"])
+        independent = self.database()
+        self.assertEqual(independent.session.get(ASMR, 124).details, work_info("RJ000124", 200124))
+        self.assertIsNone(independent.session.get(ASMR, 125))
+        logs.info.assert_any_call("[%d/%d] Migrating metadata for %s.", 1, 1, "RJ000124")
+
+    def test_migration_with_no_database_works_does_not_scan_roots(self):
+        source = self.root / "RJ000123"
+        source.mkdir()
+        (source / "RJ000123.json").write_text(json.dumps(work_info()))
+        with (
+            patch.object(Path, "rglob", side_effect=AssertionError("Recursive scan")),
+            patch.object(Path, "is_file", side_effect=AssertionError("File lookup")),
+        ):
+            result = migrate_database(self.engine, [self.root])
+        self.assertEqual(result.errors, [])
+        self.assertEqual(result.details, 0)
+        self.assertIsNone(self.database().session.get(ASMR, 123))
 
     def test_new_database_has_latest_schema(self):
         db = self.database()
@@ -328,6 +532,9 @@ class DatabaseTest(TestCase):
         self.assertEqual(inspect(self.engine).get_table_names(), [])
 
     def test_unexpected_import_failure_rolls_back_imported_data(self):
+        db = self.database()
+        db.session.add(ASMR(id=123))
+        db.session.commit()
         source = self.root / "download" / "RJ000123"
         source.mkdir(parents=True)
         (source / "RJ000123.json").write_text(json.dumps(work_info()))
@@ -341,7 +548,7 @@ class DatabaseTest(TestCase):
             self.assertRaises(RuntimeError),
         ):
             migrate_database(self.engine, [source.parent])
-        self.assertIsNone(self.database().session.get(ASMR, 123))
+        self.assertIsNone(self.database().session.get(ASMR, 123).details)
 
     def test_import_details_recovery_and_cache(self):
         self.legacy()
@@ -389,7 +596,9 @@ class DatabaseTest(TestCase):
         )
 
     def test_download_recovery_takes_precedence(self):
-        self.database().session.close()
+        db = self.database()
+        db.session.add(ASMR(id=123))
+        db.session.commit()
         for name, file_id in (("download", 101), ("storage", 102)):
             source = self.root / name / "RJ000123"
             source.mkdir(parents=True)
@@ -410,8 +619,7 @@ class DatabaseTest(TestCase):
         source = self.root / "RJ000123"
         source.mkdir()
         (source / ".recover").write_text("not JSON")
-        broken = self.root / "RJ000124.json"
-        broken.write_text("not JSON")
+        self.legacy_json(124, "not JSON")
         result = migrate_database(self.engine, [self.root])
         self.assertEqual(len(result.errors), 1)
         db.session.expire_all()

@@ -7,12 +7,13 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import toml
-from sqlalchemy import inspect
+from sqlalchemy import inspect, or_
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
-from asmrmanager.common.rj_parse import source2id
-from asmrmanager.common.types import PRIVACY
+from asmrmanager.common.rj_parse import id2source_name, source2id
+from asmrmanager.common.types import PRIVACY, LocalSourceID
+from asmrmanager.logger import logger
 
 from .database import ASMR, SCHEMA_VERSION, Base, Playlist
 from .manage import DataBaseManager
@@ -26,6 +27,7 @@ class MigrationResult:
     playlists: int = 0
     skipped: int = 0
     errors: list[str] = field(default_factory=list)
+    detail_fallbacks: dict[Path, str] = field(default_factory=dict)
 
 
 def backup_database(engine: Engine) -> Path | None:
@@ -124,79 +126,63 @@ def migrate_database(
     remote_service: str | None = None,
     remote_user: str | None = None,
 ) -> MigrationResult:
+    logger.info("Backing up the database before migration.")
     result = MigrationResult(backup=backup_database(engine))
+    logger.info("Migrating database schema.")
     migrate_schema(engine)
     db = DataBaseManager(engine)
     try:
         db.session.connection().exec_driver_sql("BEGIN IMMEDIATE")
-        for root in dict.fromkeys(roots):
-            if not root.is_dir():
-                continue
-            for path in sorted(root.rglob("*.json")):
-                source_id = source2id(path.stem)
-                if (
-                    not path.stem.startswith(("RJ", "VJ", "BJ"))
-                    or source_id is None
-                ):
-                    continue
-                try:
-                    with db.session.begin_nested():
-                        existing = db.session.get(ASMR, source_id)
-                        if (
-                            existing is not None
-                            and existing.details is not None
-                        ):
-                            result.skipped += 1
-                            continue
-                        info = json.loads(path.read_text(encoding="utf-8"))
-                        if source2id(info["source_id"]) != source_id:
-                            raise ValueError("File and work ID do not match.")
-                        db.add_info(
-                            info, check=False, tag_strategy="accept_all"
-                        )
-                    result.details += 1
-                except (
-                    OSError,
-                    ValueError,
-                    TypeError,
-                    KeyError,
-                    AssertionError,
-                    SQLAlchemyError,
-                ) as exc:
-                    result.errors.append(f"{path}: {type(exc).__name__}")
-
-        seen = set()
-        for root in dict.fromkeys(roots):
-            if not root.is_dir():
-                continue
-            for path in sorted(root.rglob(".recover")):
-                source_id = source2id(path.parent.name)
-                if source_id is None:
-                    result.errors.append(f"{path}: Invalid work directory")
-                    continue
-                if source_id in seen:
-                    result.skipped += 1
-                    continue
-                seen.add(source_id)
-                try:
-                    with db.session.begin_nested():
-                        existing = db.session.get(ASMR, source_id)
-                        if existing is not None and existing.recovery_ready:
-                            result.skipped += 1
-                            continue
-                        records = json.loads(path.read_text(encoding="utf-8"))
-                        db.save_recovery(source_id, records)
-                    result.recoveries += 1
-                except (
-                    OSError,
-                    ValueError,
-                    TypeError,
-                    KeyError,
-                    SQLAlchemyError,
-                ) as exc:
-                    result.errors.append(f"{path}: {type(exc).__name__}")
+        works = (
+            db.session.query(ASMR.id, ASMR.details.is_(None), ASMR.recovery_ready)
+            .filter(or_(ASMR.details.is_(None), ASMR.recovery_ready.is_not(True)))
+            .order_by(ASMR.id)
+            .all()
+        )
+        roots = list(dict.fromkeys(roots))
+        logger.info("Found %d database works with missing metadata.", len(works))
+        for index, (source_id, details_missing, recovery_ready) in enumerate(works, 1):
+            source_name = id2source_name(LocalSourceID(source_id))
+            logger.info("[%d/%d] Migrating metadata for %s.", index, len(works), source_name)
+            if details_missing:
+                for root in roots:
+                    path = root / source_name / f"{source_name}.json"
+                    if not path.is_file():
+                        continue
+                    try:
+                        with db.session.begin_nested():
+                            info = json.loads(path.read_text(encoding="utf-8"))
+                            if source2id(info["source_id"]) != source_id:
+                                raise ValueError("File and work ID do not match.")
+                            db.add_info(info, check=False, tag_strategy="accept_all")
+                        result.details += 1
+                        logger.info("Imported work details for %s.", source_name)
+                        break
+                    except (
+                        OSError, ValueError, TypeError, KeyError,
+                        AssertionError, SQLAlchemyError,
+                    ) as exc:
+                        error = f"{path}: {type(exc).__name__}"
+                        result.errors.append(error)
+                        if isinstance(exc, (ValueError, TypeError, KeyError, AssertionError)):
+                            result.detail_fallbacks[path] = error
+            if not recovery_ready:
+                for root in roots:
+                    path = root / source_name / ".recover"
+                    if not path.is_file():
+                        continue
+                    try:
+                        with db.session.begin_nested():
+                            records = json.loads(path.read_text(encoding="utf-8"))
+                            db.save_recovery(source_id, records)
+                        result.recoveries += 1
+                        logger.info("Imported recovery records for %s.", source_name)
+                    except (OSError, ValueError, TypeError, KeyError, SQLAlchemyError) as exc:
+                        result.errors.append(f"{path}: {type(exc).__name__}")
+                    break
 
         if playlist_cache is not None and playlist_cache.is_file():
+            logger.info("Importing legacy playlist cache.")
             try:
                 cached = toml.load(playlist_cache)["playlists"]
                 for item in cached:
@@ -232,6 +218,7 @@ def migrate_database(
             ) as exc:
                 result.errors.append(f"{playlist_cache}: {type(exc).__name__}")
         db.session.commit()
+        logger.info("Local metadata migration committed.")
         return result
     except BaseException:
         db.session.rollback()

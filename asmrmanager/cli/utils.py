@@ -1,3 +1,4 @@
+import shlex
 import sys
 from pathlib import Path
 from typing import Literal
@@ -22,18 +23,21 @@ def utils():
 
 @click.command()
 @click.option("--root", "roots", type=click.Path(exists=True, file_okay=False, path_type=Path), multiple=True,
-              help="Legacy files to import; defaults to download and storage paths.")
+              help="Legacy roots for existing database works; defaults to download and storage paths.")
 def migrate(roots: tuple[Path, ...]):
-    """Back up and migrate the database, importing legacy metadata files."""
+    """Back up and migrate the database, importing metadata for existing works."""
     from sqlalchemy.exc import SQLAlchemyError
 
     from asmrmanager.cli.core import create_database
     from asmrmanager.database.engine import get_engine
     from asmrmanager.database.migrate import migrate_database
 
+    migration_roots = list(dict.fromkeys(
+        path.resolve() for path in (roots or (fm.download_path, fm.storage_path))
+    ))
     try:
         result = migrate_database(
-            get_engine(), list(roots) if roots else [fm.download_path, fm.storage_path],
+            get_engine(), migration_roots,
             playlist_cache=fm.CACHE_PATH / "playlist.cache",
         )
     except (OSError, ValueError, SQLAlchemyError) as exc:
@@ -41,14 +45,59 @@ def migrate(roots: tuple[Path, ...]):
     create_database.cache_clear()
     if result.backup is not None:
         click.echo(f"Database backup: {result.backup}")
+    if result.detail_fallbacks:
+        from asmrmanager.cli.dl import update
+
+        ctx = click.get_current_context()
+        for index, (path, error) in enumerate(result.detail_fallbacks.items(), 1):
+            logger.info(
+                "[%d/%d] Updating %s from API after legacy JSON import failed.",
+                index, len(result.detail_fallbacks), path.stem,
+            )
+            try:
+                ctx.invoke(update, source_ids=(path.stem,))
+            except (click.ClickException, OSError, ValueError, SQLAlchemyError) as exc:
+                result.errors[result.errors.index(error)] = f"{error}; API update failed: {exc}"
+            else:
+                result.errors.remove(error)
+                result.details += 1
     click.echo(
         f"Imported {result.details} work details, {result.recoveries} recovery sets, "
         f"{result.playlists} playlists; skipped {result.skipped}. Legacy files were kept."
     )
     if result.errors:
+        click.echo("Some imports failed. Keep legacy JSON and .recover files; fix the errors and rerun migration.")
         for error in result.errors:
             click.echo(error, err=True)
         raise click.ClickException(f"{len(result.errors)} legacy imports failed.")
+    click.echo(
+        "Migration complete. Legacy files were kept. Verify work details and recovery records, "
+        "then back up the current data.db before deleting legacy files manually. "
+        "Review the commands before running them; they delete matching files without confirmation. "
+        "They also match works absent from the database that were not imported; keep those files if needed. "
+        "Do not delete other JSON files, audio files, or database backups."
+    )
+    bash_roots = " ".join(shlex.quote(str(root)) for root in migration_roots)
+    powershell_roots = ", ".join(
+        "'" + str(root).replace("'", "''") + "'" for root in migration_roots
+    )
+    find_command = (
+        f"find {bash_roots} -regextype posix-extended -mindepth 2 -maxdepth 2 "
+        r"-type f \( -name .recover -o -regex '.*/(RJ|VJ|BJ)[0-9]+\.json' \)"
+    )
+    click.echo(f"""
+Bash:
+{find_command} -delete -print
+
+PowerShell:
+Get-ChildItem -LiteralPath @({powershell_roots}) -Directory -Force -ErrorAction Stop |
+    Where-Object {{ -not ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) }} |
+    ForEach-Object {{ Get-ChildItem -LiteralPath $_.FullName -File -Force -ErrorAction Stop }} |
+    Where-Object {{
+        -not ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -and
+        ($_.Name -ceq '.recover' -or $_.Name -cmatch '^(RJ|VJ|BJ)[0-9]+\\.json$')
+    }} | ForEach-Object {{ Remove-Item -LiteralPath $_.FullName -Force -ErrorAction Stop }}
+""")
 
 
 @click.command()

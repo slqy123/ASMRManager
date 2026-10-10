@@ -39,6 +39,24 @@ fi
 failed=0
 skipped=0
 first=1
+batch=()
+
+update_batch() {
+    if (( first )); then
+        first=0
+    else
+        sleep 3
+    fi
+    printf '\nUpdating batch: %s\n' "${batch[*]}"
+    if asmr dl update "${batch[@]}"; then
+        :
+    else
+        printf 'Batch update failed: %s\n' "${batch[*]}" >&2
+        failed=$((failed + 1))
+    fi
+    batch=()
+}
+
 while IFS= read -r work_id; do
     exists=0
     for root in "${roots[@]}"; do
@@ -51,19 +69,15 @@ while IFS= read -r work_id; do
         skipped=$((skipped + 1))
         continue
     fi
-    if (( first )); then
-        first=0
-    else
-        sleep 3
-    fi
-    printf '\nUpdating %s\n' "$work_id"
-    if asmr dl update "$work_id"; then
-        :
-    else
-        printf 'Update failed: %s\n' "$work_id" >&2
-        failed=$((failed + 1))
+    batch+=("$work_id")
+    if (( ${#batch[@]} == 20 )); then
+        update_batch
     fi
 done <<< "$work_ids"
 
-printf '\nFinished; %d commands failed; %d works skipped without local directories.\n' "$failed" "$skipped"
+if (( ${#batch[@]} > 0 )); then
+    update_batch
+fi
+
+printf '\nFinished; %d batches failed; %d works skipped without local directories.\n' "$failed" "$skipped"
 (( failed == 0 ))
