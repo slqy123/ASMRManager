@@ -28,7 +28,7 @@ dependencies = [
   "mutagen>=1.46.0",
   "appdirs>=1.4.4",
   "toml>=0.10.2",
-  "beaupy>=3.11.0",
+  "beaupy<4",
   "asyncstdlib>=3.13.1",
   "xxhash>=3.5.0",
 ]
