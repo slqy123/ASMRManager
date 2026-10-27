@@ -1,3 +1,4 @@
+import asyncio
 import json
 import sqlite3
 import uuid
@@ -6,7 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import click
 import toml
@@ -15,7 +16,7 @@ from sqlalchemy import create_engine, inspect
 
 from asmrmanager.cli.dl import update
 from asmrmanager.cli.review import review
-from asmrmanager.cli.utils import migrate
+from asmrmanager.cli.utils import migrate, migrate_cleanup, migrate_update
 from asmrmanager.common.types import validate_recovery
 from asmrmanager.database.database import (
     ASMR,
@@ -128,10 +129,11 @@ class DatabaseTest(TestCase):
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("Database backup:", result.output)
         self.assertIn("Legacy files were kept", result.output)
-        self.assertIn("before deleting legacy files manually", result.output)
-        self.assertIn("back up the current data.db", result.output)
+        self.assertIn("migrate-update", result.output)
+        self.assertIn("migrate-cleanup --root", result.output)
+        self.assertNotIn("-delete", result.output)
 
-    def test_migrate_cli_cleanup_scripts_use_actual_roots(self):
+    def test_migrate_cleanup_uses_actual_roots(self):
         import shlex
 
         download = self.root / "download with spaces"
@@ -150,22 +152,18 @@ class DatabaseTest(TestCase):
                 fm.CACHE_PATH = self.root
                 fm.download_path = download
                 fm.storage_path = storage
-                result = CliRunner().invoke(migrate, arguments)
-            self.assertEqual(result.exit_code, 0, result.output)
-            self.assertEqual(result.output.count("Bash:"), 1)
-            self.assertEqual(result.output.count("PowerShell:"), 1)
+                result = CliRunner().invoke(migrate_cleanup, arguments, input="n\n")
+            self.assertNotEqual(result.exit_code, 0)
+            self.assertIn("Command to execute:", result.output)
             bash_roots = " ".join(shlex.quote(str(root)) for root in expected_roots)
             self.assertIn(f"find {bash_roots} -regextype", result.output)
-            for root in expected_roots:
-                quoted = "'" + str(root).replace("'", "''") + "'"
-                self.assertIn(quoted, result.output)
             self.assertIn("-mindepth 2 -maxdepth 2", result.output)
             self.assertNotIn("-Recurse", result.output)
             self.assertNotIn("globstar", result.output)
             self.assertNotIn("/path/to/", result.output)
             self.assertNotIn("example path", result.output)
 
-    def test_migrate_cli_bash_cleanup_deletes_only_shallow_legacy_files(self):
+    def test_migrate_cleanup_bash_deletes_only_shallow_legacy_files(self):
         import subprocess
 
         root = self.root / "storage's files"
@@ -181,15 +179,15 @@ class DatabaseTest(TestCase):
             patch("asmrmanager.cli.utils.fm") as fm,
         ):
             fm.CACHE_PATH = self.root
-            result = CliRunner().invoke(migrate, ["--root", str(root)])
-        self.assertEqual(result.exit_code, 0, result.output)
-        script = result.output.split("Bash:\n", 1)[1].split("PowerShell:", 1)[0]
+            result = CliRunner().invoke(migrate_cleanup, ["--root", str(root)], input="n\n")
+        self.assertNotEqual(result.exit_code, 0)
+        script = result.output.split("Command to execute:\n", 1)[1].split("Delete these legacy files?", 1)[0]
         self.assertNotIn("Read-Host", result.output)
         self.assertNotIn("read -r", script)
         for path in legacy:
             self.assertTrue(path.exists())
         executed = subprocess.run(
-            ["bash", "-c", script], stdin=subprocess.DEVNULL, text=True, capture_output=True
+            ["bash", "-c", script], check=False, stdin=subprocess.DEVNULL, text=True, capture_output=True
         )
         self.assertEqual(executed.returncode, 0, executed.stderr)
         self.assertEqual(set(executed.stdout.splitlines()), {str(path) for path in legacy})
@@ -198,7 +196,7 @@ class DatabaseTest(TestCase):
         for path in preserved:
             self.assertTrue(path.exists())
 
-    def test_migrate_cli_powershell_cleanup_deletes_only_shallow_legacy_files(self):
+    def test_migrate_cleanup_powershell_deletes_only_shallow_legacy_files(self):
         import shutil
         import subprocess
 
@@ -229,14 +227,16 @@ class DatabaseTest(TestCase):
         ):
             fm.CACHE_PATH = self.root
             fm.download_path, fm.storage_path = roots
-            result = CliRunner().invoke(migrate, [])
-        self.assertEqual(result.exit_code, 0, result.output)
-        script = result.output.split("PowerShell:\n", 1)[1]
+            with patch("asmrmanager.cli.utils.os") as platform:
+                platform.name = "nt"
+                result = CliRunner().invoke(migrate_cleanup, [], input="n\n")
+        self.assertNotEqual(result.exit_code, 0)
+        script = result.output.split("Command to execute:\n", 1)[1].split("Delete these legacy files?", 1)[0]
         for path in legacy:
             self.assertTrue(path.exists())
         executed = subprocess.run(
             [powershell, "-NoProfile", "-NonInteractive", "-Command", script],
-            stdin=subprocess.DEVNULL, text=True, capture_output=True, timeout=30,
+            check=False, stdin=subprocess.DEVNULL, text=True, capture_output=True, timeout=30,
         )
         self.assertEqual(executed.returncode, 0, executed.stderr)
         self.assertEqual(executed.stderr, "")
@@ -260,33 +260,111 @@ class DatabaseTest(TestCase):
         self.assertNotEqual(result.exit_code, 0)
         self.assertIn("1 legacy imports failed", result.output)
         self.assertIn("Keep legacy JSON and .recover files", result.output)
-        self.assertNotIn("before deleting legacy files manually", result.output)
+        self.assertNotIn("-delete", result.output)
         self.assertTrue(path.exists())
 
-    def test_migrate_cli_updates_invalid_legacy_details_from_api(self):
+    def test_migrate_cli_does_not_update_invalid_legacy_details_from_api(self):
         path = self.legacy_json(123, json.dumps({"source_id": "RJ000123"}))
-
-        def update_details(source_ids):
-            self.assertEqual(source_ids, ("RJ000123",))
-            db = DataBaseManager(self.engine)
-            try:
-                db.add_info(work_info(), tag_strategy="accept_all")
-                db.commit()
-            finally:
-                db.session.close()
 
         with (
             patch("asmrmanager.database.engine.get_engine", return_value=self.engine),
             patch("asmrmanager.cli.utils.fm") as fm,
-            patch.object(update, "callback", side_effect=update_details) as fallback,
+            patch.object(update, "callback") as fallback,
         ):
             fm.CACHE_PATH = self.root
             result = CliRunner().invoke(migrate, ["--root", str(self.root)])
-        self.assertEqual(result.exit_code, 0, result.output)
-        fallback.assert_called_once()
-        self.assertIn("Imported 1 work details", result.output)
-        self.assertEqual(self.database().session.get(ASMR, 123).details, work_info())
+        self.assertNotEqual(result.exit_code, 0)
+        fallback.assert_not_called()
+        self.assertIn("Imported 0 work details", result.output)
+        self.assertIn("Works still missing details: 1", result.output)
+        self.assertIsNone(self.database().session.get(ASMR, 123).details)
         self.assertTrue(path.exists())
+
+    def test_migrate_update_preserves_recovery_and_skips_complete_works(self):
+        db = self.database()
+        db.session.add(ASMR(id=123, remote_id=200123))
+        db.session.commit()
+        db.save_recovery(123, [recovery()])
+        db.add_info(work_info("RJ000124", 200124), tag_strategy="accept_all")
+        db.session.commit()
+        with (
+            patch("asmrmanager.cli.core.create_database", return_value=db),
+            patch("asmrmanager.cli.core.create_general_api") as create_api,
+        ):
+            manager = create_api.return_value
+            manager.run.side_effect = lambda task: asyncio.run(task)
+            manager.api.get_voice_info = AsyncMock(return_value=work_info())
+            result = CliRunner().invoke(migrate_update)
+            self.assertEqual(result.exit_code, 0, result.output)
+            manager.api.get_voice_info.assert_awaited_once_with(200123, refresh=True)
+            self.assertEqual(db.load_recovery(123), [recovery()])
+            self.assertEqual(db.session.get(ASMR, 123).details, work_info())
+            second = CliRunner().invoke(migrate_update)
+            self.assertEqual(second.exit_code, 0, second.output)
+            self.assertIn("No works are missing details", second.output)
+            create_api.assert_called_once()
+
+    def test_migrate_update_continues_after_failure_and_retries_only_missing(self):
+        db = self.database()
+        db.session.add_all([ASMR(id=123, remote_id=200123), ASMR(id=124, remote_id=200124)])
+        db.session.commit()
+        with (
+            patch("asmrmanager.cli.core.create_database", return_value=db),
+            patch("asmrmanager.cli.core.create_general_api") as create_api,
+        ):
+            manager = create_api.return_value
+            manager.run.side_effect = lambda task: asyncio.run(task)
+            manager.api.get_voice_info = AsyncMock(side_effect=[None, work_info("RJ000124", 200124)])
+            result = CliRunner().invoke(migrate_update)
+            self.assertNotEqual(result.exit_code, 0)
+            self.assertIn("1 works failed", result.output)
+            self.assertIsNone(db.session.get(ASMR, 123).details)
+            self.assertIsNotNone(db.session.get(ASMR, 124).details)
+            manager.api.get_voice_info = AsyncMock(return_value=work_info())
+            second = CliRunner().invoke(migrate_update)
+            self.assertEqual(second.exit_code, 0, second.output)
+            manager.api.get_voice_info.assert_awaited_once_with(200123, refresh=True)
+
+    def test_migrate_update_resolves_missing_remote_id_and_rejects_mismatch(self):
+        db = self.database()
+        db.session.add(ASMR(id=123))
+        db.session.commit()
+        with (
+            patch("asmrmanager.cli.core.create_database", return_value=db),
+            patch("asmrmanager.cli.core.create_general_api") as create_api,
+        ):
+            manager = create_api.return_value
+            manager.run.side_effect = lambda task: asyncio.run(task)
+            manager.api.get_search_result = AsyncMock(return_value={"works": [work_info()]})
+            manager.api.get_voice_info = AsyncMock(return_value=work_info("RJ000124", 200124))
+            result = CliRunner().invoke(migrate_update)
+            self.assertNotEqual(result.exit_code, 0)
+            self.assertIsNone(db.session.get(ASMR, 123).details)
+            self.assertIsNone(db.session.get(ASMR, 124))
+            manager.api.get_voice_info = AsyncMock(return_value=work_info())
+            second = CliRunner().invoke(migrate_update)
+            self.assertEqual(second.exit_code, 0, second.output)
+            self.assertEqual(db.session.get(ASMR, 123).remote_id, 200123)
+
+    def test_migrate_cleanup_requires_confirmation_before_execution(self):
+        for answer, confirmed in (("", False), ("n\n", False), ("y\n", True)):
+            with (
+                self.subTest(answer=answer),
+                patch("asmrmanager.cli.utils.subprocess.run") as execute,
+            ):
+                result = CliRunner().invoke(
+                    migrate_cleanup, ["--root", str(self.root)], input=answer,
+                )
+                self.assertIn("Command to execute:", result.output)
+                self.assertIn("back up the current data.db", result.output)
+                if confirmed:
+                    self.assertEqual(result.exit_code, 0, result.output)
+                    execute.assert_called_once()
+                    self.assertIn(str(self.root), execute.call_args.args[0][-1])
+                    self.assertTrue(execute.call_args.kwargs["check"])
+                else:
+                    self.assertNotEqual(result.exit_code, 0)
+                    execute.assert_not_called()
 
     def test_migration_preserves_existing_relations_and_history(self):
         self.legacy()

@@ -27,7 +27,6 @@ class MigrationResult:
     playlists: int = 0
     skipped: int = 0
     errors: list[str] = field(default_factory=list)
-    detail_fallbacks: dict[Path, str] = field(default_factory=dict)
 
 
 def backup_database(engine: Engine) -> Path | None:
@@ -164,8 +163,6 @@ def migrate_database(
                     ) as exc:
                         error = f"{path}: {type(exc).__name__}"
                         result.errors.append(error)
-                        if isinstance(exc, (ValueError, TypeError, KeyError, AssertionError)):
-                            result.detail_fallbacks[path] = error
             if not recovery_ready:
                 for root in roots:
                     path = root / source_name / ".recover"

@@ -1,4 +1,6 @@
+import os
 import shlex
+import subprocess
 import sys
 from pathlib import Path
 from typing import Literal
@@ -29,15 +31,18 @@ def migrate(roots: tuple[Path, ...]):
     from sqlalchemy.exc import SQLAlchemyError
 
     from asmrmanager.cli.core import create_database
+    from asmrmanager.database.database import ASMR
     from asmrmanager.database.engine import get_engine
+    from asmrmanager.database.manage import DataBaseManager
     from asmrmanager.database.migrate import migrate_database
 
     migration_roots = list(dict.fromkeys(
         path.resolve() for path in (roots or (fm.download_path, fm.storage_path))
     ))
+    engine = get_engine()
     try:
         result = migrate_database(
-            get_engine(), migration_roots,
+            engine, migration_roots,
             playlist_cache=fm.CACHE_PATH / "playlist.cache",
         )
     except (OSError, ValueError, SQLAlchemyError) as exc:
@@ -45,36 +50,42 @@ def migrate(roots: tuple[Path, ...]):
     create_database.cache_clear()
     if result.backup is not None:
         click.echo(f"Database backup: {result.backup}")
-    if result.detail_fallbacks:
-        from asmrmanager.cli.dl import update
-
-        ctx = click.get_current_context()
-        for index, (path, error) in enumerate(result.detail_fallbacks.items(), 1):
-            logger.info(
-                "[%d/%d] Updating %s from API after legacy JSON import failed.",
-                index, len(result.detail_fallbacks), path.stem,
-            )
-            try:
-                ctx.invoke(update, source_ids=(path.stem,))
-            except (click.ClickException, OSError, ValueError, SQLAlchemyError) as exc:
-                result.errors[result.errors.index(error)] = f"{error}; API update failed: {exc}"
-            else:
-                result.errors.remove(error)
-                result.details += 1
     click.echo(
         f"Imported {result.details} work details, {result.recoveries} recovery sets, "
         f"{result.playlists} playlists; skipped {result.skipped}. Legacy files were kept."
     )
+    db = DataBaseManager(engine)
+    try:
+        missing = db.session.query(ASMR).filter(ASMR.details.is_(None)).count()
+    finally:
+        db.session.close()
+    click.echo(f"Works still missing details: {missing}. Run asmr utils migrate-update to fetch them from the API.")
+    cleanup_roots = " ".join(
+        "--root " + ("'" + str(root).replace("'", "''") + "'" if os.name == "nt" else shlex.quote(str(root)))
+        for root in migration_roots
+    )
+    click.echo(f"After verifying the migrated data, run: asmr utils migrate-cleanup {cleanup_roots}")
     if result.errors:
         click.echo("Some imports failed. Keep legacy JSON and .recover files; fix the errors and rerun migration.")
         for error in result.errors:
             click.echo(error, err=True)
         raise click.ClickException(f"{len(result.errors)} legacy imports failed.")
+    click.echo("Migration complete. Legacy files were kept.")
+
+
+@click.command("migrate-cleanup")
+@click.option("--root", "roots", type=click.Path(exists=True, file_okay=False, path_type=Path), multiple=True,
+              help="Legacy roots to clean; defaults to download and storage paths.")
+def migrate_cleanup(roots: tuple[Path, ...]):
+    """Confirm and delete shallow legacy metadata files."""
+    migration_roots = list(dict.fromkeys(
+        path.resolve() for path in (roots or (fm.download_path, fm.storage_path))
+    ))
     click.echo(
-        "Migration complete. Legacy files were kept. Verify work details and recovery records, "
-        "then back up the current data.db before deleting legacy files manually. "
-        "Review the commands before running them; they delete matching files without confirmation. "
-        "They also match works absent from the database that were not imported; keep those files if needed. "
+        "Verify work details and recovery records, "
+        "then back up the current data.db before deleting legacy files. "
+        "Review the command before confirming; it also matches works absent from the database "
+        "that were not imported. Keep those files if needed. "
         "Do not delete other JSON files, audio files, or database backups."
     )
     bash_roots = " ".join(shlex.quote(str(root)) for root in migration_roots)
@@ -85,19 +96,75 @@ def migrate(roots: tuple[Path, ...]):
         f"find {bash_roots} -regextype posix-extended -mindepth 2 -maxdepth 2 "
         r"-type f \( -name .recover -o -regex '.*/(RJ|VJ|BJ)[0-9]+\.json' \)"
     )
-    click.echo(f"""
-Bash:
-{find_command} -delete -print
-
-PowerShell:
-Get-ChildItem -LiteralPath @({powershell_roots}) -Directory -Force -ErrorAction Stop |
+    bash_command = f"{find_command} -delete -print"
+    powershell_command = f"""Get-ChildItem -LiteralPath @({powershell_roots}) -Directory -Force -ErrorAction Stop |
     Where-Object {{ -not ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) }} |
     ForEach-Object {{ Get-ChildItem -LiteralPath $_.FullName -File -Force -ErrorAction Stop }} |
     Where-Object {{
         -not ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -and
         ($_.Name -ceq '.recover' -or $_.Name -cmatch '^(RJ|VJ|BJ)[0-9]+\\.json$')
     }} | ForEach-Object {{ Remove-Item -LiteralPath $_.FullName -Force -ErrorAction Stop }}
-""")
+"""
+    command = powershell_command if os.name == "nt" else bash_command
+    click.echo(f"Command to execute:\n{command}")
+    click.confirm("Delete these legacy files?", default=False, abort=True)
+    try:
+        subprocess.run(
+            ["powershell", "-NoProfile", "-Command", command] if os.name == "nt"
+            else ["bash", "-c", command],
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise click.ClickException(str(exc)) from exc
+
+
+@click.command("migrate-update")
+def migrate_update():
+    """Fetch missing work details without changing recovery records."""
+    from sqlalchemy.exc import SQLAlchemyError
+
+    from asmrmanager.cli.core import create_database, create_general_api
+    from asmrmanager.common.rj_parse import source2id
+    from asmrmanager.database.database import ASMR
+    from asmrmanager.spider.asmrapi import APIError
+
+    db = create_database()
+    works = db.session.query(ASMR.id, ASMR.remote_id).filter(ASMR.details.is_(None)).all()
+    if not works:
+        click.echo("No works are missing details.")
+        return
+    manager = create_general_api()
+    errors = []
+
+    async def update_missing():
+        for source_id, remote_id in works:
+            source_name = id2source_name(source_id)
+            try:
+                if remote_id is None:
+                    search = await manager.api.get_search_result(source_name, {})
+                    matches = [item for item in search["works"] if item.get("source_id") == source_name]
+                    if len(matches) != 1:
+                        raise ValueError("Could not uniquely resolve the remote work.")
+                    remote_id = matches[0]["id"]
+                info = await manager.api.get_voice_info(remote_id, refresh=True)
+                if info is None or source2id(info["source_id"]) != source_id:
+                    raise ValueError("Missing details or mismatched work ID.")
+                db.add_info(info, check=False, tag_strategy="accept_all")
+                db.session.commit()
+                click.echo(f"Updated {source_name}.")
+            except (OSError, ValueError, TypeError, KeyError, AssertionError, SQLAlchemyError, APIError) as exc:
+                db.session.rollback()
+                errors.append(f"{source_name}: {type(exc).__name__}: {exc}")
+
+    try:
+        manager.run(update_missing())
+    finally:
+        db.session.rollback()
+    if errors:
+        for error in errors:
+            click.echo(error, err=True)
+        raise click.ClickException(f"{len(errors)} works failed; rerun migrate-update to retry.")
+    click.echo("Missing work details updated. Recovery records were kept.")
 
 
 @click.command()
@@ -253,6 +320,8 @@ def fetch_all_covers():
 
 
 utils.add_command(migrate)
+utils.add_command(migrate_update)
+utils.add_command(migrate_cleanup)
 utils.add_command(convert)
 utils.add_command(subtitle)
 utils.add_command(fetch_all_covers)
