@@ -63,7 +63,7 @@
 本工具支持 `python >= 3.12`，安装方法如下：
 
 ```shell
-pip install ASMRManager[依赖]
+pip install "ASMRManager[依赖]<3"
 ```
 
 可选则的依赖项有 `idm`，`aria2`，`player`，`tui`，`subtitle`，`image`，`all`，多个依赖使用逗号分隔，其中`all`为安装所有依赖。
@@ -75,7 +75,7 @@ pip install ASMRManager[依赖]
 
 其中，idm 与 aria2 至少安装其一，以实现最基础的下载功能，其余选项可随意按需添加。
 
-示例： `pip install ASMRManager[idm,tui]`
+示例： `pip install "ASMRManager[idm,tui]<3"`
 
 ---
 
