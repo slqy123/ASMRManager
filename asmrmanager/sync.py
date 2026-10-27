@@ -236,11 +236,10 @@ class CloudSync(AsyncManager):
     def binding(self, playlist):
         if playlist.remote_id is None:
             raise SyncError(
-                "Playlist is not linked; use asmr pl publish or asmr pl link first."
+                "Playlist is not bound; use asmr pl push or asmr pl bind first."
             )
-        if (
-            playlist.remote_service != self.service
-            or playlist.remote_user != self.user
+        if playlist.remote_service != self.service or playlist.remote_user != (
+            self.user or self.api.auth.name
         ):
             raise SyncError(
                 "Playlist belongs to a different service or account; no cloud update was sent."
@@ -328,7 +327,58 @@ class CloudSync(AsyncManager):
         members = await self.members(remote_id)
         if set(members) != set(local_ids):
             raise SyncError(
-                f"Cloud playlist {remote_id} was created, but members are incomplete or different. Use sync pull or link to recover; do not create it again."
+                f"Cloud playlist {remote_id} was created, but members are incomplete or different. Use pl pull or pl bind to recover; do not create it again."
+            )
+
+    async def playlist(self, remote_id):
+        metadata = await self.metadata(remote_id)
+        members = await self.members(remote_id)
+        if await self.metadata(remote_id) != metadata or metadata[
+            "works_count"
+        ] != len(members):
+            raise SyncError(
+                "Cloud playlist changed during collection; nothing was applied."
+            )
+        return CloudPlaylist(metadata, members)
+
+    async def push(self, binding, before, metadata, works):
+        await self.identify()
+        self.binding(binding)
+        remote_id = binding.remote_id
+        ids = {}
+        for local_id, known_remote_id in works:
+            ids[local_id] = (await self.work(local_id, known_remote_id))["id"]
+        if await self.playlist(remote_id) != before:
+            raise SyncError(
+                "Cloud playlist changed after confirmation; nothing was sent."
+            )
+        additions = [ids[key] for key in ids.keys() - before.works.keys()]
+        removals = [
+            before.works[key]["id"] for key in before.works.keys() - ids.keys()
+        ]
+        if additions:
+            self.member_ack(
+                await self.api.add_works_to_playlist(additions, remote_id),
+                remote_id,
+            )
+        if removals:
+            self.member_ack(
+                await self.api.remove_works_from_playlist(removals, remote_id),
+                remote_id,
+            )
+        if any(
+            before.metadata[key] != value for key, value in metadata.items()
+        ):
+            await self.api.post(
+                "playlist/edit-playlist-metadata",
+                data={"id": str(remote_id), "data": metadata},
+            )
+        after = await self.playlist(remote_id)
+        if set(after.works) != set(ids) or any(
+            after.metadata[key] != value for key, value in metadata.items()
+        ):
+            raise SyncError(
+                "Cloud update verification failed; inspect the cloud before retrying."
             )
 
     async def link(self, remote_id):
@@ -383,7 +433,9 @@ class CloudSync(AsyncManager):
                     "Cloud deletion acknowledgement is invalid. Some cloud lists may have been deleted; local lists were kept. Use sync pull."
                 )
 
-    async def snapshot(self, review_enabled, playlist_enabled, existing_ids):
+    async def snapshot(
+        self, review_enabled, playlist_enabled, existing_ids, playlist_ids=None
+    ):
         await self.identify()
         snapshot = Snapshot()
         if review_enabled:
@@ -401,19 +453,17 @@ class CloudSync(AsyncManager):
                 snapshot.works[local_id] = row
         if playlist_enabled:
             owned = await self.owned()
-            for remote_id in owned:
-                metadata = await self.metadata(remote_id)
-                members = await self.members(remote_id)
-                final_metadata = await self.metadata(remote_id)
-                if final_metadata != metadata or metadata[
-                    "works_count"
-                ] != len(members):
-                    raise SyncError(
-                        "Cloud playlist changed during collection; nothing was applied."
-                    )
-                snapshot.playlists[remote_id] = CloudPlaylist(
-                    metadata, members
+            if (
+                playlist_ids is not None
+                and not set(playlist_ids) <= owned.keys()
+            ):
+                raise SyncError(
+                    "Cloud playlist is missing or not owned by this account."
                 )
+            for remote_id in owned if playlist_ids is None else playlist_ids:
+                remote = await self.playlist(remote_id)
+                members = remote.works
+                snapshot.playlists[remote_id] = remote
                 for local_id, info in members.items():
                     if (
                         local_id in snapshot.works

@@ -41,18 +41,15 @@ def migrate(roots: tuple[Path, ...]):
     ))
     engine = get_engine()
     try:
-        result = migrate_database(
-            engine, migration_roots,
-            playlist_cache=fm.CACHE_PATH / "playlist.cache",
-        )
+        result = migrate_database(engine, migration_roots)
     except (OSError, ValueError, SQLAlchemyError) as exc:
         raise click.ClickException(str(exc)) from exc
     create_database.cache_clear()
     if result.backup is not None:
         click.echo(f"Database backup: {result.backup}")
     click.echo(
-        f"Imported {result.details} work details, {result.recoveries} recovery sets, "
-        f"{result.playlists} playlists; skipped {result.skipped}. Legacy files were kept."
+        f"Imported {result.details} work details, {result.recoveries} recovery sets. "
+        "Legacy files were kept."
     )
     db = DataBaseManager(engine)
     try:
@@ -71,6 +68,45 @@ def migrate(roots: tuple[Path, ...]):
             click.echo(error, err=True)
         raise click.ClickException(f"{len(result.errors)} legacy imports failed.")
     click.echo("Migration complete. Legacy files were kept.")
+
+
+@click.command("migrate-playlists")
+def migrate_playlists():
+    """Import owned cloud playlists and their members without overwriting local lists."""
+    from sqlalchemy.exc import SQLAlchemyError
+
+    from asmrmanager.cli.core import create_database, create_sync_api
+    from asmrmanager.cli.sync import apply_difference, differences
+    from asmrmanager.config import config
+    from asmrmanager.database.database import ASMR
+    from asmrmanager.sync import SyncError
+
+    if not config.sync.playlist:
+        raise click.ClickException("Enable sync.playlist before migrating playlists; no cloud request was made.")
+    db = create_database()
+    try:
+        manager = create_sync_api()
+        linked = {
+            item.remote_id: item for item in db.list_playlists()
+            if item.remote_id is not None
+        }
+        for item in linked.values():
+            manager.binding(item)
+        snapshot = manager.run(manager.snapshot(
+            False, True, {work.id for work in db.session.query(ASMR)},
+        ))[0]
+        changes, _ = differences(db, snapshot, (), True)
+        imported = 0
+        skipped = len(linked.keys() & snapshot.playlists.keys())
+        for change in changes:
+            if change.key not in linked and change.kind == "playlist":
+                apply_difference(db, snapshot, manager, change)
+                imported += 1
+        db.commit()
+    except (SyncError, SQLAlchemyError, ValueError, KeyError, TypeError, AssertionError) as exc:
+        db.session.rollback()
+        raise click.ClickException(f"Playlist migration failed; local changes were rolled back. {exc}") from exc
+    click.echo(f"Imported {imported} playlists; skipped {skipped} already-bound playlists.")
 
 
 @click.command("migrate-cleanup")
@@ -321,6 +357,7 @@ def fetch_all_covers():
 
 utils.add_command(migrate)
 utils.add_command(migrate_update)
+utils.add_command(migrate_playlists)
 utils.add_command(migrate_cleanup)
 utils.add_command(convert)
 utils.add_command(subtitle)

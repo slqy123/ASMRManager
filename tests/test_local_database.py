@@ -1,7 +1,6 @@
 import asyncio
 import json
 import sqlite3
-import uuid
 from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
@@ -10,7 +9,6 @@ from unittest import TestCase
 from unittest.mock import AsyncMock, patch
 
 import click
-import toml
 from click.testing import CliRunner
 from sqlalchemy import create_engine, inspect
 
@@ -628,7 +626,7 @@ class DatabaseTest(TestCase):
             migrate_database(self.engine, [source.parent])
         self.assertIsNone(self.database().session.get(ASMR, 123).details)
 
-    def test_import_details_recovery_and_cache(self):
+    def test_import_details_and_recovery_ignores_old_playlist_cache(self):
         self.legacy()
         source = self.root / "download" / "RJ000123"
         source.mkdir(parents=True)
@@ -636,86 +634,21 @@ class DatabaseTest(TestCase):
         recover = source / ".recover"
         details.write_text(json.dumps(work_info()))
         recover.write_text(json.dumps([recovery()]))
-        remote_id = uuid.uuid4()
         cache = self.root / "playlist.cache"
-        cache.write_text(
-            toml.dumps(
-                {
-                    "playlists": [
-                        {
-                            "id": str(remote_id),
-                            "name": "List",
-                            "desc": "Description",
-                            "privacy": 0,
-                            "works_count": 4,
-                        }
-                    ]
-                }
-            )
-        )
-        result = migrate_database(self.engine, [source.parent], cache)
+        cache.write_text('[[playlists]]\nname = "Legacy"\nworks_count = 4\n')
+        result = migrate_database(self.engine, [source.parent])
         self.assertEqual(result.errors, [])
-        self.assertEqual(
-            (result.details, result.recoveries, result.playlists), (1, 1, 1)
-        )
+        self.assertEqual((result.details, result.recoveries), (1, 1))
         db = self.database()
         self.assertEqual(db.load_recovery(123), [recovery()])
         self.assertEqual(db.session.get(ASMR, 123).details, work_info())
         self.assertEqual(db.session.get(ASMR, 123).star, 4)
-        playlist = db.session.query(Playlist).one()
-        self.assertEqual(playlist.remote_id, remote_id)
-        self.assertNotEqual(playlist.id, remote_id)
-        self.assertFalse(playlist.members_complete)
+        self.assertEqual(db.session.query(Playlist).count(), 0)
         self.assertTrue(details.exists())
         self.assertTrue(recover.exists())
-        second = migrate_database(self.engine, [source.parent], cache)
-        self.assertEqual(
-            (second.details, second.recoveries, second.playlists), (0, 0, 0)
-        )
-
-    def test_playlist_migration_continues_after_invalid_items_and_is_repeatable(self):
-        first_id, last_id = uuid.uuid4(), uuid.uuid4()
-        cache = self.root / "playlist.cache"
-        cache.write_text(toml.dumps({
-            "playlists": [
-                {"id": str(first_id), "name": "First", "privacy": 0},
-                {"id": "invalid", "name": "Bad UUID", "privacy": 0},
-                {"id": str(uuid.uuid4()), "name": "Bad privacy", "privacy": 99},
-                {"id": str(uuid.uuid4()), "privacy": 0},
-                {"id": str(last_id), "name": "Last", "privacy": 0},
-            ],
-        }))
-
-        result = migrate_database(self.engine, [], cache)
-        self.assertEqual(result.playlists, 2)
-        self.assertEqual(len(result.errors), 3)
-        for index, error in enumerate(result.errors, 2):
-            self.assertIn(f"playlist #{index}:", error)
-        db = self.database()
-        self.assertEqual(
-            {item.remote_id for item in db.session.query(Playlist).all()},
-            {first_id, last_id},
-        )
-
-        second = migrate_database(self.engine, [], cache)
-        self.assertEqual((second.playlists, second.skipped), (0, 2))
-        self.assertEqual(second.errors, result.errors)
-        self.assertEqual(db.session.query(Playlist).count(), 2)
-
-    def test_playlist_migration_continues_after_database_error(self):
-        cache = self.root / "playlist.cache"
-        cache.write_text(toml.dumps({
-            "playlists": [
-                {"id": str(uuid.uuid4()), "name": ["invalid"], "privacy": 0},
-                {"id": str(uuid.uuid4()), "name": "Valid", "privacy": 0},
-            ],
-        }))
-
-        result = migrate_database(self.engine, [], cache)
-        self.assertEqual(result.playlists, 1)
-        self.assertEqual(len(result.errors), 1)
-        self.assertIn("playlist #1:", result.errors[0])
-        self.assertEqual(self.database().session.query(Playlist).one().name, "Valid")
+        self.assertTrue(cache.exists())
+        second = migrate_database(self.engine, [source.parent])
+        self.assertEqual((second.details, second.recoveries), (0, 0))
 
     def test_download_recovery_takes_precedence(self):
         db = self.database()

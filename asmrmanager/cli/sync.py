@@ -145,7 +145,6 @@ def differences(db, snapshot, fields, playlist_enabled):
                 "description": metadata["description"],
                 "privacy": metadata["privacy"],
                 "members": sorted(remote.works),
-                "members_complete": True,
             }
             before = (
                 None
@@ -155,7 +154,6 @@ def differences(db, snapshot, fields, playlist_enabled):
                     "description": local.description,
                     "privacy": local.privacy,
                     "members": sorted(work.id for work in local.works),
-                    "members_complete": bool(local.members_complete),
                 }
             )
             if before == after:
@@ -183,6 +181,9 @@ def apply_difference(db, snapshot, manager, change):
                 tag_strategy=config.tag_strategy,
             )
             existing = db.session.get(ASMR, local_id)
+        info = snapshot.works.get(local_id)
+        if info is not None and existing.remote_id is not None and existing.remote_id != info["id"]:
+            raise SyncError("Conflicting cloud work mapping; nothing was applied.")
         return existing
 
     if change.kind == "work":
@@ -219,8 +220,6 @@ def apply_difference(db, snapshot, manager, change):
                 for name in ("name", "description", "privacy")
             )
             item.works = [work(local_id) for local_id in sorted(remote.works)]
-            item.members_complete = True
-    db.commit()
 
 
 @sync.command()
@@ -295,6 +294,7 @@ def pull(choice, interactive):
             continue
         try:
             apply_difference(db, snapshot, manager, change)
+            db.commit()
             applied += 1
         except Exception:
             db.session.rollback()

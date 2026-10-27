@@ -162,6 +162,14 @@ class FakeCloud(ASMRAPI):
             del self.playlists[identifier]
             del self.members[identifier]
             return {"id": identifier}
+        if route == "playlist/edit-playlist-metadata":
+            self.playlists[identifier].update(data["data"])
+            return {"id": identifier}
+        if route == "playlist/remove-works-from-playlist":
+            self.members[identifier] = sorted(
+                set(self.members[identifier]) - set(data["works"])
+            )
+            return {"id": identifier, "rowCount": len(data["works"])}
         if route == "playlist/add-works-to-playlist":
             self.members[identifier] = sorted(
                 set(self.members[identifier]) | set(data["works"])

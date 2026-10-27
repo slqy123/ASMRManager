@@ -1,5 +1,4 @@
 import math
-import uuid
 from collections.abc import Sequence
 from copy import deepcopy
 from datetime import UTC, date, datetime
@@ -293,9 +292,9 @@ class DataBaseManager:
             query = query.limit(limit)
         return query.all()
 
-    def get_playlist(self, identifier: str | uuid.UUID) -> Playlist:
+    def get_playlist(self, identifier: str | int) -> Playlist:
         try:
-            playlist_id = uuid.UUID(str(identifier))
+            playlist_id = int(identifier)
         except ValueError:
             matches = (
                 self.session.query(Playlist).filter_by(name=identifier).all()
@@ -325,13 +324,12 @@ class DataBaseManager:
         if not isinstance(privacy, PRIVACY):
             raise TypeError("Playlist privacy must be a PRIVACY value.")
         playlist = Playlist(
-            id=uuid.uuid4(),
             name=name,
             description=description or "",
             privacy=privacy.value,
-            members_complete=True,
         )
         self.session.add(playlist)
+        self.session.flush()
         return playlist
 
     def resolve_local_work(self, source: str) -> ASMR:
@@ -354,7 +352,7 @@ class DataBaseManager:
         return work
 
     def add_playlist_works(
-        self, playlist_id: uuid.UUID, source_ids: Sequence[LocalSourceID]
+        self, playlist_id: int, source_ids: Sequence[LocalSourceID]
     ) -> Playlist:
         playlist = self.get_playlist(playlist_id)
         works = []
@@ -371,7 +369,7 @@ class DataBaseManager:
         )
         return playlist
 
-    def remove_playlists(self, playlist_ids: Sequence[uuid.UUID]):
+    def remove_playlists(self, playlist_ids: Sequence[int]):
         playlists = [
             self.get_playlist(id_) for id_ in dict.fromkeys(playlist_ids)
         ]

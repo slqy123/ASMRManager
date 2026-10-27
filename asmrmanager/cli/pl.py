@@ -19,7 +19,7 @@ from asmrmanager.common.output import print_table, support_image
 from asmrmanager.common.rj_parse import id2source_name
 from asmrmanager.common.types import PRIVACY
 from asmrmanager.config import config
-from asmrmanager.database.database import Playlist
+from asmrmanager.database.database import ASMR, Playlist
 from asmrmanager.sync import PlaylistBinding, SyncError
 
 
@@ -61,9 +61,8 @@ def _print_playlists(playlists: list[Playlist], raw: bool = False):
             "remote_id",
             "name",
             "description",
-            "known_members",
+            "members",
             "privacy",
-            "members_complete",
         ],
         rows=[
             (
@@ -73,7 +72,6 @@ def _print_playlists(playlists: list[Playlist], raw: bool = False):
                 item.description,
                 len(item.works),
                 PRIVACY(item.privacy).name,
-                item.members_complete,
             )
             for item in playlists
         ],
@@ -94,7 +92,7 @@ def _playlist_edit(cloud_id=None):
         if isinstance(exc, SQLAlchemyError):
             message = "Could not save local playlist changes."
             if cloud_id is not None:
-                message += f" Cloud operation succeeded for {cloud_id}; inspect or link that ID before retrying, and use sync pull to reconcile."
+                message += f" Cloud operation succeeded for {cloud_id}; inspect or bind that ID before retrying, and use pl pull to reconcile."
             raise click.ClickException(message) from None
         raise
 
@@ -102,14 +100,14 @@ def _playlist_edit(cloud_id=None):
 def _linked(playlist):
     if playlist.remote_id is None:
         raise click.ClickException(
-            "Playlist is not linked; use asmr pl publish or asmr pl link first."
+            "Playlist is not bound; use asmr pl push or asmr pl bind first."
         )
 
 
 def _sync_enabled():
     if not config.sync.playlist:
         raise click.ClickException(
-            "Enable sync.playlist before publishing or linking; no cloud request was made."
+            "Enable sync.playlist first; no cloud request was made."
         )
 
 
@@ -140,10 +138,8 @@ def _verify_publication(playlist, manager, local_ids):
         manager.run(manager.verify_publication(remote_id, local_ids))
     except SyncError:
         raise click.ClickException(
-            f"Cloud playlist {remote_id} was created and linked, but member verification failed. Use sync pull; do not publish again."
+            f"Cloud playlist {remote_id} was created and linked, but member verification failed. Use pl pull; do not create it again."
         ) from None
-    with _playlist_edit(remote_id):
-        playlist.members_complete = True
 
 
 @click.group()
@@ -169,24 +165,11 @@ def list_(num: int, raw: bool):
 @click.command()
 @click.argument("pl_id", type=PLID(), callback=pl_preprocess_cb)
 @click.argument("source_ids", nargs=-1)
-def add(source_ids: tuple[str, ...], pl_id: uuid.UUID):
+def add(source_ids: tuple[str, ...], pl_id: int):
     """Add works already in the local database to a playlist."""
     sources = source_ids or (get_prev_source(),)
-    db = create_database()
-    playlist = db.get_playlist(pl_id)
-    with _playlist_edit(
-        playlist.remote_id if config.sync.playlist else None
-    ) as db:
+    with _playlist_edit() as db:
         works = [db.resolve_local_work(source) for source in sources]
-        if config.sync.playlist:
-            _linked(playlist)
-            manager = create_sync_api()
-            manager.run(
-                manager.add(
-                    PlaylistBinding.from_playlist(playlist),
-                    [(work.id, work.remote_id) for work in works],
-                )
-            )
         db.add_playlist_works(pl_id, [work.id for work in works])
     if len(sources) == 1:
         save_source(sources[0])
@@ -194,15 +177,24 @@ def add(source_ids: tuple[str, ...], pl_id: uuid.UUID):
 
 @click.command("rm")
 @click.argument("pl_ids", type=PLID(), nargs=-1, callback=pl_preprocess_cb)
-def remove(pl_ids: list[uuid.UUID]):
+@click.option(
+    "--remote", is_flag=True, help="Also delete the bound cloud playlists."
+)
+@click.option("--yes", "-y", is_flag=True, help="Confirm cloud deletion.")
+def remove(pl_ids: list[int], remote: bool, yes: bool):
     """Delete entire local playlists, keeping their works."""
     db = create_database()
     playlists = [
         db.get_playlist(identifier) for identifier in dict.fromkeys(pl_ids)
     ]
-    if config.sync.playlist:
+    if remote:
+        _sync_enabled()
         for playlist in playlists:
             _linked(playlist)
+        if not yes:
+            click.confirm(
+                "Delete these playlists locally AND in the cloud?", abort=True
+            )
         manager = create_sync_api()
         manager.run(
             manager.remove(
@@ -214,7 +206,7 @@ def remove(pl_ids: list[uuid.UUID]):
         )
     with _playlist_edit(
         ", ".join(str(item.remote_id) for item in playlists)
-        if config.sync.playlist
+        if remote
         else None
     ) as db:
         db.remove_playlists(pl_ids)
@@ -234,36 +226,18 @@ def create(
     desc: str | None,
     privacy: Literal["PUBLIC", "NON_PUBLIC", "PRIVATE"],
 ):
-    """Create locally, or create and link a cloud playlist when enabled."""
-    if not name.strip():
-        raise click.ClickException("Playlist name must not be empty.")
-    manager = created = None
-    if config.sync.playlist:
-        manager, created = _publish(
-            name, desc or "", PRIVACY[privacy].value, []
-        )
-    remote_id = uuid.UUID(created["id"]) if created else None
-    with _playlist_edit(remote_id) as db:
+    """Create a local playlist without contacting the cloud."""
+    with _playlist_edit() as db:
         playlist = db.create_playlist(name, desc, PRIVACY[privacy])
-        if manager is not None:
-            _bind(playlist, manager, remote_id)
-            playlist.members_complete = False
-    if manager is not None:
-        _verify_publication(playlist, manager, [])
     _print_playlists([playlist])
 
 
 @click.command()
 @click.argument("pl_id", type=PLID(), callback=pl_preprocess_cb)
-def show(pl_id: uuid.UUID):
-    """Show a local playlist and its known members."""
+def show(pl_id: int):
+    """Show a local playlist and its members."""
     playlist = create_database().get_playlist(pl_id)
     _print_playlists([playlist])
-    if not playlist.members_complete:
-        click.echo(
-            "Playlist membership is incomplete; only known local members are shown.",
-            err=True,
-        )
     works = sorted(playlist.works, key=lambda work: work.id)
     print_table(
         titles=[
@@ -297,35 +271,62 @@ def show(pl_id: uuid.UUID):
 
 @click.command()
 @click.argument("pl_id", type=PLID(), callback=pl_preprocess_cb)
-def publish(pl_id):
-    """Publish a complete unlinked local playlist and save its cloud ID."""
+@click.option(
+    "--yes", "-y", is_flag=True, help="Confirm cloud creation or replacement."
+)
+def push(pl_id, yes):
+    """Create or update the bound cloud playlist from local data."""
     _sync_enabled()
     playlist = create_database().get_playlist(pl_id)
-    if playlist.remote_id is not None:
-        raise click.ClickException(
-            "Playlist is already linked; use sync pull instead of publishing again."
-        )
-    if not playlist.members_complete:
-        raise click.ClickException(
-            "Playlist membership is incomplete; cannot publish unknown members."
-        )
     local_ids = [work.id for work in playlist.works]
-    manager, created = _publish(
-        playlist.name, playlist.description, playlist.privacy, playlist.works
-    )
-    remote_id = uuid.UUID(created["id"])
-    with _playlist_edit(remote_id):
-        _bind(playlist, manager, remote_id)
-        playlist.members_complete = False
-    _verify_publication(playlist, manager, local_ids)
+    if playlist.remote_id is not None:
+        manager = create_sync_api()
+        manager.binding(playlist)
+        before = manager.run(manager.playlist(playlist.remote_id))[0]
+        metadata = {
+            key: getattr(playlist, key)
+            for key in ("name", "description", "privacy")
+        }
+        click.echo(
+            f"Cloud {playlist.remote_id}: add={len(set(local_ids) - before.works.keys())}, remove={len(before.works.keys() - set(local_ids))}."
+        )
+        for key, value in metadata.items():
+            if before.metadata[key] != value:
+                click.echo(f"{key}: {before.metadata[key]!r} -> {value!r}")
+        if not yes:
+            click.confirm("Replace cloud data with local data?", abort=True)
+        manager.run(
+            manager.push(
+                PlaylistBinding.from_playlist(playlist),
+                before,
+                metadata,
+                [(work.id, work.remote_id) for work in playlist.works],
+            )
+        )
+    else:
+        click.echo(
+            f"Create cloud playlist {playlist.name!r} with {len(local_ids)} members."
+        )
+        if not yes:
+            click.confirm("Create and bind this cloud playlist?", abort=True)
+        manager, created = _publish(
+            playlist.name,
+            playlist.description,
+            playlist.privacy,
+            playlist.works,
+        )
+        remote_id = uuid.UUID(created["id"])
+        with _playlist_edit(remote_id):
+            _bind(playlist, manager, remote_id)
+        _verify_publication(playlist, manager, local_ids)
     _print_playlists([playlist])
 
 
 @click.command()
 @click.argument("pl_id", type=PLID(), callback=pl_preprocess_cb)
 @click.argument("remote_id", type=click.UUID)
-def link(pl_id, remote_id):
-    """Link an explicitly chosen owned cloud ID without replacing members."""
+def bind(pl_id, remote_id):
+    """Bind an owned cloud ID without replacing local metadata or members."""
     _sync_enabled()
     playlist = create_database().get_playlist(pl_id)
     if playlist.remote_id is not None and playlist.remote_id != remote_id:
@@ -351,12 +352,74 @@ def link(pl_id, remote_id):
                 "Cloud ID is already linked to another local playlist."
             )
         _bind(playlist, manager, remote_id)
-        playlist.members_complete = False
     _print_playlists([playlist])
 
 
-pl.add_command(publish)
-pl.add_command(link)
+@click.command()
+@click.argument(
+    "pl_id", required=False, type=PLID(), callback=pl_preprocess_cb
+)
+@click.option(
+    "--remote",
+    "remote_id",
+    type=click.UUID,
+    help="Import an owned cloud playlist by ID.",
+)
+@click.option(
+    "--yes", "-y", is_flag=True, help="Confirm replacing local data."
+)
+def pull(pl_id, remote_id, yes):
+    """Import or replace a local playlist from the cloud."""
+    from asmrmanager.cli.sync import apply_difference, differences
+
+    _sync_enabled()
+    if (pl_id is None) == (remote_id is None):
+        raise click.UsageError(
+            "Specify either a local playlist or --remote, not both."
+        )
+    db = create_database()
+    manager = create_sync_api()
+    if pl_id is not None:
+        item = db.get_playlist(pl_id)
+        _linked(item)
+        manager.binding(item)
+        remote_id = item.remote_id
+    else:
+        item = (
+            db.session.query(Playlist)
+            .filter_by(remote_id=remote_id)
+            .one_or_none()
+        )
+        if item is not None:
+            manager.binding(item)
+    snapshot = manager.run(
+        manager.snapshot(
+            False,
+            True,
+            {work.id for work in db.session.query(ASMR)},
+            playlist_ids=[remote_id],
+        )
+    )[0]
+    changes, _ = differences(db, snapshot, (), True)
+    change = next(
+        (change for change in changes if change.key == remote_id), None
+    )
+    if change is None:
+        click.echo("Playlist is already up to date.")
+        return
+    click.echo(f"Local {remote_id}: {change.before!r} -> {change.after!r}")
+    if not yes:
+        click.confirm("Apply this cloud playlist locally?", abort=True)
+    with _playlist_edit():
+        apply_difference(db, snapshot, manager, change)
+    _print_playlists(
+        [db.session.query(Playlist).filter_by(remote_id=remote_id).one()]
+    )
+
+
+pl.add_command(pull)
+pl.add_command(push)
+pl.add_command(bind)
 pl.add_command(list_)
 pl.add_command(add)
 pl.add_command(remove)

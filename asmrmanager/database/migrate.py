@@ -1,21 +1,19 @@
 import json
 import sqlite3
-import uuid
 from contextlib import closing
 from dataclasses import dataclass, field
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-import toml
 from sqlalchemy import inspect, or_
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
 from asmrmanager.common.rj_parse import id2source_name, source2id
-from asmrmanager.common.types import PRIVACY, LocalSourceID
+from asmrmanager.common.types import LocalSourceID
 from asmrmanager.logger import logger
 
-from .database import ASMR, SCHEMA_VERSION, Base, Playlist
+from .database import ASMR, SCHEMA_VERSION, Base
 from .manage import DataBaseManager
 
 
@@ -24,8 +22,6 @@ class MigrationResult:
     backup: Path | None = None
     details: int = 0
     recoveries: int = 0
-    playlists: int = 0
-    skipped: int = 0
     errors: list[str] = field(default_factory=list)
 
 
@@ -121,9 +117,6 @@ def migrate_schema(engine: Engine):
 def migrate_database(
     engine: Engine,
     roots: list[Path],
-    playlist_cache: Path | None = None,
-    remote_service: str | None = None,
-    remote_user: str | None = None,
 ) -> MigrationResult:
     logger.info("Backing up the database before migration.")
     result = MigrationResult(backup=backup_database(engine))
@@ -178,42 +171,6 @@ def migrate_database(
                         result.errors.append(f"{path}: {type(exc).__name__}")
                     break
 
-        if playlist_cache is not None and playlist_cache.is_file():
-            logger.info("Importing legacy playlist cache.")
-            try:
-                cached = toml.load(playlist_cache)["playlists"]
-            except (OSError, ValueError, TypeError, KeyError) as exc:
-                result.errors.append(f"{playlist_cache}: {type(exc).__name__}")
-            else:
-                for index, item in enumerate(cached, 1):
-                    try:
-                        with db.session.begin_nested():
-                            remote_id = uuid.UUID(item["id"])
-                            existing = (
-                                db.session.query(Playlist)
-                                .filter_by(remote_id=remote_id)
-                                .one_or_none()
-                            )
-                            if existing is not None:
-                                result.skipped += 1
-                                continue
-                            db.session.add(
-                                Playlist(
-                                    id=uuid.uuid4(),
-                                    remote_id=remote_id,
-                                    remote_service=remote_service,
-                                    remote_user=remote_user,
-                                    name=item["name"],
-                                    description=item.get("desc", ""),
-                                    privacy=PRIVACY(item["privacy"]).value,
-                                    members_complete=False,
-                                )
-                            )
-                        result.playlists += 1
-                    except (ValueError, TypeError, KeyError, SQLAlchemyError) as exc:
-                        result.errors.append(
-                            f"{playlist_cache}: playlist #{index}: {type(exc).__name__}"
-                        )
         db.session.commit()
         logger.info("Local metadata migration committed.")
         return result

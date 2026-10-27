@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, ClassVar
 
 from sqlalchemy import JSON, Boolean, Column, Date, ForeignKey, Integer, Text
 from sqlalchemy.ext.declarative import declarative_base
@@ -39,20 +39,20 @@ class ASMR(Base):
 
 class Playlist(Base):
     __tablename__ = "playlist"
-    id = Column(GUID, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    __table_args__: ClassVar = {"sqlite_autoincrement": True}
     remote_id = Column(GUID, unique=True)
     remote_service = Column(Text)
     remote_user = Column(Text)
     name = Column(Text, nullable=False)
     description = Column(Text, default="")
     privacy = Column(Integer, default=0)
-    members_complete = Column(Boolean, default=True)
     works = relationship(ASMR, secondary="playlist_work")
 
 
 class PlaylistWork(Base):
     __tablename__ = "playlist_work"
-    playlist_id = Column(GUID, ForeignKey("playlist.id"), primary_key=True)
+    playlist_id = Column(Integer, ForeignKey("playlist.id"), primary_key=True)
     work_id = Column(Integer, ForeignKey("asmr.id"), primary_key=True)
 
 

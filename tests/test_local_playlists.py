@@ -89,13 +89,12 @@ class LocalPlaylistTest(TestCase):
         playlist = self.playlist(
             description="Description", privacy=PRIVACY.PUBLIC
         )
-        self.assertIsInstance(playlist.id, uuid.UUID)
+        self.assertIsInstance(playlist.id, int)
         self.assertIsNone(playlist.remote_id)
         self.assertIsNone(playlist.remote_service)
         self.assertIsNone(playlist.remote_user)
         self.assertEqual(playlist.description, "Description")
         self.assertEqual(playlist.privacy, PRIVACY.PUBLIC.value)
-        self.assertTrue(playlist.members_complete)
         self.assertEqual(playlist.works, [])
 
     def test_duplicate_names_require_a_local_id(self):
@@ -158,7 +157,7 @@ class LocalPlaylistTest(TestCase):
     def test_remove_validates_all_ids_before_deleting(self):
         playlist = self.playlist()
         with self.assertRaises(ValueError):
-            self.db.remove_playlists([playlist.id, uuid.uuid4()])
+            self.db.remove_playlists([playlist.id, 999999])
         self.db.session.commit()
         self.assertIsNotNone(self.db.get_playlist(playlist.id))
 
@@ -195,21 +194,15 @@ class LocalPlaylistTest(TestCase):
             (work.notes, work.held, work.stored), ("Private note", True, True)
         )
 
-    def test_add_to_incomplete_list_does_not_claim_full_membership(self):
+    def test_bound_list_displays_persisted_members(self):
         playlist = self.playlist()
         playlist.remote_id = uuid.uuid4()
-        playlist.members_complete = False
-        self.db.session.commit()
         self.db.add_playlist_works(playlist.id, [123])
         self.db.session.commit()
-        self.assertFalse(playlist.members_complete)
         rows = json.loads(self.invoke("list", "--raw").output)
-        self.assertEqual(rows[0]["known_members"], 1)
-        self.assertFalse(rows[0]["members_complete"])
+        self.assertEqual(rows[0]["members"], 1)
         self.assertEqual(rows[0]["remote_id"], str(playlist.remote_id))
-        result = self.invoke("show", str(playlist.id))
-        self.assertIn("membership is incomplete", result.output)
-        self.assertIn("RJ000123", result.output)
+        self.assertIn("RJ000123", self.invoke("show", str(playlist.id)).output)
 
     def test_local_work_resolution_does_not_need_remote_conversion(self):
         for source, expected in (
@@ -273,9 +266,8 @@ class LocalPlaylistTest(TestCase):
                     "remote_id": None,
                     "name": "Offline",
                     "description": "Offline list",
-                    "known_members": 3,
+                    "members": 3,
                     "privacy": "NON_PUBLIC",
-                    "members_complete": True,
                 }
             ],
         )
@@ -306,12 +298,10 @@ class LocalPlaylistTest(TestCase):
     def test_linked_playlists_can_change_locally_when_sync_is_disabled(self):
         playlist = self.playlist()
         playlist.remote_id = uuid.uuid4()
-        playlist.members_complete = False
         self.db.session.commit()
         remote_id = playlist.remote_id
         self.invoke("add", str(playlist.id), "RJ000123")
         self.assertEqual(playlist.remote_id, remote_id)
-        self.assertFalse(playlist.members_complete)
         self.invoke("rm", str(playlist.id))
         self.assertEqual(self.db.session.query(ASMR).count(), 3)
 
@@ -408,24 +398,14 @@ class LocalPlaylistTest(TestCase):
             self.assertEqual(playlist.works, [])
             self.assertFalse((self.root / ".prev_rj").exists())
 
-    def test_enabled_playlist_sync_blocks_unlinked_changes_without_publishing(
-        self,
-    ):
+    def test_enabled_playlist_sync_keeps_unbound_changes_local(self):
         playlist = self.playlist()
         config.sync.playlist = True
-        for arguments in (
-            ["add", str(playlist.id), "RJ000123"],
-            ["rm", str(playlist.id)],
-        ):
-            with self.subTest(arguments=arguments):
-                result = self.runner.invoke(pl, arguments)
-                self.assertNotEqual(result.exit_code, 0)
-                self.assertIn("Playlist is not linked", result.output)
-        self.assertEqual(len(self.db.list_playlists()), 1)
-        self.assertEqual(playlist.works, [])
+        self.invoke("add", str(playlist.id), "RJ000123")
+        self.assertEqual([work.id for work in playlist.works], [123])
         self.assertIsNone(playlist.remote_id)
-        self.invoke("list", "--raw")
-        self.invoke("show", str(playlist.id))
+        self.invoke("rm", str(playlist.id))
+        self.assertEqual(self.db.list_playlists(), [])
 
     def test_completions_offer_ids_unique_names_and_valid_aliases(self):
         unique = self.playlist("Unique", description="Description")

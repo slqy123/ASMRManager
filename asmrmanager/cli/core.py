@@ -1,7 +1,6 @@
 import functools
 import os
 import sys
-import uuid
 from functools import cache, lru_cache
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -511,8 +510,8 @@ def time_interval_preprocess_cb(
 
 def pl_preprocess_cb(
     ctx: click.Context, param: click.Parameter, val: str | tuple[str, ...]
-) -> uuid.UUID | list[uuid.UUID] | None:
-    if ctx.resilient_parsing:
+) -> int | list[int] | None:
+    if ctx.resilient_parsing or (val is None and not param.required):
         return None
     values = (val,) if isinstance(val, str) else val
     if not values:
@@ -523,10 +522,10 @@ def pl_preprocess_cb(
     try:
         ids = []
         for value in values:
-            try:
-                identifier = uuid.UUID(value)
-            except ValueError:
-                identifier = config.playlist_aliases.get(value, value)
+            identifier = (
+                value if value.isdecimal()
+                else config.playlist_aliases.get(value, value)
+            )
             ids.append(db.get_playlist(identifier).id)
     except ValueError as exc:
         raise click.BadParameter(str(exc), ctx, param) from exc

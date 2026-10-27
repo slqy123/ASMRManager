@@ -113,6 +113,116 @@ class CloudSyncTest(TestCase):
             event for event in self.api.events if event[0] in ("PUT", "POST")
         ]
 
+    def test_playlist_pull_replaces_only_selected_list_and_preserves_work_state(
+        self,
+    ):
+        config.sync.playlist = True
+        first = self.linked([123], "First")
+        second = self.linked([400000789], "Second")
+        self.api.members[str(first.remote_id)] = [100000456]
+        self.api.playlists[str(first.remote_id)]["name"] = "Cloud name"
+        before = self.state(self.work(300000456))
+        self.ok("pl", "pull", str(first.id), "--yes")
+        self.assertEqual(first.name, "Cloud name")
+        self.assertEqual([work.id for work in first.works], [300000456])
+        self.assertEqual([work.id for work in second.works], [400000789])
+        self.assertEqual(self.state(self.work(300000456)), before)
+        self.assertEqual(self.writes(), [])
+
+    def test_playlist_pull_imports_by_remote_id_without_merging_names(self):
+        config.sync.playlist = True
+        local = self.db.create_playlist("Same")
+        self.db.commit()
+        remote_id = self.api.playlist("Same", [200123])
+        self.ok("pl", "pull", "--remote", str(remote_id), "--yes")
+        self.assertEqual(len(self.db.list_playlists()), 2)
+        self.assertIsNone(local.remote_id)
+        imported = (
+            self.db.session.query(Playlist)
+            .filter_by(remote_id=remote_id)
+            .one()
+        )
+        self.assertEqual([work.id for work in imported.works], [123])
+        self.ok("pl", "pull", "--remote", str(remote_id), "--yes")
+        self.assertEqual(len(self.db.list_playlists()), 2)
+
+    def test_playlist_pull_failure_and_declined_confirmation_preserve_local_data(
+        self,
+    ):
+        config.sync.playlist = True
+        item = self.linked([123])
+        self.api.members[str(item.remote_id)] = [100000456]
+        result = self.invoke("pl", "pull", str(item.id), input="n\n")
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertEqual([work.id for work in item.works], [123])
+        with patch.object(
+            self.db, "commit", side_effect=SQLAlchemyError("private")
+        ):
+            result = self.invoke("pl", "pull", str(item.id), "--yes")
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertEqual([work.id for work in item.works], [123])
+        self.assertEqual(self.writes(), [])
+
+    def test_push_confirmation_and_changed_cloud_prevent_writes(self):
+        config.sync.playlist = True
+        item = self.linked([123])
+        self.assertNotEqual(
+            self.invoke("pl", "push", str(item.id), input="n\n").exit_code, 0
+        )
+        self.assertEqual(self.writes(), [])
+        reads = 0
+
+        def change_cloud(method, route, payload):
+            nonlocal reads
+            if route == "playlist/get-playlist-metadata":
+                reads += 1
+                if reads == 3:
+                    self.api.playlists[str(item.remote_id)]["name"] = "Changed"
+
+        self.api.hook = change_cloud
+        self.assertNotEqual(
+            self.invoke("pl", "push", str(item.id), "--yes").exit_code, 0
+        )
+        self.assertEqual(self.writes(), [])
+
+    def test_migrate_playlists_requires_sync_and_imports_atomically_without_overwrites(
+        self,
+    ):
+        self.assertNotEqual(
+            self.invoke("utils", "migrate-playlists").exit_code, 0
+        )
+        self.network.assert_not_called()
+        config.sync.playlist = True
+        existing = self.linked([123], "Existing")
+        self.api.members[str(existing.remote_id)] = [100000456]
+        new_id = self.api.playlist("Existing", [200123, 100000456])
+        self.ok("utils", "migrate-playlists")
+        self.assertEqual([work.id for work in existing.works], [123])
+        imported = (
+            self.db.session.query(Playlist).filter_by(remote_id=new_id).one()
+        )
+        self.assertEqual(
+            {work.id for work in imported.works}, {123, 300000456}
+        )
+        self.ok("utils", "migrate-playlists")
+        self.assertEqual(len(self.db.list_playlists()), 2)
+        self.assertEqual(self.writes(), [])
+
+    def test_migrate_playlists_rolls_back_all_lists_on_commit_failure(self):
+        config.sync.playlist = True
+        info = work_info("BJ000999", 200000999)
+        self.api.works[info["id"]] = info
+        self.api.playlist("One", [200123])
+        self.api.playlist("Two", [info["id"]])
+        with patch.object(
+            self.db, "commit", side_effect=SQLAlchemyError("private")
+        ):
+            result = self.invoke("utils", "migrate-playlists")
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertEqual(self.db.list_playlists(), [])
+        self.assertIsNone(self.db.session.get(ASMR, 400000999))
+        self.assertEqual(self.writes(), [])
+
     def test_review_only_pushes_enabled_submitted_fields(self):
         for fields in (
             ("star",),
@@ -243,37 +353,38 @@ class CloudSyncTest(TestCase):
         self.assertEqual(self.state(), saved)
         self.assertEqual(len(self.writes()), 2)
 
-    def test_publish_initial_members_and_protect_duplicate_publication(self):
+    def test_push_creates_once_then_updates_members_and_metadata(self):
         config.sync.playlist = True
-        playlist = self.db.create_playlist("Publish")
+        playlist = self.db.create_playlist("Push")
         self.db.add_playlist_works(playlist.id, [123, 300000456, 400000789])
         self.db.commit()
-        self.ok("pl", "publish", str(playlist.id))
-        self.assertIsNotNone(playlist.remote_id)
-        self.assertTrue(playlist.members_complete)
+        self.ok("pl", "push", str(playlist.id), "--yes")
         self.assertEqual(playlist.remote_user, "test-user")
         self.assertEqual(playlist.remote_service, "https://test.example/api")
         self.assertEqual(
             set(self.api.members[str(playlist.remote_id)]),
             {200123, 100000456, 200000789},
         )
-        count = len(self.writes())
-        self.assertNotEqual(
-            self.invoke("pl", "publish", str(playlist.id)).exit_code, 0
+        playlist.works = [self.work(123)]
+        playlist.name, playlist.description, playlist.privacy = (
+            "Renamed",
+            "New",
+            2,
         )
-        self.assertEqual(len(self.writes()), count)
-
-    def test_publish_incomplete_local_members_and_disabled_publish_are_rejected(
-        self,
-    ):
-        playlist = self.db.create_playlist("Unknown")
-        playlist.members_complete = False
         self.db.commit()
-        for enabled in (False, True):
-            config.sync.playlist = enabled
-            self.assertNotEqual(
-                self.invoke("pl", "publish", str(playlist.id)).exit_code, 0
-            )
+        self.ok("pl", "push", str(playlist.id), "--yes")
+        self.assertEqual(self.api.members[str(playlist.remote_id)], [200123])
+        self.assertEqual(
+            self.api.playlists[str(playlist.remote_id)]["name"], "Renamed"
+        )
+        self.assertEqual(len(self.api.playlists), 1)
+
+    def test_disabled_push_is_rejected_without_network(self):
+        playlist = self.db.create_playlist("Local")
+        self.db.commit()
+        self.assertNotEqual(
+            self.invoke("pl", "push", str(playlist.id), "--yes").exit_code, 0
+        )
         self.network.assert_not_called()
         self.assertIsNone(playlist.remote_id)
 
@@ -284,26 +395,25 @@ class CloudSyncTest(TestCase):
         self.api.failures["POST", "playlist/create-playlist"] = APIError(
             "TEST_PRIVATE_TOKEN"
         )
-        result = self.invoke("pl", "create", "Unknown outcome")
+        playlist = self.db.create_playlist("Unknown outcome")
+        self.db.commit()
+        result = self.invoke("pl", "push", str(playlist.id), "--yes")
         self.assertNotEqual(result.exit_code, 0)
         self.assertNotIn("TEST_PRIVATE", result.output)
-        self.assertEqual(self.db.list_playlists(), [])
+        self.assertIsNone(playlist.remote_id)
+        self.assertEqual(
+            [item.id for item in self.db.list_playlists()], [playlist.id]
+        )
         self.assertEqual(len(self.writes()), 1)
 
-    def test_create_linked_and_cloud_add_precedes_local_commit(self):
+    def test_create_and_add_stay_local_when_sync_is_enabled(self):
         config.sync.playlist = True
         self.ok("pl", "create", "Created")
         playlist = self.db.get_playlist("Created")
-        self.assertTrue(playlist.members_complete)
-
-        def observe(method, route, payload):
-            if method == "POST" and route == "playlist/add-works-to-playlist":
-                self.assertEqual(playlist.works, [])
-
-        self.api.hook = observe
         self.ok("pl", "add", str(playlist.id), "RJ000123")
         self.assertEqual([work.id for work in playlist.works], [123])
-        self.assertEqual(self.api.members[str(playlist.remote_id)], [200123])
+        self.assertIsNone(playlist.remote_id)
+        self.network.assert_not_called()
 
     def test_cloud_add_failure_does_not_modify_local_members(self):
         config.sync.playlist = True
@@ -311,12 +421,14 @@ class CloudSyncTest(TestCase):
         self.api.failures["POST", "playlist/add-works-to-playlist"] = APIError(
             "failed"
         )
+        self.ok("pl", "add", str(playlist.id), "RJ000123")
         self.assertNotEqual(
-            self.invoke("pl", "add", str(playlist.id), "RJ000123").exit_code, 0
+            self.invoke("pl", "push", str(playlist.id), "--yes").exit_code, 0
         )
-        self.assertEqual(playlist.works, [])
+        self.assertEqual([work.id for work in playlist.works], [123])
+        self.assertEqual(self.api.members[str(playlist.remote_id)], [])
 
-    def test_cloud_success_local_failure_reports_id_and_keeps_local_members(
+    def test_local_add_failure_does_not_touch_cloud(
         self,
     ):
         config.sync.playlist = True
@@ -326,11 +438,11 @@ class CloudSyncTest(TestCase):
         ):
             result = self.invoke("pl", "add", str(playlist.id), "RJ000123")
         self.assertNotEqual(result.exit_code, 0)
-        self.assertIn(str(playlist.remote_id), result.output)
-        self.assertIn("Cloud operation succeeded", result.output)
+        self.assertIn("Could not save local playlist changes", result.output)
         self.assertNotIn("TEST_PRIVATE", result.output)
         self.assertEqual(playlist.works, [])
-        self.assertEqual(self.api.members[str(playlist.remote_id)], [200123])
+        self.assertEqual(self.api.members[str(playlist.remote_id)], [])
+        self.assertEqual(self.writes(), [])
 
     def test_publish_verification_failure_keeps_id_for_recovery(self):
         config.sync.playlist = True
@@ -340,13 +452,12 @@ class CloudSyncTest(TestCase):
         self.api.failures["GET", "playlist/get-playlist-works"] = APIError(
             "failed"
         )
-        result = self.invoke("pl", "publish", str(playlist.id))
+        result = self.invoke("pl", "push", str(playlist.id), "--yes")
         self.assertNotEqual(result.exit_code, 0)
         self.assertIn(str(playlist.remote_id), result.output)
-        self.assertFalse(playlist.members_complete)
         self.assertEqual([work.id for work in playlist.works], [123])
         self.assertNotEqual(
-            self.invoke("pl", "publish", str(playlist.id)).exit_code, 0
+            self.invoke("pl", "push", str(playlist.id), "--yes").exit_code, 0
         )
         self.assertEqual(
             len(
@@ -366,11 +477,10 @@ class CloudSyncTest(TestCase):
         self.db.commit()
         self.api.playlist("Same", [200123])
         target = self.api.playlist("Different", [100000456])
-        self.ok("pl", "link", str(playlist.id), str(target))
+        self.ok("pl", "bind", str(playlist.id), str(target))
         self.assertEqual(playlist.remote_id, target)
         self.assertEqual(playlist.name, "Same")
         self.assertEqual([work.id for work in playlist.works], [123])
-        self.assertFalse(playlist.members_complete)
         self.assertEqual(self.writes(), [])
 
     def test_link_rejects_unowned_and_duplicate_ids(self):
@@ -379,14 +489,14 @@ class CloudSyncTest(TestCase):
         second = self.db.create_playlist("Second")
         self.db.commit()
         result = self.invoke(
-            "pl", "link", str(second.id), str(first.remote_id)
+            "pl", "bind", str(second.id), str(first.remote_id)
         )
         self.assertNotEqual(result.exit_code, 0)
         self.assertIsNone(second.remote_id)
         self.api.playlists[str(first.remote_id)]["user_name"] = "other-user"
         self.assertNotEqual(
             self.invoke(
-                "pl", "link", str(second.id), str(first.remote_id)
+                "pl", "bind", str(second.id), str(first.remote_id)
             ).exit_code,
             0,
         )
@@ -400,9 +510,7 @@ class CloudSyncTest(TestCase):
             setattr(playlist, name, "other")
             self.db.commit()
             self.assertNotEqual(
-                self.invoke(
-                    "pl", "add", str(playlist.id), "RJ000123"
-                ).exit_code,
+                self.invoke("pl", "push", str(playlist.id), "--yes").exit_code,
                 0,
             )
             self.assertEqual(self.writes(), [])
@@ -417,12 +525,15 @@ class CloudSyncTest(TestCase):
             "failed"
         )
         self.assertNotEqual(
-            self.invoke("pl", "rm", str(playlist.id)).exit_code, 0
+            self.invoke(
+                "pl", "rm", str(playlist.id), "--remote", "--yes"
+            ).exit_code,
+            0,
         )
         self.assertIs(self.db.get_playlist(playlist.id), playlist)
         self.assertEqual([work.id for work in playlist.works], [123])
         del self.api.failures["POST", "playlist/delete-playlist"]
-        self.ok("pl", "rm", str(playlist.id))
+        self.ok("pl", "rm", str(playlist.id), "--remote", "--yes")
         self.assertEqual(self.db.list_playlists(), [])
         self.assertIsNotNone(self.work())
 
@@ -623,7 +734,7 @@ class CloudSyncTest(TestCase):
         with patch.object(
             self.db, "commit", side_effect=SQLAlchemyError("TEST_PRIVATE_SQL")
         ):
-            result = self.invoke("pl", "publish", str(playlist.id))
+            result = self.invoke("pl", "push", str(playlist.id), "--yes")
         self.assertNotEqual(result.exit_code, 0)
         self.assertIn("Cloud operation succeeded", result.output)
         self.assertNotIn("TEST_PRIVATE", result.output)
@@ -643,10 +754,13 @@ class CloudSyncTest(TestCase):
             return response
 
         self.api.post = bad_id
-        result = self.invoke("pl", "create", "Missing ID")
+        playlist = self.db.create_playlist("Missing ID")
+        self.db.commit()
+        result = self.invoke("pl", "push", str(playlist.id), "--yes")
         self.assertNotEqual(result.exit_code, 0)
         self.assertNotIn("TEST_PRIVATE", result.output)
-        self.assertEqual(self.db.list_playlists(), [])
+        self.assertIsNone(playlist.remote_id)
+        self.assertEqual(len(self.db.list_playlists()), 1)
         self.assertEqual(len(self.writes()), 1)
         self.assertEqual(len(self.api.playlists), 1)
 
@@ -663,10 +777,9 @@ class CloudSyncTest(TestCase):
                 self.api.members[payload["id"]] = [200123]
 
         self.api.hook = lose_member
-        result = self.invoke("pl", "publish", str(playlist.id))
+        result = self.invoke("pl", "push", str(playlist.id), "--yes")
         self.assertNotEqual(result.exit_code, 0)
         self.assertIsNotNone(playlist.remote_id)
-        self.assertFalse(playlist.members_complete)
         self.assertEqual(
             {work.id for work in playlist.works}, {123, 300000456}
         )
@@ -688,7 +801,9 @@ class CloudSyncTest(TestCase):
             return await original(route, data)
 
         self.api.post = fail_second
-        result = self.invoke("pl", "rm", str(first.id), str(second.id))
+        result = self.invoke(
+            "pl", "rm", str(first.id), str(second.id), "--remote", "--yes"
+        )
         self.assertNotEqual(result.exit_code, 0)
         self.assertNotIn("TEST_PRIVATE", result.output)
         self.assertEqual(len(self.db.list_playlists()), 2)
@@ -718,17 +833,14 @@ class CloudSyncTest(TestCase):
         self.assertEqual(self.state(), before)
         self.assertEqual(self.writes(), [])
 
-    def test_incomplete_legacy_members_are_reconciled_only_on_adoption(self):
+    def test_local_members_are_replaced_only_on_adoption(self):
         config.sync.playlist = True
         playlist = self.linked([123])
-        playlist.members_complete = False
         self.api.members[str(playlist.remote_id)] = [100000456]
         self.db.commit()
         self.ok("sync", "pull", "--choice", "local")
-        self.assertFalse(playlist.members_complete)
         self.assertEqual([work.id for work in playlist.works], [123])
         self.ok("sync", "pull", "--choice", "cloud")
-        self.assertTrue(playlist.members_complete)
         self.assertEqual([work.id for work in playlist.works], [300000456])
 
     def test_playlist_only_pull_imports_new_metadata_without_review_or_file_changes(
