@@ -61,7 +61,7 @@
 > [!NOTE]
 > 从 `2.X` 升级到 `3.0` 后请参考[迁移说明](./MIGRATION.md)。
 > 3.0 版本使用AI重构了大量模块，无明确的稳定性和兼容保证，暂不推荐升级。
-> 目前仍只推荐安装2.X版本：`pip install "ASMRManager[依赖]<3"`。
+> 目前仍只推荐安装[2.X版本](https://github.com/slqy123/ASMRManager/tree/2.X)：`pip install "ASMRManager[依赖]<3"`。
 
 本工具支持 `python >= 3.12`，安装方法如下：
 
