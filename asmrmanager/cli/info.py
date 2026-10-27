@@ -5,7 +5,7 @@ import click
 from asmrmanager.cli.core import (
     convert2remote_id,
     create_database,
-    create_downloader_and_database,
+    create_general_api,
     rj_argument,
 )
 from asmrmanager.common.output import support_image
@@ -35,13 +35,20 @@ def print_asmr_info(asmr: ASMRInstance):
 - CV
 {cvs}
 
+{language_editions}
+
 **comment**
 - star: {star}
-- review count: {count}
+- last review: {last_review}
+- progress: {progress}
 - held: {held}
 - stored: {stored}
 
 {comment}
+
+**local notes**
+
+{notes}
     """
     res: dict = asmr.__dict__.copy()
     # logger.debug(res)
@@ -49,7 +56,17 @@ def print_asmr_info(asmr: ASMRInstance):
     cvs = "\n".join([f"  - {c}" for c in asmr.vas])
     if res.get("tags"):
         del res["tags"]
-    s = template.format(tags=tags, cvs=cvs, **res).strip()
+    editions = (asmr.details or {}).get("language_editions") or []
+    language_editions = "\n".join(
+        f"- {edition.get('label') or edition.get('lang') or 'Unknown'}: {edition['workno']}"
+        for edition in editions
+        if isinstance(edition, dict) and edition.get("workno")
+    )
+    if language_editions:
+        language_editions = f"**language editions**\n{language_editions}"
+    s = template.format(
+        tags=tags, cvs=cvs, language_editions=language_editions, **res
+    ).strip()
 
     console = Console()
     if not support_image():
@@ -57,9 +74,9 @@ def print_asmr_info(asmr: ASMRInstance):
         return
     from textual_image.renderable import Image
 
-    downloader, _ = create_downloader_and_database()
-    (image_path,) = downloader.run(
-        downloader.get_cover_path(
+    manager = create_general_api()
+    (image_path,) = manager.run(
+        manager.get_cover_path(
             {"id": asmr.remote_id, "source_id": id2source_name(asmr.id)}
         )
     )
@@ -73,10 +90,9 @@ def print_asmr_info(asmr: ASMRInstance):
 
 
 def info_from_web(source_id: RemoteSourceID):
-    downloader, db = create_downloader_and_database()
-    (rj_info,) = downloader.run(
-        downloader.downloader.get_voice_info(source_id)
-    )
+    manager = create_general_api()
+    db = create_database()
+    (rj_info,) = manager.run(manager.api.get_voice_info(source_id))
     if rj_info is None:
         sys.exit(1)
 
@@ -84,7 +100,9 @@ def info_from_web(source_id: RemoteSourceID):
 
     res = db.parse_info(rj_info)
     res.star = 0
-    res.count = 0
+    res.last_review = None
+    res.progress = None
+    res.notes = ""
     res.held = False
     res.stored = False
     res.comment = ""
@@ -126,10 +144,10 @@ def info(source_id: LocalSourceID, rand: bool, web: bool):
 
     v_info = db.func.get_info(source_id, rand=rand)
     if v_info is None:
-        logger.info(f"{source_id} not exists, try getting from web")
+        logger.info(f"Source {source_id} was not found locally; fetching it from the web.")
         remote_source_id = convert2remote_id(source_id)
         if remote_source_id is None:
-            logger.error(f"cannot convert {source_id} to remote id")
+            logger.error(f"Could not convert {source_id} to a remote ID.")
             return
         # logger.debug(f"converted {source_id} to {remote_source_id}")
         v_info = info_from_web(remote_source_id)

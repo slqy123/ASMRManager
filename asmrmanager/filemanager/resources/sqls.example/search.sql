@@ -1,7 +1,7 @@
 -- 作品筛选
 -- 如果你不清楚具体的tag名，声优，社团名，虽然可以用sql搜索，
 -- 但更方便的方法其实是用类似db browser for sqlite, usql, litecli,之类的数据库工具直接去看项目根目录下的data.db，或者直接去网站看
-select asmr.id,title,circle_name,nsfw,release_date,price,dl_count,star,asmr.count,held,has_subtitle, va.name
+select asmr.id,title,circle_name,nsfw,release_date,price,dl_count,star,asmr.last_review,held,has_subtitle, va.name
 from asmr
          join asmrs2tags a2t on asmr.id = a2t.asmr_id
          join tag t on a2t.tag_id = t.id
@@ -9,7 +9,7 @@ from asmr
          join voice_actor va on a2v.actor_id = va.id
 where true
     and has_subtitle = true  -- 是否有中文字幕
-    and asmr.count = 0  -- 作品review的次数
+    and asmr.last_review is null
     and stored = false  -- 作品是否处于storage path
     -- and t.name = 'tag.name'  
     -- and tag_id = tag.id  -- tag id

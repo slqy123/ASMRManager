@@ -1,11 +1,8 @@
-import asyncio
 import json
 from pathlib import Path
 from typing import Any
 
 import aioaria2
-
-from asmrmanager.logger import logger
 
 
 class Aria2Downloader:
@@ -13,14 +10,7 @@ class Aria2Downloader:
         self,
         proxy: str | None,
     ) -> None:
-        self.client: aioaria2.Aria2HttpClient
-        # logger.info(f"Connecting to aria2 rpc server: {self.client}")
-        # self.api = aria2p.API(self.client)
-        # self.options = aria2p.Options(
-        #     self.api,
-        #     {"all-proxy": proxy}
-        # )
-        # self.options.auto_file_renaming = False
+        self.client: aioaria2.Aria2HttpClient | None = None
         self.options: dict[str, Any] = {
             "auto-file-renaming": False,
         }
@@ -28,29 +18,35 @@ class Aria2Downloader:
             self.options["all-proxy"] = proxy
 
     async def create_client(self, host: str, port: int, secret: str) -> None:
-        self.client = await aioaria2.Aria2HttpClient(
+        if self.client is not None:
+            raise RuntimeError("aria2 RPC client is already open.")
+        client = aioaria2.Aria2HttpClient(
             f"{host}:{port}/jsonrpc",
             token=secret,
             loads=json.loads,
             dumps=json.dumps,
-        ).__aenter__()
+        )
+        try:
+            self.client = await client.__aenter__()
+        except BaseException:
+            await client.__aexit__(None, None, None)
+            raise
 
     async def close_client(self) -> None:
-        await self.client.__aexit__(None, None, None)
+        client, self.client = self.client, None
+        if client is not None:
+            await client.__aexit__(None, None, None)
 
-    async def download(self, url: str, save_path: Path, filename: str):
+    async def download(self, url: str, save_path: Path, filename: str) -> None:
+        client = self.client
+        if client is None:
+            raise RuntimeError("aria2 RPC client is not open.")
         download_option = {
             "out": filename,
             "dir": str(save_path),
         }
-        while True:
-            res = await self.client.addUri(
-                [url], options={**self.options, **download_option}
-            )
-            if isinstance(res, str) and len(res) == 16:
-                break
-            else:
-                logger.warning(
-                    f"Wrong response from aria2: {res}, retrying..."
-                )
-                await asyncio.sleep(1)
+        res = await client.addUri(
+            [url], options={**self.options, **download_option}
+        )
+        if not isinstance(res, str) or len(res) != 16:
+            raise RuntimeError(f"Invalid aria2 submission response: {res!r}.")

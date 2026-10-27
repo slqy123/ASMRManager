@@ -37,7 +37,7 @@ def del_(source_id: LocalSourceID):
     rj_path = fm.get_path(source_id)
 
     if rj_path is None:
-        logger.error(f"item {source_id} does not exists")
+        logger.error(f"Item {source_id} does not exist.")
         return
 
     folders = folder_chooser_multiple(
@@ -66,36 +66,32 @@ def del_(source_id: LocalSourceID):
     help="recover files that have been filtered out",
 )
 def recover(source_id: LocalSourceID, regex: str, ignore_filter: bool):
-    """recover a file from recover file"""
+    """recover missing files using database records"""
 
     url2download: list[tuple[str, Path]] = []
 
-    res = fm.load_recover(source_id)
+    res = create_database().load_recovery(source_id)
     if res is None:
-        return
+        raise click.ClickException("No recovery records; update this work first.")
     recovers = res
 
     files = fm.get_all_files(source_id)
     source_name = id2source_name(source_id)
 
     for recover in recovers:
-        rel_path = recover["path"]
-
-        # recover_file = rj_path / rel_path
-        # if recover_file.exists():
-        #     continue
+        rel_path = Path(recover["path"])
         if rel_path in files:
             continue
 
-        if not re.search(regex, rel_path):
+        if not re.search(regex, str(rel_path)):
             continue
 
         if not recover["should_download"]:
             if not ignore_filter:
-                logger.info("skip filtered file %s", rel_path)
+                logger.info("Skipping filtered file %s.", rel_path)
                 continue
             else:
-                logger.info("recover filtered file %s", rel_path)
+                logger.info("Restoring filtered file %s.", rel_path)
 
         url2download.append(
             (
@@ -182,20 +178,20 @@ def store(
             file: Path, to: Literal["mp3", "flac", "m4a", "wav", "lrc"]
         ):
             if file.suffix.lower() == f".{to}":
-                logger.debug("skip %s, already in %s format", file, to)
+                logger.debug("Skipping %s because it is already in %s format.", file, to)
                 return
             if to == "lrc":
                 assert file.suffix.lower() == ".vtt"
-                logger.debug("converting %s to lrc", file)
+                logger.debug("Converting %s to LRC.", file)
                 convert_vtt2lrc(file)
             else:
-                logger.debug("converting %s to %s", file, to)
+                logger.debug("Converting %s to %s.", file, to)
                 with AudioConverter(f"Audio conversion to {to}") as converter:
                     converter.convert(file, dst=to)
 
             if len(file.suffixes) == 1:
                 assert file.with_suffix(f".{to}").exists()
-            logger.info("Removing old file: %s", file)
+            logger.info("Removing the original file: %s", file)
             file.unlink()
 
         def convert_all(
@@ -220,8 +216,7 @@ def store(
                 )
                 if len(src_paths) == 0:
                     logger.info(
-                        "No files to convert from %s to %s in %s",
-                        from_,
+                        "No files were found to convert to %s in %s.",
                         to,
                         path,
                     )
@@ -241,7 +236,7 @@ def store(
                         src_path.unlink()
 
         code = config.before_store
-        logger.debug("executing before_store_hook code: %s", code)
+        logger.debug("Executing the pre-storage hook code: %s", code)
         if not code.strip():
             return
 
@@ -268,7 +263,7 @@ def store(
             for id_ in source_ids:
                 if not (fm.download_path / id2source_name(id_)).exists():
                     logger.warning(
-                        "download path for id %s does not exist, skipping",
+                        "Skipping source %s because its download path does not exist.",
                         id_,
                     )
                     continue
@@ -280,7 +275,7 @@ def store(
                     id_, offline=check != "online"
                 )
                 if not success:
-                    logger.error("Stop storing due to check failed")
+                    logger.error("Stopping storage because file verification failed.")
                     if on_error == "abort":
                         return
                     elif on_error == "skip":
@@ -292,13 +287,13 @@ def store(
             res = db.check_exists(id_)
             if not res:
                 logger.error(
-                    "no such id: %s, which is an unexpected situation", id_
+                    "Unexpected database state: source ID %s does not exist.", id_
                 )
                 continue
             res.stored = True
-        logger.info("succesfully stored all files")
+        logger.info("All files were stored successfully.")
     except DstItemAlreadyExistsException as e:
-        logger.error("storing terminated for %s", e)
+        logger.error("Could not store the files because an item already exists at the destination: %s", e)
     finally:
         db.commit()
 
@@ -310,10 +305,9 @@ def diff(source_id: LocalSourceID):
     Diff local files and the remote files,
     display files filtered, missing and added
     """
-    if res := fm.load_recover(source_id):
-        recovers = res
-    else:
-        return
+    recovers = create_database().load_recovery(source_id)
+    if recovers is None:
+        raise click.ClickException("No recovery records; update this work first.")
 
     local_files = fm.get_all_files(source_id)
 
@@ -364,16 +358,15 @@ def diff(source_id: LocalSourceID):
 
 
 def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
-    if res := fm.load_recover(source_id):
-        recovers = res
-    else:
-        logger.error(f"failed to load recover for id {source_id}")
+    recovers = create_database().load_recovery(source_id)
+    if recovers is None:
+        logger.error("No recovery records for %s; update this work first", source_id)
         return False
 
     local_files = fm.get_all_files(source_id)
     for p in local_files:
         if p.suffix == ".aria2":
-            logger.error("Aria2 control file found: %s", p)
+            logger.error("Found an aria2 control file: %s", p)
             return False
     remote_files_should_down = {
         Path(i["path"]) for i in recovers if i["should_download"]
@@ -398,7 +391,7 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
 
     if offline:
         return True
-    logger.info(f"Start hash verification: {source_id}")
+    logger.info("Starting hash verification for source %s.", source_id)
 
     remote_files_should_down_list = [
         Path(i["path"]) for i in recovers if i["should_download"]
@@ -406,8 +399,8 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
     file_ids = [i.get("fileId") for i in recovers if i["should_download"]]
     if not all(isinstance(i, int) for i in file_ids):
         logger.warning(
-            f"source_id {source_id} has missing fileId in recover, "
-            "please update your recover file first"
+            "Recovery records for %s have missing file IDs; update this work first",
+            source_id,
         )
         return False
     file_ids = typing.cast(list[int], file_ids)
@@ -424,12 +417,12 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
         if not (file_path.exists() and file_path.is_file()):
             if fm.check_exists(f"{id2source_name(source_id)}/{file!s}"):
                 logger.info(
-                    "skip %s, same name with different extension exists",
+                    "Skipping %s because a file with the same name and a different extension exists.",
                     file_path,
                 )
             else:
                 logger.error(
-                    "file does not exist or is not a file: %s", file_path
+                    "%s does not exist or is not a regular file.", file_path
                 )
             continue
 
@@ -437,7 +430,7 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
         file_ids2check.append(file_id)
 
     if len(file_ids2check) == 0:
-        logger.warning(f"no files to verify for source_id: {source_id}")
+        logger.warning(f"No files are available to verify for source ID {source_id}.")
         return True
     api = create_general_api()
     res = api.run(
@@ -448,16 +441,16 @@ def verify_voices(source_id: LocalSourceID, offline: bool) -> bool:
     )
     if not all(res):
         logger.error(
-            f"source_id {source_id} has files that failed to verify hash:"
+            f"Hash verification failed for files in source ID {source_id}:"
         )
         for i, (file_path, file_id) in enumerate(
             zip(file_paths2check, file_ids2check)
         ):
             if not res[i]:
-                logger.error("file failed to verify (id %s): %s", file_id, file_path)
+                logger.error("Hash verification failed for file ID %s: %s", file_id, file_path)
         return False
 
-    logger.info(f"source_id {source_id} has all files verified successfully")
+    logger.info(f"All files for source ID {source_id} were verified successfully.")
     return True
 
 

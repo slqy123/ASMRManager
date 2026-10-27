@@ -1,11 +1,12 @@
-from typing import Any
+from typing import Any, ClassVar
 
-from sqlalchemy import Boolean, Column, Date, ForeignKey, Integer, Text
+from sqlalchemy import JSON, Boolean, Column, Date, ForeignKey, Integer, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 from asmrmanager.database.utils.uuid_sqlite import GUID
 
+SCHEMA_VERSION = 1
 Base: Any = declarative_base()
 
 
@@ -25,11 +26,43 @@ class ASMR(Base):
     has_subtitle = Column(Boolean)
 
     star = Column(Integer, default=0)
-    count = Column(Integer, default=0)
     comment = Column(Text, default="")
+    progress = Column(Text)
+    last_review = Column(Date)
+    notes = Column(Text, default="")
+    details = Column(JSON)
+    recovery_ready = Column(Boolean, default=False)
 
     held = Column(Boolean, default=False)
     stored = Column(Boolean, default=False)
+
+
+class Playlist(Base):
+    __tablename__ = "playlist"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    __table_args__: ClassVar = {"sqlite_autoincrement": True}
+    remote_id = Column(GUID, unique=True)
+    remote_service = Column(Text)
+    remote_user = Column(Text)
+    name = Column(Text, nullable=False)
+    description = Column(Text, default="")
+    privacy = Column(Integer, default=0)
+    works = relationship(ASMR, secondary="playlist_work")
+
+
+class PlaylistWork(Base):
+    __tablename__ = "playlist_work"
+    playlist_id = Column(Integer, ForeignKey("playlist.id"), primary_key=True)
+    work_id = Column(Integer, ForeignKey("asmr.id"), primary_key=True)
+
+
+class RecoveryFile(Base):
+    __tablename__ = "recovery_file"
+    work_id = Column(Integer, ForeignKey("asmr.id"), primary_key=True)
+    path = Column(Text, primary_key=True)
+    url = Column(Text, nullable=False)
+    should_download = Column(Boolean, nullable=False)
+    file_id = Column(Integer)
 
 
 class Tag(Base):

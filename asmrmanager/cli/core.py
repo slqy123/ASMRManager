@@ -1,7 +1,6 @@
 import functools
 import os
 import sys
-import uuid
 from functools import cache, lru_cache
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -23,36 +22,73 @@ from asmrmanager.config import config
 from asmrmanager.filemanager.manager import FileManager
 from asmrmanager.logger import logger
 
-# from asmrmanager.spider.asmrapi import ASMRAPI
-
 fm = FileManager.get_fm()
-
-if config.api_channel:
-    os.environ["ASMR_CUSTOM_API_CHANNEL"] = config.api_channel
-    # ASMRAPI.set_api_channel(config.api_channel)
 
 if TYPE_CHECKING:
     from asmrmanager.database.manage import DataBaseManager
     from asmrmanager.spider import ASMRDownloadManager
 
 
+def create_api_client():
+    from asmrmanager.spider import ASMRAPI
+    from asmrmanager.spider.auth import DEFAULT_API_URL
+
+    api_channel = config.api_channel or os.getenv("ASMR_CUSTOM_API_CHANNEL")
+    base_url = f"https://{api_channel}/api/" if api_channel else DEFAULT_API_URL
+    return ASMRAPI(
+        name=config.username,
+        password=config.password,
+        proxy=config.proxy,
+        limit=config.api_max_concurrent_requests,
+        max_rps=config.api_max_requests_per_second,
+        base_url=base_url,
+    )
+
+
+def create_sync_api():
+    from asmrmanager.sync import CloudSync
+
+    return CloudSync(create_api_client())
+
+
+def push_local_review(work, fields):
+    from asmrmanager.sync import review_changes
+
+    manager = create_sync_api()
+    manager.run(
+        manager.push_review(
+            work.id, work.remote_id, review_changes(work, fields)
+        )
+    )
+
+
 @cache
-def create_database(
-    skip_check: bool = False,
-):  # skip_check is only used for migration
+def create_database():
     from asmrmanager.database.manage import DataBaseManager
 
-    db = DataBaseManager(tag_filter=config.tag_filter or ())
-    if not skip_check and not db.check_db_updated():
-        logger.error(
-            "Your database is out dated, Please update your database schema"
-            " with asmr utils migrate!"
+    try:
+        db = DataBaseManager(tag_filter=config.tag_filter or ())
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if not db.check_db_updated():
+        db.session.close()
+        raise click.ClickException(
+            "Database schema is outdated; run asmr utils migrate first."
         )
-        sys.exit(-1)
     return db
 
 
-@cache
+def commit_download_results(
+    db: "DataBaseManager", failed_ids: list[RemoteSourceID]
+) -> None:
+    db.commit()
+    if failed_ids:
+        raise click.ClickException(
+            f"Failed to process {len(failed_ids)} works: "
+            f"{', '.join(map(str, failed_ids))}."
+        )
+
+
 def create_downloader_and_database(
     download_params: DownloadParams | None = None,
 ) -> tuple["ASMRDownloadManager", "DataBaseManager"]:
@@ -68,21 +104,29 @@ def create_downloader_and_database(
             return True
         return fm.get_location(info.id) is None
 
+    def save_info(info):
+        should_download = db.add_info(
+            info,
+            check=download_params.check_tag,
+            tag_strategy=config.tag_strategy,
+        )
+        db.commit()
+        return should_download
+
+    def save_recovery(source_id, records):
+        db.save_recovery(source_id, records)
+        db.commit()
+
     return (
         ASMRDownloadManager(
-            name=config.username,
-            password=config.password,
-            proxy=config.proxy,
+            api=create_api_client(),
             id_should_download=(
                 (lambda _: True)
                 if download_params.force
                 else id_should_download
             ),  # 如果数据库中不存在或者文件不存在，都执行下载
-            json_should_download=lambda info: db.add_info(
-                info,
-                check=download_params.check_tag,
-                tag_strategy=config.tag_strategy,
-            ),
+            json_should_download=save_info,
+            save_recovery=save_recovery,
             name_should_download=(
                 name_should_download
                 if download_params.check_name
@@ -91,7 +135,6 @@ def create_downloader_and_database(
             replace=download_params.replace,
             download_method=config.download_method,
             aria2_config=config.aria2_config,
-            limit=config.api_max_concurrent_requests,
             fetch_cover=config.fetch_cover,
             tagger=config.default_tagger,
         ),
@@ -99,40 +142,16 @@ def create_downloader_and_database(
     )
 
 
-@cache
-def create_playlist():
-    from asmrmanager.spider.interface import ASMRPlayListManager
-
-    return ASMRPlayListManager(
-        name=config.username,
-        password=config.password,
-        proxy=config.proxy,
-        limit=config.api_max_concurrent_requests,
-    )
-
-
-@cache
 def create_tags_api():
     from asmrmanager.spider import ASMRTagManager
 
-    return ASMRTagManager(
-        name=config.username,
-        password=config.password,
-        proxy=config.proxy,
-        limit=config.api_max_concurrent_requests,
-    )
+    return ASMRTagManager(api=create_api_client())
 
 
-@cache
 def create_general_api():
     from asmrmanager.spider import ASMRGeneralManager
 
-    return ASMRGeneralManager(
-        name=config.username,
-        password=config.password,
-        proxy=config.proxy,
-        limit=config.api_max_concurrent_requests,
-    )
+    return ASMRGeneralManager(api=create_api_client())
 
 
 def browse_param_options(f):
@@ -269,18 +288,20 @@ def get_prev_source():
     if not PREVIOUS_RJ_PATH.exists():
         return ""
     rj = PREVIOUS_RJ_PATH.read_text(encoding="utf8")
-    logger.info(f"previous RJ id is {rj}")
+    logger.info(f"Previous RJ ID: {rj}")
     return rj
 
 
 def save_source(rj: str):
     PREVIOUS_RJ_PATH.write_text(rj, encoding="utf8")
+    get_prev_source.cache_clear()
 
 
 def convert2local_ids(
     source_ids: list[SourceID],
 ) -> list[LocalSourceID | None]:
-    downloader, db = create_downloader_and_database()
+    manager = create_general_api()
+    db = create_database()
 
     @asyncstdlib.lru_cache(None)
     async def convert2local_id(source_id: SourceID):
@@ -290,13 +311,13 @@ def convert2local_ids(
         res = db.func.get_local_id(source_id)
         if res is not None:
             return LocalSourceID(SourceID(res))
-        info = await downloader.downloader.get_voice_info(source_id)
+        info = await manager.api.get_voice_info(source_id)
         if info is None:
-            logger.warning(f"failed to convert {source_id} to local id")
+            logger.warning(f"Could not convert source ID {source_id} to a local ID.")
             return None
         return LocalSourceID(source_name2id(info["source_id"]))
 
-    return downloader.run(
+    return manager.run(
         *[convert2local_id(remote_id) for remote_id in source_ids]
     )
 
@@ -308,7 +329,8 @@ def convert2local_id(x):
 def convert2remote_ids(
     source_ids: list[SourceID],
 ) -> list[RemoteSourceID | None]:
-    downloader, db = create_downloader_and_database()
+    manager = create_general_api()
+    db = create_database()
 
     @asyncstdlib.lru_cache(None)
     async def convert2remote_id(source_id: SourceID):
@@ -319,19 +341,18 @@ def convert2remote_ids(
         if remote_id is not None:
             return RemoteSourceID(SourceID(remote_id))
         source_name = id2source_name(source_id)
-        res = await downloader.downloader.get_search_result(source_name, {})
+        res = await manager.api.get_search_result(source_name, {})
         works = res["works"]
         if len(works) == 0:
-            logger.warning(f"no remote resources for {source_name}")
+            logger.warning(f"No remote works were found for {source_name}.")
             return None
         if len(works) > 1:
             logger.warning(
-                f"multiple remote resources for {source_name}, choose the"
-                " first one by default"
+                f"Multiple remote works were found for {source_name}; using the first result."
             )
         return works[0]["id"]
 
-    return downloader.run(
+    return manager.run(
         *[convert2remote_id(local_id) for local_id in source_ids]
     )
 
@@ -340,7 +361,9 @@ def convert2remote_id(x):
     return convert2remote_ids([x])[0]
 
 
-def rj_argument(convert: Literal[False, "local", "remote"] = False):
+def rj_argument(
+    convert: Literal[False, "local", "remote", "local-only"] = False,
+):
     """parse the source_id: int, if not given it will use the previous source_id"""
 
     def _(f):
@@ -361,13 +384,18 @@ def rj_argument(convert: Literal[False, "local", "remote"] = False):
             if source_id is None:
                 logger.error(f"Invalid input source id: {source}")
                 sys.exit(-1)
-            if convert == "local" and not is_local_source_id(source_id):
+            if convert == "local-only":
+                try:
+                    source_id = create_database().resolve_local_work(source).id
+                except ValueError as exc:
+                    raise click.ClickException(str(exc)) from exc
+            elif convert == "local" and not is_local_source_id(source_id):
                 source_id = convert2local_id(source_id)
             elif convert == "remote" and not is_remote_source_id(source_id):
                 source_id = convert2remote_id(source_id)
 
             if source_id is None:
-                logger.error(f"failed to convert to {convert} source id")
+                logger.error(f"Failed to convert to {convert} source id")
                 sys.exit(-1)
 
             save_source(source)
@@ -422,7 +450,7 @@ def multi_rj_argument(convert: Literal[False, "local", "remote"] = False):
                     source_id = convert2remote_id(source_id)
 
                 if source_id is None:
-                    logger.error(f"failed to convert to {convert} source id")
+                    logger.error(f"Failed to convert to {convert} source id")
                     sys.exit(-1)
                 source_ids.append(source_id)
             elif len(source_ids) == 1:
@@ -481,69 +509,24 @@ def time_interval_preprocess_cb(
 
 
 def pl_preprocess_cb(
-    ctx: click.Context, param: click.Option, val: str | tuple[str, ...]
-) -> list[uuid.UUID]:
-    def is_valid_uuid(v: str):
-        try:
-            uuid.UUID(v)
-            return True
-        except ValueError:
-            return False
-
-    if isinstance(val, str):
-        val = (val,)
-
-    res = []
-
-    # check for valid uuid
-    possible_aliaes: list[str] = []
-    for v in val:
-        if is_valid_uuid(v):
-            res.append(v)
-            continue
-        else:
-            possible_aliaes.append(v)
-
-    # make transfromation from alias to uuid or name
-    possible_names = []
-    for alias in possible_aliaes:
-        name_or_uuid = config.playlist_aliases.get(alias, alias)
-        if is_valid_uuid(name_or_uuid):
-            res.append(name_or_uuid)
-        else:
-            possible_names.append(name_or_uuid)
-
-    # check and get cached playlist
-    playlists_cache = fm.get_playlist_cache()
-    if playlists_cache is None:
-        logger.warning("no cached playlist, try getting from server")
-        pl = create_playlist()
-        # TODO use to CONSTANT to replace 100
-        playlists_cache, total = pl.run(
-            pl.playlist.get_playlists(page_size=100)
-        )[0]
-        if total > len(playlists_cache):
-            logger.warning(
-                f"total playlist number {total} is larger than"
-                f" {len(playlists_cache)}"
-            )
-        fm.save_playlist_cache(playlists_cache)
-    cached_names = [p.name for p in playlists_cache]
-
-    # check for valid names using playlist cache
-    for name in possible_names:
-        if name in cached_names:
-            res.append(playlists_cache[cached_names.index(name)].id)
-        else:
-            logger.warning(f"invalid playlist name {name}")
-
-    if not res:
-        logger.warning(
-            "If you just have created a playlist, you may need to use pl list"
-            " to cache the playlists to local"
+    ctx: click.Context, param: click.Parameter, val: str | tuple[str, ...]
+) -> int | list[int] | None:
+    if ctx.resilient_parsing or (val is None and not param.required):
+        return None
+    values = (val,) if isinstance(val, str) else val
+    if not values:
+        raise click.BadParameter(
+            "Specify at least one local playlist.", ctx, param
         )
-        ctx.fail("no valid uuid, alias or names found")
-
-    if param.nargs == 1:
-        return res[0]
-    return res
+    db = create_database()
+    try:
+        ids = []
+        for value in values:
+            identifier = (
+                value if value.isdecimal()
+                else config.playlist_aliases.get(value, value)
+            )
+            ids.append(db.get_playlist(identifier).id)
+    except ValueError as exc:
+        raise click.BadParameter(str(exc), ctx, param) from exc
+    return ids[0] if param.nargs == 1 else ids

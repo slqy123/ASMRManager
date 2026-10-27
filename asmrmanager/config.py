@@ -1,11 +1,25 @@
 import os
-from dataclasses import dataclass
+from ast import literal_eval
+from dataclasses import dataclass, field
 from typing import Literal
 
 import toml
 
 from asmrmanager import CONFIG_PATH
 from asmrmanager.logger import logger
+
+
+@dataclass
+class SyncConfig:
+    star: bool = False
+    comment: bool = False
+    progress: bool = False
+    playlist: bool = False
+
+    def __post_init__(self):
+        for name in ("star", "comment", "progress", "playlist"):
+            if type(getattr(self, name)) is not bool:
+                raise ValueError(f"sync.{name} must be a boolean.")
 
 
 @dataclass
@@ -34,6 +48,7 @@ class Config:
     player: Literal["mpd", "pygame", "sounddevice"]
     mpd_config: "MPDConfig"
     before_store: str = ""
+    sync: SyncConfig = field(default_factory=SyncConfig)
 
 
 @dataclass
@@ -115,14 +130,30 @@ config = Config(
     mpd_config=MPDConfig(**_config.get("mpd_config", {})),
     before_store=_config.get("before_store", ""),
     subtitle_config=SubtitleConfig(**_config.get("subtitle_config", {})),
+    sync=SyncConfig(**_config.get("sync", {})),
 )
 
 # environment variable override
 if env_concurrency_limit := os.getenv("ASMR_CONCURRENCY_LIMIT"):
-    creq, crps = eval(env_concurrency_limit)
-    assert isinstance(creq, int) and isinstance(crps, int)
-    config.api_max_concurrent_requests = creq
-    config.api_max_requests_per_second = crps
+    try:
+        limits = literal_eval(env_concurrency_limit)
+    except (SyntaxError, ValueError):
+        raise ValueError(
+            "ASMR_CONCURRENCY_LIMIT must be a pair of integers."
+        ) from None
+    if (
+        not isinstance(limits, (tuple, list))
+        or len(limits) != 2
+        or any(type(value) is not int for value in limits)
+        or limits[0] <= 0
+    ):
+        raise ValueError(
+            "ASMR_CONCURRENCY_LIMIT must contain a positive concurrency "
+            "limit and an integer request rate."
+        )
+    config.api_max_concurrent_requests, config.api_max_requests_per_second = (
+        limits
+    )
 
 if os.getenv("ASMR_DISABLE_COVER") == "1":
     config.display_cover = False
@@ -130,4 +161,4 @@ if os.getenv("ASMR_DISABLE_COVER") == "1":
 if (__tagger := os.getenv("ASMR_DEFAULT_TAGGER")) in ("tag", "tagw"):
     config.default_tagger = __tagger
 
-logger.debug(f"Config loaded: {config}")
+logger.debug("Config loaded.")

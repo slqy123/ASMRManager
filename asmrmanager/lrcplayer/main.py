@@ -37,7 +37,7 @@ class LRCPlayer(App):
         match config.player:
             case "pygame":
                 logger.warning(
-                    "pygame backend is deprecated "
+                    "Pygame backend is deprecated "
                     "and will not be supported in future versions."
                 )
                 logger.info(
@@ -68,7 +68,7 @@ class LRCPlayer(App):
 
                 self.player = SoundDevicePlayer(episodes)
             case _:
-                logger.error(f"player {config.player} not supported")
+                logger.error(f"Player {config.player} not supported")
                 assert False
 
         super().__init__(*args, **kwargs)
@@ -186,7 +186,7 @@ def main(path: Path):
             continue
 
         if (vtt := file.with_suffix(".vtt")).exists():
-            logger.info(f"convert vtt to lrc: {vtt}")
+            logger.info(f"Converting VTT file to LRC: {vtt}")
             lrc_content = vtt2lrc(vtt)
             with open(lrc, "w", encoding="utf-8") as f:
                 f.write(lrc_content)
@@ -196,7 +196,7 @@ def main(path: Path):
         episodes.append(Music(file, None))
 
     if not episodes:
-        logger.error("error input")
+        logger.error("Invalid input.")
         return
 
     app = LRCPlayer(episodes)

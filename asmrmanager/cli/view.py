@@ -43,7 +43,7 @@ def add(source_id: LocalSourceID, no_cover: bool):
             if not dst.exists():
                 break
             i += 1
-        logger.warning("%s already exists, use %s instead", rj_name, dst)
+        logger.warning("%s already exists; using %s instead.", rj_name, dst)
         # raise DstItemAlreadyExistsException
 
     src = folder_chooser(root)

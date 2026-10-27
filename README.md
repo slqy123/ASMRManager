@@ -41,13 +41,11 @@
 
 下载的音声作品元数据会存储在本地 SQLite 数据库中，基于此提供了以下功能（仅本地）：
 
-- 对作品进行评分，评论。
+- 对作品进行评分、评论，记录收听状态和最近评价日期；私人备注保留在本地。
 - 使用预定义的SQL脚本进行查询(仓库提供了一些模板，例如 [search.sql](./asmrmanager/filemanager/resources/sqls.example/search.sql))
+- 在本地创建播放列表、添加已有作品、查询或删除列表，不依赖网络或登录。
 
-同时也提供网站以下API接口的CLI实现：
-
-- 管理用户播放列表
-- 对作品标签进行投票
+此外，还可以对网站上的作品标签进行投票。
 
 ### 播放
 
@@ -59,6 +57,11 @@
 > [!NOTE]
 > 推荐使用 `pipx` 替代 `pip` 进行安装，以避免环境污染。
 > 安装方法：`pip install pipx`
+
+> [!NOTE]
+> 从 `2.X` 升级到 `3.0` 后请参考[迁移说明](./MIGRATION.md)。
+> 3.0 版本使用AI重构了大量模块，无明确的稳定性和兼容保证，暂不推荐升级。
+> 目前仍只推荐安装2.X版本：`pip install "ASMRManager[依赖]<3"`。
 
 本工具支持 `python >= 3.12`，安装方法如下：
 
@@ -98,8 +101,8 @@ pip install ASMRManager[依赖]
 - `file check` 检查下载目录下的文件是否按照规则被正确下载，并验证文件完整性
 - `file store` 将下载文件转移到存储目录(STORAGE_PATH)，并执行相应文件格式转换(详情见config.toml的before_store字段)
 - `view` 选择文件并复制到 VIEW_PATH
-- `pl add` 将某个音声添加到用户的云端播放列表(配合 `pl create` 使用)
-- `pl vote up/down/add` 对相关标签进行投票，或添加新标签
+- `pl add` 将本地数据库中已有的作品添加到本地播放列表(配合 `pl create` 使用)
+- `vote up/down/add` 对相关标签进行投票，或添加新标签
 - `review` 为某个作品评分并评论(本地)
 
 更多使用示例可参考[这一小节](#使用示例)。
@@ -212,14 +215,61 @@ asmr vote down -t 497
 asmr vote up  # 不传入-t参数，会进入交互式选择模式
 ```
 
-播放列表管理
+本地播放列表管理：
 
 ```shell
-asmr pl list # 列出所有播放列表
-asmr pl create myplaylist --desc "An example playlist" --privacy PRIVATE  # 创建一个播放列表，并将权限设置为私密。
-asmr pl add myplaylist RJ123456  # 将音声添加到myplaylist播放列表中
-asmr pl show myplaylist  # 展示myplaylist播放列表中的音声
+asmr pl list
+asmr pl list --num 100 --raw
+asmr pl create myplaylist --desc "An example playlist" --privacy PRIVATE
+asmr pl add myplaylist RJ123456 VJ015443
+asmr pl show myplaylist
+asmr pl rm myplaylist
 ```
+
+列表可以使用本地 ID、唯一名称或配置文件中 `[playlist_aliases]` 的别名操作，名称重复时使用 `pl list` 显示的 ID。添加的作品需要已存在于本地数据库；删除列表不会删除作品和文件。
+
+本地评价与收听状态：
+
+```shell
+asmr review RJ123456 --star 5 --comment "当前评论"
+asmr review RJ123456 --progress listening
+asmr review RJ123456 --clear-progress
+asmr review RJ123456 --star 0 --comment ""
+```
+
+收听状态有 `marked`（想听）、`listening`（在听）、`listened`（听过）、`replay`（重听）、`postponed`（搁置）。评分和评论会记录评价日期，并尝试将已有文件移入存储目录；仅修改收听状态不会移动文件。`hold --comment` 的原因作为本地备注保存。
+
+同步评分、评论、收听状态和播放列表（需配置登录信息）：
+
+默认只在本地保存，在配置文件中按需开启对应的同步功能：
+
+```toml
+[sync]
+star = false
+comment = false
+progress = false
+playlist = false
+```
+
+开启后，`review` 会先保存本地，再上传本次修改的对应字段；本地备注和评价日期不会上传。上传失败可使用 `sync push` 重试，拉取云端数据使用 `sync pull`：
+
+```shell
+asmr sync push RJ123456
+asmr sync push RJ123456 --field comment
+asmr sync pull  # 展示差异，选择采用云端或保留本地
+```
+
+播放列表需要手动推送或拉取，`create/add/rm` 仍然只修改本地：
+
+```shell
+asmr pl push myplaylist  # 首次创建云端列表，之后以本地内容更新
+asmr pl pull myplaylist  # 以云端内容更新本地列表
+asmr pl pull --remote <cloud-playlist-id>  # 导入指定的云端列表
+asmr pl bind myplaylist <cloud-playlist-id>  # 关联已有云端列表
+asmr pl rm myplaylist --remote  # 同时删除云端和本地列表
+```
+
+`push/pull` 会展示差异并要求确认，不会按名称自动合并列表。云端关联只适用于当前服务和账号，换账号或服务后不能直接沿用。如果写入失败并提示云端结果可能未知，请先到网站核对，再决定是否重试。
 
 生成字幕文件，目前仅支持LRC格式：
 
