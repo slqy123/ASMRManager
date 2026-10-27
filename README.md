@@ -58,6 +58,11 @@
 > 推荐使用 `pipx` 替代 `pip` 进行安装，以避免环境污染。
 > 安装方法：`pip install pipx`
 
+> [!NOTE]
+> 从 `2.X` 升级到 `3.0` 后请参考[迁移说明](./MIGRATION.md)。
+> 3.0 版本使用AI重构了大量模块，无明确的稳定性和兼容保证，暂不推荐升级。
+> 目前仍只推荐安装2.X版本：`pip install "ASMRManager[依赖]<3"`。
+
 本工具支持 `python >= 3.12`，安装方法如下：
 
 ```shell
@@ -97,7 +102,7 @@ pip install ASMRManager[依赖]
 - `file store` 将下载文件转移到存储目录(STORAGE_PATH)，并执行相应文件格式转换(详情见config.toml的before_store字段)
 - `view` 选择文件并复制到 VIEW_PATH
 - `pl add` 将本地数据库中已有的作品添加到本地播放列表(配合 `pl create` 使用)
-- `pl vote up/down/add` 对相关标签进行投票，或添加新标签
+- `vote up/down/add` 对相关标签进行投票，或添加新标签
 - `review` 为某个作品评分并评论(本地)
 
 更多使用示例可参考[这一小节](#使用示例)。
@@ -221,55 +226,7 @@ asmr pl show myplaylist
 asmr pl rm myplaylist
 ```
 
-列表使用自增整数作为本地 ID，可以使用 ID、唯一名称或 `[playlist_aliases]` 中配置的别名操作；名称重复时使用 `pl list` 显示的本地 ID。纯数字参数优先解释为本地 ID。添加的作品须已存在于本地数据库，也可使用数据库中已知的云端作品 ID。同一作品可以属于多个列表，重复添加不会增加重复成员。
-
-`create/add/rm` 始终只修改本地，即使启用了列表同步也不会联网。`pl rm` 删除整个本地列表，但保留作品及其文件；若云端列表仍在，之后可重新拉取导入。`list`、`show` 和补全读取本地数据，封面仅使用已有本地文件；`members` 为成员数。本地整数 ID 与云端 `remote_id` 不可混用。
-
-配置文件支持以下开关，旧配置缺少这一节时也全部默认关闭：
-
-```toml
-[sync]
-star = false
-comment = false
-progress = false
-playlist = false
-```
-
-开关关闭不影响本地功能。启用评分、评论或状态同步后，`review` 先保存本地，再仅推送本次提交且启用的字段，不覆盖未提交的云端值；本地备注和评价日期不上传。推送失败不会撤销本地修改，命令会报错，可检查云端后显式重试：
-
-```shell
-asmr sync push RJ123456
-asmr sync push RJ123456 --field comment
-```
-
-重试读取当前本地值，仍只处理启用字段，不更新评价日期、不移动文件；不要重复执行 `review` 来重试同步。同步前要求已有有效的云端作品映射；映射缺失或不匹配时会拒绝上传，请先刷新作品信息。
-
-启用 `sync.playlist = true` 后，通过显式命令传输播放列表：
-
-```shell
-asmr pl push myplaylist
-asmr pl pull myplaylist
-asmr pl pull --remote <cloud-playlist-id>
-asmr pl bind myplaylist <cloud-playlist-id>
-asmr pl rm myplaylist --remote
-```
-
-`push` 首次创建云端列表并保存关联，之后以本地为准更新关联列表的名称、描述、隐私和成员；远端已不存在时会报错，不自动重建。`pull` 以云端为准替换本地列表；`--remote` 按指定云端 ID 导入，已有该关联则更新对应本地列表。推拉会展示差异并要求确认，可用 `--yes` 显式确认。不会按名称自动匹配或合并列表。
-
-高级命令 `bind` 仅关联当前账号拥有的云端 ID，不替换本地内容；随后自行选择推送或拉取。关联绑定当前服务和账号，不可在换账号或服务后直接沿用。`rm --remote` 经确认后同时删除云端和本地列表。
-
-显式拉取只处理启用类型，不触发下载或反向上传：
-
-```shell
-asmr sync pull
-asmr sync pull --interactive
-asmr sync pull --choice local
-asmr sync pull --choice cloud
-```
-
-默认在终端逐项展示差异，选择采用云端或保留本地，也可对剩余差异统一选择；非交互环境默认跳过冲突并以非零状态报告未处理项。`--choice cloud` 明确采用全部云端差异，包含清空远端缺失的评价字段和删除远端已不存在的关联列表，请谨慎使用；`--choice local` 保留全部本地值，不反向推送。拉取失败或分页变化时不会将部分结果当作删除。云端独有作品仅导入信息与启用的状态；本地备注、评价日期、文件和存储状态保持不变，未关联列表不参与缺失判定。
-
-写请求没有应用层自动重试。若提示远端结果可能未知，请先在站点核对，避免重复创建或提交。列表已创建但成员验证失败时会保留关联 ID，可使用 `pl pull` 恢复。云端成功但本地保存失败时，错误会提示云端 ID；检查该 ID，通过 `pl bind` 或 `pl pull --remote` 恢复，避免重复创建。拉取先完整获取并验证数据，再事务写入；失败则回滚本地修改。云端多次写请求不能保证整体回滚，失败后需检查远端结果。
+列表可以使用本地 ID、唯一名称或配置文件中 `[playlist_aliases]` 的别名操作，名称重复时使用 `pl list` 显示的 ID。添加的作品需要已存在于本地数据库；删除列表不会删除作品和文件。
 
 本地评价与收听状态：
 
@@ -280,23 +237,39 @@ asmr review RJ123456 --clear-progress
 asmr review RJ123456 --star 0 --comment ""
 ```
 
-收听状态可选 `marked`（想听）、`listening`（在听）、`listened`（听过）、`replay`（重听）、`postponed`（搁置）。
-评论会替换当前值；`hold --comment` 的原因只作为本地备注保存。修改评分或评论会记录评价日期并尝试将已有文件移入存储目录；仅修改收听状态不会移动文件。`review` 只维护本地数据库已有作品，本地编号和已知的云端编号都可离线解析；未知作品会报错，不会联网补取详情。
+收听状态有 `marked`（想听）、`listening`（在听）、`listened`（听过）、`replay`（重听）、`postponed`（搁置）。评分和评论会记录评价日期，并尝试将已有文件移入存储目录；仅修改收听状态不会移动文件。`hold --comment` 的原因作为本地备注保存。
 
-升级与旧数据导入：
+同步评分、评论、收听状态和播放列表（需配置登录信息）：
 
-```shell
-asmr utils migrate
-asmr utils migrate --root /path/to/legacy/download --root /path/to/legacy/storage
+默认只在本地保存，在配置文件中按需开启对应的同步功能：
+
+```toml
+[sync]
+star = false
+comment = false
+progress = false
+playlist = false
 ```
 
-迁移前会备份已有数据库并显示备份位置。迁移只补齐数据库中已有作品缺失的详情和恢复记录，按作品编号读取下载目录、存储目录下的 `<作品编号>/<作品编号>.json` 和 `<作品编号>/.recover`，不会扫描整个文件库或导入数据库中不存在的作品；旧播放列表缓存不含完整成员，不再导入。迁移只读取本地文件，不请求 API；结束后会提示仍缺详情的作品数量。可单独运行 `asmr utils migrate-update` 联网补齐缺失详情，不修改已有恢复记录；失败后可重复运行，已补齐的作品会跳过。迁移可重复执行，不覆盖已有用户评价，不删除原文件；无法导入的文件会单独报告，修正后可重试。旧评论保留为本地备注，没有可靠来源的评价日期留空。已有自定义 SQL 需要使用新的 `last_review` 字段。
+开启后，`review` 会先保存本地，再上传本次修改的对应字段；本地备注和评价日期不会上传。上传失败可使用 `sync push` 重试，拉取云端数据使用 `sync pull`：
 
-开启 `sync.playlist = true` 后，运行 `asmr utils migrate-playlists` 初次导入当前账号拥有的云端播放列表及全部成员，缺少的作品会补取详情。数据完整获取并校验后才事务写入；失败不留下部分列表。重复运行跳过已关联的列表，不覆盖本地修改，也不按名称合并。后续更新使用 `pl pull`。
+```shell
+asmr sync push RJ123456
+asmr sync push RJ123456 --field comment
+asmr sync pull  # 展示差异，选择采用云端或保留本地
+```
 
-确认详情和恢复记录完整并备份 `data.db` 后，可运行 `asmr utils migrate-cleanup` 清理旧元数据；使用自定义目录迁移时，应带上相同的 `--root` 参数。清理命令会先展示将执行的命令，确认后才删除。删除范围也包含数据库中不存在的作品，请先检查是否需要保留这些文件。
+播放列表需要手动推送或拉取，`create/add/rm` 仍然只修改本地：
 
-新下载的作品详情和恢复记录保存在数据库中，补下载、文件对比和校验不再依赖作品目录中的 JSON 或 `.recover`。请同时备份数据目录下的 `data.db`；只复制音频目录不会带走这些记录。若需恢复迁移前的数据库，请先关闭工具，保留当前数据库及其伴随文件，再将备份恢复到 `data.db`，不要混用两个版本的数据库文件。
+```shell
+asmr pl push myplaylist  # 首次创建云端列表，之后以本地内容更新
+asmr pl pull myplaylist  # 以云端内容更新本地列表
+asmr pl pull --remote <cloud-playlist-id>  # 导入指定的云端列表
+asmr pl bind myplaylist <cloud-playlist-id>  # 关联已有云端列表
+asmr pl rm myplaylist --remote  # 同时删除云端和本地列表
+```
+
+`push/pull` 会展示差异并要求确认，不会按名称自动合并列表。云端关联只适用于当前服务和账号，换账号或服务后不能直接沿用。如果写入失败并提示云端结果可能未知，请先到网站核对，再决定是否重试。
 
 生成字幕文件，目前仅支持LRC格式：
 
