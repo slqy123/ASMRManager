@@ -595,6 +595,50 @@ class DatabaseTest(TestCase):
             (second.details, second.recoveries, second.playlists), (0, 0, 0)
         )
 
+    def test_playlist_migration_continues_after_invalid_items_and_is_repeatable(self):
+        first_id, last_id = uuid.uuid4(), uuid.uuid4()
+        cache = self.root / "playlist.cache"
+        cache.write_text(toml.dumps({
+            "playlists": [
+                {"id": str(first_id), "name": "First", "privacy": 0},
+                {"id": "invalid", "name": "Bad UUID", "privacy": 0},
+                {"id": str(uuid.uuid4()), "name": "Bad privacy", "privacy": 99},
+                {"id": str(uuid.uuid4()), "privacy": 0},
+                {"id": str(last_id), "name": "Last", "privacy": 0},
+            ],
+        }))
+
+        result = migrate_database(self.engine, [], cache)
+        self.assertEqual(result.playlists, 2)
+        self.assertEqual(len(result.errors), 3)
+        for index, error in enumerate(result.errors, 2):
+            self.assertIn(f"playlist #{index}:", error)
+        db = self.database()
+        self.assertEqual(
+            {item.remote_id for item in db.session.query(Playlist).all()},
+            {first_id, last_id},
+        )
+
+        second = migrate_database(self.engine, [], cache)
+        self.assertEqual((second.playlists, second.skipped), (0, 2))
+        self.assertEqual(second.errors, result.errors)
+        self.assertEqual(db.session.query(Playlist).count(), 2)
+
+    def test_playlist_migration_continues_after_database_error(self):
+        cache = self.root / "playlist.cache"
+        cache.write_text(toml.dumps({
+            "playlists": [
+                {"id": str(uuid.uuid4()), "name": ["invalid"], "privacy": 0},
+                {"id": str(uuid.uuid4()), "name": "Valid", "privacy": 0},
+            ],
+        }))
+
+        result = migrate_database(self.engine, [], cache)
+        self.assertEqual(result.playlists, 1)
+        self.assertEqual(len(result.errors), 1)
+        self.assertIn("playlist #1:", result.errors[0])
+        self.assertEqual(self.database().session.query(Playlist).one().name, "Valid")
+
     def test_download_recovery_takes_precedence(self):
         db = self.database()
         db.session.add(ASMR(id=123))

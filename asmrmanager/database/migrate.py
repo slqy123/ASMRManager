@@ -185,38 +185,38 @@ def migrate_database(
             logger.info("Importing legacy playlist cache.")
             try:
                 cached = toml.load(playlist_cache)["playlists"]
-                for item in cached:
-                    with db.session.begin_nested():
-                        remote_id = uuid.UUID(item["id"])
-                        existing = (
-                            db.session.query(Playlist)
-                            .filter_by(remote_id=remote_id)
-                            .one_or_none()
-                        )
-                        if existing is not None:
-                            result.skipped += 1
-                            continue
-                        db.session.add(
-                            Playlist(
-                                id=uuid.uuid4(),
-                                remote_id=remote_id,
-                                remote_service=remote_service,
-                                remote_user=remote_user,
-                                name=item["name"],
-                                description=item.get("desc", ""),
-                                privacy=PRIVACY(item["privacy"]).value,
-                                members_complete=False,
-                            )
-                        )
-                    result.playlists += 1
-            except (
-                OSError,
-                ValueError,
-                TypeError,
-                KeyError,
-                SQLAlchemyError,
-            ) as exc:
+            except (OSError, ValueError, TypeError, KeyError) as exc:
                 result.errors.append(f"{playlist_cache}: {type(exc).__name__}")
+            else:
+                for index, item in enumerate(cached, 1):
+                    try:
+                        with db.session.begin_nested():
+                            remote_id = uuid.UUID(item["id"])
+                            existing = (
+                                db.session.query(Playlist)
+                                .filter_by(remote_id=remote_id)
+                                .one_or_none()
+                            )
+                            if existing is not None:
+                                result.skipped += 1
+                                continue
+                            db.session.add(
+                                Playlist(
+                                    id=uuid.uuid4(),
+                                    remote_id=remote_id,
+                                    remote_service=remote_service,
+                                    remote_user=remote_user,
+                                    name=item["name"],
+                                    description=item.get("desc", ""),
+                                    privacy=PRIVACY(item["privacy"]).value,
+                                    members_complete=False,
+                                )
+                            )
+                        result.playlists += 1
+                    except (ValueError, TypeError, KeyError, SQLAlchemyError) as exc:
+                        result.errors.append(
+                            f"{playlist_cache}: playlist #{index}: {type(exc).__name__}"
+                        )
         db.session.commit()
         logger.info("Local metadata migration committed.")
         return result
