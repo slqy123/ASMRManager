@@ -253,7 +253,6 @@ all = [
     { name = "sounddevice" },
     { name = "soundfile" },
     { name = "textual-image" },
-    { name = "trogon" },
 ]
 aria2 = [
     { name = "aioaria2" },
@@ -284,9 +283,6 @@ subtitle = [
     { name = "ctranslate2" },
     { name = "faster-whisper" },
 ]
-tui = [
-    { name = "trogon" },
-]
 
 [package.metadata]
 requires-dist = [
@@ -294,7 +290,7 @@ requires-dist = [
     { name = "aiohttp", specifier = ">=3.8.6" },
     { name = "aiolimiter", specifier = ">=1.2.1" },
     { name = "appdirs", specifier = ">=1.4.4" },
-    { name = "asmrmanager", extras = ["aria2", "idm", "image", "player", "subtitle", "tui"], marker = "extra == 'all'" },
+    { name = "asmrmanager", extras = ["aria2", "idm", "image", "player", "subtitle"], marker = "extra == 'all'" },
     { name = "asyncstdlib", specifier = ">=3.13.1" },
     { name = "beaupy", specifier = "<4" },
     { name = "chardet", specifier = ">=5.1.0" },
@@ -317,11 +313,10 @@ requires-dist = [
     { name = "textual", specifier = ">=1" },
     { name = "textual-image", marker = "extra == 'image'", specifier = ">=0.8.5" },
     { name = "toml", specifier = ">=0.10.2" },
-    { name = "trogon", marker = "extra == 'tui'", specifier = ">=0.4.0" },
     { name = "viztracer", marker = "extra == 'dev'", specifier = ">=0.16.3" },
     { name = "xxhash", specifier = ">=3.5.0" },
 ]
-provides-extras = ["pygame", "mpd", "aria2", "idm", "tui", "player", "subtitle", "image", "dev", "all"]
+provides-extras = ["pygame", "mpd", "aria2", "idm", "player", "subtitle", "image", "dev", "all"]
 
 [[package]]
 name = "ast-serialize"
@@ -1988,19 +1983,6 @@ dependencies = [
 sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/0d/ea/b2a5bd54b28a324dae8211928b2d730b6547500342c7e6c6dea08bd0a485/tqdm-4.70.1.tar.gz", hash = "sha256:cefd0eca11b2a37a3aee776544d4f4ae913f02688135b5556b8788dfa474afc4", size = 171846, upload-time = "2026-09-11T07:25:16.601Z" }
 wheels = [
     { url = "https://pypi.tuna.tsinghua.edu.cn/packages/a7/03/921a3d3c75785aca9ebfbfcabfbc3a1be12e2ab5265deb026d55a5a3f83e/tqdm-4.70.1-py3-none-any.whl", hash = "sha256:c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73", size = 80199, upload-time = "2026-09-11T07:25:14.599Z" },
-]
-
-[[package]]
-name = "trogon"
-version = "0.6.0"
-source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
-dependencies = [
-    { name = "click" },
-    { name = "textual" },
-]
-sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/cf/ae/7367acac2194a215b092ba3fccde3b558272702110b8bb9bea164ab4ac42/trogon-0.6.0.tar.gz", hash = "sha256:fd1abfeb7b15d79d6e6cfc9e724aad2a2728812e4713a744d975f133e7ec73a4", size = 22902, upload-time = "2024-10-02T13:38:12.511Z" }
-wheels = [
-    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/97/30/33035d5796a3b8b9624997fec7545e3febd2268c7b48df38a715a95cb5e4/trogon-0.6.0-py3-none-any.whl", hash = "sha256:fb5b6c25acd7a0eaba8d2cd32a57f1d80c26413cea737dad7a4eebcda56060e0", size = 26077, upload-time = "2024-10-02T13:38:11.09Z" },
 ]
 
 [[package]]

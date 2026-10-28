@@ -73,25 +73,6 @@ def main(ctx):
     logger.info("Running command: %s", ctx.invoked_subcommand)
 
 
-try:
-    import importlib.util
-
-    if importlib.util.find_spec("trogon"):
-
-        @click.command("tui", help="Open Textual TUI.")
-        @click.pass_context
-        def tui(ctx: click.Context):
-            from trogon import Trogon  # type: ignore
-
-            if ctx.parent is not None:
-                for name in LAZY_COMMANDS:
-                    main.get_command(ctx.parent, name)
-                Trogon(ctx.parent.command, click_context=ctx).run()
-
-        main.add_command(tui)
-except ImportError:
-    pass
-
 LAZY_COMMANDS = {
     "dl": "download ASMR",
     "info": "show info of the ASMR by id",

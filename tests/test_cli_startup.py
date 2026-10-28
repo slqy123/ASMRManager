@@ -27,6 +27,22 @@ class CLIStartupTests(unittest.TestCase):
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_only_lazy_commands_are_registered(self):
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                (
+                    "from asmrmanager.cli.main import main, LAZY_COMMANDS; "
+                    "assert set(main.commands) == set(LAZY_COMMANDS)"
+                ),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_lazy_commands_resolve_to_real_commands(self):
         result = subprocess.run(
             [
