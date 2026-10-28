@@ -91,7 +91,7 @@ class HTTPTransport:
         binary: bool = False,
     ) -> Any:
         method = method.upper()
-        attempts = 5 if method == "GET" else 1
+        attempts = 5
         failure_hint = (
             " The remote outcome may be unknown; check it before retrying."
             if method != "GET"

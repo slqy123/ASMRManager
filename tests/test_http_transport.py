@@ -132,7 +132,7 @@ class HTTPTransportTest(IsolatedAsyncioTestCase):
             json.loads(request["body"]), {"work_id": 200123, "progress": None}
         )
 
-    async def test_review_put_failure_does_not_add_an_application_retry(self):
+    async def test_review_put_retries_connection_failure(self):
         with (
             patch.object(
                 self.transport._session,
@@ -144,7 +144,7 @@ class HTTPTransportTest(IsolatedAsyncioTestCase):
             ) as error,
         ):
             await self.api.update_review(200123, {"rating": None})
-        self.assertEqual(request.call_count, 1)
+        self.assertEqual(request.call_count, 5)
         self.assert_safe_error(error.exception)
 
     async def test_binary_request_preserves_bytes(self):
@@ -226,6 +226,25 @@ class HTTPTransportTest(IsolatedAsyncioTestCase):
         self.assertEqual(request.call_count, 2)
         self.assertEqual(len(self.requests), 1)
 
+    async def test_post_retries_connection_failure_then_succeeds(self):
+        response = self.transport._session.request(
+            "POST",
+            self.transport.base_url + "playlist/create-playlist",
+            json={"name": "Local"},
+        )
+        with patch.object(
+            self.transport._session,
+            "request",
+            side_effect=[ClientConnectionError("test-secret"), response],
+        ) as request:
+            result = await self.api.post(
+                "playlist/create-playlist", {"name": "Local"}
+            )
+        self.assertEqual(result, {"ok": True})
+        self.assertEqual(request.call_count, 2)
+        self.assertEqual(len(self.requests), 1)
+        self.assertEqual(self.requests[0]["body"], b'{"name": "Local"}')
+
     async def test_get_retry_budget_is_five_transport_attempts(self):
         for exception in (
             ClientConnectionError,
@@ -246,7 +265,7 @@ class HTTPTransportTest(IsolatedAsyncioTestCase):
             self.assert_safe_error(error.exception)
         self.assertEqual(self.requests, [])
 
-    async def test_non_get_methods_have_one_transport_attempt(self):
+    async def test_non_get_methods_have_five_transport_attempts(self):
         for method in ("POST", "PUT", "DELETE"):
             for exception in (
                 ClientConnectionError,
@@ -267,24 +286,29 @@ class HTTPTransportTest(IsolatedAsyncioTestCase):
                     await self.transport.request(
                         method, "review", headers=self.headers
                     )
-                self.assertEqual(request.call_count, 1)
+                self.assertEqual(request.call_count, 5)
                 self.assert_safe_error(error.exception)
         self.assertEqual(self.requests, [])
 
-    async def test_post_disconnect_after_server_receives_request_is_not_replayed(
+    async def test_post_disconnect_after_server_receives_request_is_retried(
         self,
     ):
         self.disconnect = True
         with self.assertRaisesRegex(APIError, "outcome may be unknown"):
             await self.api.create_playlist("Created")
-        self.assertEqual(len(self.requests), 1)
-        self.assertIn(b'"name": "Created"', self.requests[0]["body"])
+        self.assertEqual(len(self.requests), 5)
+        self.assertTrue(
+            all(
+                b'"name": "Created"' in request["body"]
+                for request in self.requests
+            )
+        )
 
-    async def test_post_truncated_response_is_not_replayed(self):
+    async def test_post_truncated_response_is_retried(self):
         self.truncate = True
         with self.assertRaisesRegex(APIError, "outcome may be unknown"):
             await self.api.create_playlist("Created")
-        self.assertEqual(len(self.requests), 1)
+        self.assertEqual(len(self.requests), 5)
 
     async def test_redirect_loop_fails_without_exposing_urls(self):
         self.redirect = True
