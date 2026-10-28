@@ -1,3 +1,5 @@
+import tests
+
 from copy import deepcopy
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock

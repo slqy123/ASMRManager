@@ -1,3 +1,5 @@
+import tests
+
 import json
 import uuid
 from copy import deepcopy

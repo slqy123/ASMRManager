@@ -1,3 +1,5 @@
+import tests
+
 import runpy
 from copy import deepcopy
 from dataclasses import asdict

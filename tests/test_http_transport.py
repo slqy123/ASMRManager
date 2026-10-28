@@ -1,3 +1,5 @@
+import tests
+
 import asyncio
 import json
 import traceback

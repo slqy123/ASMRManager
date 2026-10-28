@@ -1,3 +1,5 @@
+import tests
+
 from io import StringIO
 from unittest import TestCase
 from unittest.mock import patch
@@ -9,7 +11,7 @@ from asmrmanager.cli.info import print_asmr_info
 from asmrmanager.database.database import ASMR
 from asmrmanager.database.manage import DataBaseManager
 
-from .test_local_database import work_info
+from tests.test_local_database import work_info
 
 
 class InfoLanguageEditionsTest(TestCase):

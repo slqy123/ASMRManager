@@ -1,3 +1,5 @@
+import tests
+
 import uuid
 from itertools import combinations
 from unittest import IsolatedAsyncioTestCase

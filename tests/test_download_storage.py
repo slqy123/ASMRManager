@@ -1,3 +1,5 @@
+import tests
+
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -14,7 +16,7 @@ from asmrmanager.database.database import ASMR
 from asmrmanager.database.manage import DataBaseManager
 from asmrmanager.spider.downloader import DownloadError
 
-from .test_local_database import recovery, work_info
+from tests.test_local_database import recovery, work_info
 
 
 class DownloadStorageTest(IsolatedAsyncioTestCase):

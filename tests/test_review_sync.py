@@ -1,3 +1,5 @@
+import tests
+
 import sys
 from datetime import UTC, date, datetime
 from unittest import TestCase
